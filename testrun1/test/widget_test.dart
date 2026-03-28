@@ -2,7 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:testrun1/main.dart';
 
 void main() {
-  testWidgets('dashboard renders core sections', (tester) async {
+  testWidgets('dashboard renders and routes to games', (tester) async {
     await tester.pumpWidget(const AudyApp());
 
     expect(find.text('AUDY'), findsOneWidget);
@@ -10,5 +10,13 @@ void main() {
     expect(find.text('Activities'), findsOneWidget);
     expect(find.text('Games'), findsOneWidget);
     expect(find.text('CEDT INNOVATION SUMMIT 2026'), findsOneWidget);
+
+    final gamesFinder = find.text('Games').first;
+    await tester.ensureVisible(gamesFinder);
+    await tester.tap(gamesFinder);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Play and learn with fun activities!'), findsOneWidget);
+    expect(find.text('Emotion Game'), findsOneWidget);
   });
 }
