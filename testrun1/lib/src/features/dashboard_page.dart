@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../core/app_routes.dart';
 import '../core/audy_ui.dart';
+import '../state/audy_controller.dart';
 
 class DashboardPage extends StatelessWidget {
   const DashboardPage({super.key});
@@ -10,6 +11,7 @@ class DashboardPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return AudyResponsivePage(
       builder: (context, adaptive) {
+        final controller = AudyScope.of(context);
         final activities = [
           _NavCardData(
             title: 'Games',
@@ -46,7 +48,13 @@ class DashboardPage extends StatelessWidget {
           children: [
             _DashboardHeader(adaptive: adaptive),
             SizedBox(height: adaptive.space(28)),
-            _ProgressOverviewCard(adaptive: adaptive),
+            _ProgressOverviewCard(
+              adaptive: adaptive,
+              progressValue: controller.dashboardProgress,
+              progressLabel: controller.dashboardProgressLabel,
+              detailText:
+                  'Prepared ${controller.preparedRequests.length} backend-ready requests locally without sending data.',
+            ),
             SizedBox(height: adaptive.space(28)),
             _SectionTitle(
               title: 'Activities',
@@ -185,9 +193,17 @@ class _DashboardHeader extends StatelessWidget {
 }
 
 class _ProgressOverviewCard extends StatelessWidget {
-  const _ProgressOverviewCard({required this.adaptive});
+  const _ProgressOverviewCard({
+    required this.adaptive,
+    required this.progressValue,
+    required this.progressLabel,
+    required this.detailText,
+  });
 
   final AudyAdaptive adaptive;
+  final double progressValue;
+  final String progressLabel;
+  final String detailText;
 
   @override
   Widget build(BuildContext context) {
@@ -213,14 +229,26 @@ class _ProgressOverviewCard extends StatelessWidget {
                 children: [
                   const Center(child: AudyMascot(size: 98)),
                   SizedBox(height: adaptive.space(14)),
-                  _ProgressBody(adaptive: adaptive),
+                  _ProgressBody(
+                    adaptive: adaptive,
+                    progressValue: progressValue,
+                    progressLabel: progressLabel,
+                    detailText: detailText,
+                  ),
                 ],
               )
             : Row(
                 children: [
                   const AudyMascot(size: 98),
                   SizedBox(width: adaptive.space(20)),
-                  Expanded(child: _ProgressBody(adaptive: adaptive)),
+                  Expanded(
+                    child: _ProgressBody(
+                      adaptive: adaptive,
+                      progressValue: progressValue,
+                      progressLabel: progressLabel,
+                      detailText: detailText,
+                    ),
+                  ),
                 ],
               ),
       ),
@@ -229,9 +257,17 @@ class _ProgressOverviewCard extends StatelessWidget {
 }
 
 class _ProgressBody extends StatelessWidget {
-  const _ProgressBody({required this.adaptive});
+  const _ProgressBody({
+    required this.adaptive,
+    required this.progressValue,
+    required this.progressLabel,
+    required this.detailText,
+  });
 
   final AudyAdaptive adaptive;
+  final double progressValue;
+  final String progressLabel;
+  final String detailText;
 
   @override
   Widget build(BuildContext context) {
@@ -250,7 +286,7 @@ class _ProgressBody extends StatelessWidget {
         ClipRRect(
           borderRadius: BorderRadius.circular(999),
           child: LinearProgressIndicator(
-            value: 0.45,
+            value: progressValue,
             minHeight: adaptive.space(16),
             backgroundColor: const Color(0xFFD5D7DD),
             valueColor: const AlwaysStoppedAnimation(Color(0xFF16D965)),
@@ -258,7 +294,7 @@ class _ProgressBody extends StatelessWidget {
         ),
         SizedBox(height: adaptive.space(12)),
         Text(
-          '45% Complete',
+          progressLabel,
           style: TextStyle(
             fontSize: adaptive.space(16),
             fontWeight: FontWeight.w700,
@@ -267,7 +303,7 @@ class _ProgressBody extends StatelessWidget {
         ),
         SizedBox(height: adaptive.space(6)),
         Text(
-          'You finished reading time and one game challenge. Tap to open the profile summary.',
+          detailText,
           style: TextStyle(
             fontSize: adaptive.space(14),
             color: const Color(0xFF70829A),

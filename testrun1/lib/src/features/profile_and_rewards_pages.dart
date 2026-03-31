@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../core/audy_ui.dart';
+import '../state/audy_controller.dart';
 
 class RewardsPage extends StatefulWidget {
   const RewardsPage({super.key});
@@ -14,6 +15,7 @@ class _RewardsPageState extends State<RewardsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final controller = AudyScope.of(context);
     return AudyResponsivePage(
       builder: (context, adaptive) {
         return Column(
@@ -54,7 +56,7 @@ class _RewardsPageState extends State<RewardsPage> {
               ],
             ),
             SizedBox(height: adaptive.space(24)),
-            _PointsBanner(adaptive: adaptive),
+            _PointsBanner(adaptive: adaptive, points: controller.learningPoints),
             SizedBox(height: adaptive.space(18)),
             Wrap(
               spacing: adaptive.space(12),
@@ -84,9 +86,15 @@ class _RewardsPageState extends State<RewardsPage> {
               ],
             ),
             SizedBox(height: adaptive.space(22)),
-            if (selectedTab == 0) _RewardsProgressTab(adaptive: adaptive),
-            if (selectedTab == 1) _RewardsAccessoriesTab(adaptive: adaptive),
-            if (selectedTab == 2) _RewardsAchievementsTab(adaptive: adaptive),
+            if (selectedTab == 0)
+              _RewardsProgressTab(adaptive: adaptive, controller: controller),
+            if (selectedTab == 1)
+              _RewardsAccessoriesTab(adaptive: adaptive, controller: controller),
+            if (selectedTab == 2)
+              _RewardsAchievementsTab(
+                adaptive: adaptive,
+                controller: controller,
+              ),
           ],
         );
       },
@@ -99,6 +107,7 @@ class ProfilePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final controller = AudyScope.of(context);
     return AudyResponsivePage(
       builder: (context, adaptive) {
         return Column(
@@ -190,36 +199,38 @@ class ProfilePage extends StatelessWidget {
                     phoneColumns: 2,
                     tabletColumns: 4,
                     desktopColumns: 4,
-                    items: const [
+                    items: [
                       _StatCard(
                         icon: Icons.star_outline_rounded,
-                        value: '245',
+                        value: '${controller.learningPoints}',
                         label: 'Points',
-                        color: Color(0xFFFFF2A8),
+                        color: const Color(0xFFFFF2A8),
                       ),
                       _StatCard(
                         icon: Icons.workspace_premium_outlined,
-                        value: '47',
+                        value: '${controller.gamesPlayed}',
                         label: 'Games Played',
-                        color: Color(0xFFBDD8F2),
+                        color: const Color(0xFFBDD8F2),
                       ),
                       _StatCard(
                         icon: Icons.bar_chart_rounded,
-                        value: '3',
+                        value: '${controller.unlockedAchievementCount}',
                         label: 'Achievements',
-                        color: Color(0xFFC9E8C1),
+                        color: const Color(0xFFC9E8C1),
                       ),
                       _StatCard(
                         icon: Icons.calendar_today_outlined,
-                        value: '5',
+                        value: '${controller.dayStreak}',
                         label: 'Day Streak',
-                        color: Color(0xFFF8C7DF),
+                        color: const Color(0xFFF8C7DF),
                       ),
                     ],
                   ),
                 ],
               ),
             ),
+            SizedBox(height: adaptive.space(20)),
+            _RequestSummaryCard(controller: controller),
             SizedBox(height: adaptive.space(20)),
             const _ProfileChartsSection(),
           ],
@@ -230,9 +241,13 @@ class ProfilePage extends StatelessWidget {
 }
 
 class _PointsBanner extends StatelessWidget {
-  const _PointsBanner({required this.adaptive});
+  const _PointsBanner({
+    required this.adaptive,
+    required this.points,
+  });
 
   final AudyAdaptive adaptive;
+  final int points;
 
   @override
   Widget build(BuildContext context) {
@@ -265,7 +280,7 @@ class _PointsBanner extends StatelessWidget {
           Column(
             children: [
               Text(
-                '245',
+                '$points',
                 style: TextStyle(
                   fontSize: adaptive.space(42),
                   fontWeight: FontWeight.w800,
@@ -345,18 +360,51 @@ class _RewardTabChip extends StatelessWidget {
 }
 
 class _RewardsProgressTab extends StatelessWidget {
-  const _RewardsProgressTab({required this.adaptive});
+  const _RewardsProgressTab({
+    required this.adaptive,
+    required this.controller,
+  });
 
   final AudyAdaptive adaptive;
+  final AudyController controller;
 
   @override
   Widget build(BuildContext context) {
     final levels = [
       ('Beginner', '0 - 100 points', 1.0, const Color(0xFFC9E8C1)),
-      ('Learner', '100 - 250 points', 0.96, const Color(0xFFBDD8F2)),
-      ('Explorer', '250 - 500 points', 0.0, const Color(0xFFE2E5EA)),
-      ('Expert', '500 - 1000 points', 0.0, const Color(0xFFE2E5EA)),
-      ('Master', '1000 - 2000 points', 0.0, const Color(0xFFE2E5EA)),
+      (
+        'Learner',
+        '100 - 250 points',
+        ((controller.learningPoints.clamp(100, 250) - 100) / 150).toDouble(),
+        const Color(0xFFBDD8F2),
+      ),
+      (
+        'Explorer',
+        '250 - 500 points',
+        controller.learningPoints >= 250
+            ? (((controller.learningPoints.clamp(250, 500) - 250) / 250)
+                  .toDouble())
+            : 0.0,
+        const Color(0xFFE7D8FA),
+      ),
+      (
+        'Expert',
+        '500 - 1000 points',
+        controller.learningPoints >= 500
+            ? (((controller.learningPoints.clamp(500, 1000) - 500) / 500)
+                  .toDouble())
+            : 0.0,
+        const Color(0xFFFFF2A8),
+      ),
+      (
+        'Master',
+        '1000 - 2000 points',
+        controller.learningPoints >= 1000
+            ? (((controller.learningPoints.clamp(1000, 2000) - 1000) / 1000)
+                  .toDouble())
+            : 0.0,
+        const Color(0xFFC9E8C1),
+      ),
     ];
 
     return AudyPanel(
@@ -421,20 +469,16 @@ class _RewardsProgressTab extends StatelessWidget {
 }
 
 class _RewardsAccessoriesTab extends StatelessWidget {
-  const _RewardsAccessoriesTab({required this.adaptive});
+  const _RewardsAccessoriesTab({
+    required this.adaptive,
+    required this.controller,
+  });
 
   final AudyAdaptive adaptive;
+  final AudyController controller;
 
   @override
   Widget build(BuildContext context) {
-    final items = [
-      ('Party Hat', Icons.celebration_outlined, 'Owned', true),
-      ('Sunglasses', Icons.wb_sunny_outlined, 'Owned', true),
-      ('Bow Tie', Icons.style_outlined, '40', false),
-      ('Crown', Icons.workspace_premium_outlined, '100', false),
-      ('Star Badge', Icons.star_outline_rounded, '60', false),
-    ];
-
     return Column(
       children: [
         Center(
@@ -452,66 +496,70 @@ class _RewardsAccessoriesTab extends StatelessWidget {
           phoneColumns: 2,
           tabletColumns: 3,
           desktopColumns: 5,
-          items: items.map((item) {
-            return AudyPanel(
-              adaptive: adaptive,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    item.$2,
-                    size: adaptive.space(42),
-                    color: const Color(0xFF5D4F97),
-                  ),
-                  SizedBox(height: adaptive.space(12)),
-                  Text(
-                    item.$1,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: adaptive.space(16),
-                      fontWeight: FontWeight.w700,
+          items: controller.accessories.map((item) {
+            return InkWell(
+              onTap: item.owned ? null : () => controller.unlockAccessory(item.name),
+              borderRadius: BorderRadius.circular(adaptive.space(28)),
+              child: AudyPanel(
+                adaptive: adaptive,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      item.icon,
+                      size: adaptive.space(42),
+                      color: const Color(0xFF5D4F97),
                     ),
-                  ),
-                  SizedBox(height: adaptive.space(10)),
-                  if (item.$4)
+                    SizedBox(height: adaptive.space(12)),
                     Text(
-                      'Owned',
+                      item.name,
+                      textAlign: TextAlign.center,
                       style: TextStyle(
-                        fontSize: adaptive.space(14),
+                        fontSize: adaptive.space(16),
                         fontWeight: FontWeight.w700,
-                        color: const Color(0xFF22B860),
                       ),
                     ),
-                  if (!item.$4)
-                    Container(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: adaptive.space(12),
-                        vertical: adaptive.space(8),
+                    SizedBox(height: adaptive.space(10)),
+                    if (item.owned)
+                      Text(
+                        'Owned',
+                        style: TextStyle(
+                          fontSize: adaptive.space(14),
+                          fontWeight: FontWeight.w700,
+                          color: const Color(0xFF22B860),
+                        ),
                       ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFFF2A8),
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            item.$3,
-                            style: TextStyle(
-                              fontSize: adaptive.space(14),
-                              fontWeight: FontWeight.w800,
+                    if (!item.owned)
+                      Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: adaptive.space(12),
+                          vertical: adaptive.space(8),
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFFF2A8),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              '${item.cost}',
+                              style: TextStyle(
+                                fontSize: adaptive.space(14),
+                                fontWeight: FontWeight.w800,
+                              ),
                             ),
-                          ),
-                          SizedBox(width: adaptive.space(4)),
-                          Icon(
-                            Icons.star_rounded,
-                            size: adaptive.space(16),
-                            color: const Color(0xFFF5C532),
-                          ),
-                        ],
+                            SizedBox(width: adaptive.space(4)),
+                            Icon(
+                              Icons.star_rounded,
+                              size: adaptive.space(16),
+                              color: const Color(0xFFF5C532),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                ],
+                  ],
+                ),
               ),
             );
           }).toList(),
@@ -522,21 +570,16 @@ class _RewardsAccessoriesTab extends StatelessWidget {
 }
 
 class _RewardsAchievementsTab extends StatelessWidget {
-  const _RewardsAchievementsTab({required this.adaptive});
+  const _RewardsAchievementsTab({
+    required this.adaptive,
+    required this.controller,
+  });
 
   final AudyAdaptive adaptive;
+  final AudyController controller;
 
   @override
   Widget build(BuildContext context) {
-    final achievements = [
-      ('First Steps', 'Complete your first game', true),
-      ('Emotion Expert', 'Master 5 emotions', true),
-      ('Quick Reflexes', 'Score 90% in Reaction Time', true),
-      ('Color Master', 'Perfect score in Color Sorting', false),
-      ('Reading Star', 'Complete 20 reading sessions', false),
-      ('Social Butterfly', 'Have 10 conversations', false),
-    ];
-
     return Column(
       children: [
         Center(
@@ -554,8 +597,8 @@ class _RewardsAchievementsTab extends StatelessWidget {
           phoneColumns: 1,
           tabletColumns: 2,
           desktopColumns: 2,
-          items: achievements.map((item) {
-            final locked = !item.$3;
+          items: controller.achievements.map((item) {
+            final locked = !item.unlocked;
             return Container(
               padding: EdgeInsets.all(adaptive.space(20)),
               decoration: BoxDecoration(
@@ -588,7 +631,7 @@ class _RewardsAchievementsTab extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          item.$1,
+                          item.title,
                           style: TextStyle(
                             fontSize: adaptive.space(18),
                             fontWeight: FontWeight.w800,
@@ -599,7 +642,7 @@ class _RewardsAchievementsTab extends StatelessWidget {
                         ),
                         SizedBox(height: adaptive.space(6)),
                         Text(
-                          item.$2,
+                          item.description,
                           style: TextStyle(
                             fontSize: adaptive.space(14),
                             color: const Color(0xFF728198),
@@ -663,6 +706,48 @@ class _StatCard extends StatelessWidget {
             label,
             textAlign: TextAlign.center,
             style: const TextStyle(fontSize: 14, color: Color(0xFF243A5A)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RequestSummaryCard extends StatelessWidget {
+  const _RequestSummaryCard({required this.controller});
+
+  final AudyController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final adaptive = AudyAdaptive(
+      width: MediaQuery.of(context).size.width,
+      height: MediaQuery.of(context).size.height,
+    );
+    final latest = controller.preparedRequests.isEmpty
+        ? null
+        : controller.preparedRequests.first;
+
+    return AudyPanel(
+      adaptive: adaptive,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Prepared Backend Drafts',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Requests prepared locally: ${controller.preparedRequests.length}',
+            style: const TextStyle(fontSize: 15, color: Color(0xFF60758F)),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            latest == null
+                ? 'No backend drafts have been prepared yet.'
+                : 'Latest draft: ${latest.method.name.toUpperCase()} ${latest.endpoint}',
+            style: const TextStyle(fontSize: 15, color: Color(0xFF60758F)),
           ),
         ],
       ),

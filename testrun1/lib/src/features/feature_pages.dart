@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../core/app_routes.dart';
 import '../core/audy_ui.dart';
+import '../state/audy_controller.dart';
 
 class GamesHubPage extends StatelessWidget {
   const GamesHubPage({super.key});
@@ -126,24 +127,44 @@ class ReadPronouncePage extends StatelessWidget {
   }
 }
 
-class ReadingPracticePage extends StatelessWidget {
+class ReadingPracticePage extends StatefulWidget {
   const ReadingPracticePage({
     super.key,
     required this.title,
     required this.subtitle,
-    required this.prompt,
-    required this.progressLabel,
+    required this.module,
     required this.illustrationIcon,
   });
 
   final String title;
   final String subtitle;
-  final String prompt;
-  final String progressLabel;
+  final ReadingModule module;
   final IconData illustrationIcon;
 
   @override
+  State<ReadingPracticePage> createState() => _ReadingPracticePageState();
+}
+
+class _ReadingPracticePageState extends State<ReadingPracticePage> {
+  late final TextEditingController attemptController;
+
+  @override
+  void initState() {
+    super.initState();
+    attemptController = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    attemptController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final controller = AudyScope.of(context);
+    final state = controller.readingStates[widget.module]!;
+
     return AudyResponsivePage(
       builder: (context, adaptive) {
         return Column(
@@ -152,12 +173,13 @@ class ReadingPracticePage extends StatelessWidget {
             _TopRow(
               adaptive: adaptive,
               leadingLabel: 'Back',
-              trailingText: progressLabel,
+              trailingText:
+                  'Progress: ${state.progressCurrent} / ${state.progressTotal}',
             ),
             SizedBox(height: adaptive.space(18)),
             Center(
               child: AudyBadgeIcon(
-                icon: illustrationIcon,
+                icon: widget.illustrationIcon,
                 size: adaptive.isPhone ? 88 : 106,
                 background: const Color(0xFFFFE5A8),
                 foreground: const Color(0xFFF28C28),
@@ -168,7 +190,7 @@ class ReadingPracticePage extends StatelessWidget {
               child: Column(
                 children: [
                   Text(
-                    title,
+                    widget.title,
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: adaptive.space(26),
@@ -178,7 +200,7 @@ class ReadingPracticePage extends StatelessWidget {
                   ),
                   SizedBox(height: adaptive.space(8)),
                   Text(
-                    subtitle,
+                    widget.subtitle,
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: adaptive.space(15),
@@ -197,14 +219,24 @@ class ReadingPracticePage extends StatelessWidget {
                   child: Column(
                     children: [
                       Text(
-                        prompt,
+                        state.prompt,
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          fontSize: adaptive.space(prompt.length > 8 ? 32 : 44),
+                          fontSize: adaptive.space(
+                            state.prompt.length > 8 ? 32 : 44,
+                          ),
                           fontWeight: FontWeight.w700,
                         ),
                       ),
                       SizedBox(height: adaptive.space(18)),
+                      TextField(
+                        controller: attemptController,
+                        decoration: const InputDecoration(
+                          labelText: 'Type what the learner said',
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                      SizedBox(height: adaptive.space(14)),
                       Wrap(
                         alignment: WrapAlignment.center,
                         spacing: adaptive.space(14),
@@ -215,16 +247,39 @@ class ReadingPracticePage extends StatelessWidget {
                             icon: Icons.volume_up_outlined,
                             color: const Color(0xFFBDD8F2),
                             adaptive: adaptive,
-                            onPressed: () {},
+                            onPressed: () => controller.prepareAudioPrompt(
+                              'reading_practice',
+                              state.prompt,
+                            ),
                           ),
                           AudyPillButton(
                             label: 'Say It!',
                             icon: Icons.mic_none_rounded,
                             color: const Color(0xFFC9E8C1),
                             adaptive: adaptive,
-                            onPressed: () {},
+                            onPressed: () {
+                              controller.submitReadingAttempt(
+                                widget.module,
+                                attemptController.text,
+                              );
+                              if (controller.validatePracticeInput(
+                                    attemptController.text,
+                                  ) ==
+                                  null) {
+                                attemptController.clear();
+                              }
+                            },
                           ),
                         ],
+                      ),
+                      SizedBox(height: adaptive.space(14)),
+                      Text(
+                        state.feedback,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: adaptive.space(13),
+                          color: const Color(0xFF60758F),
+                        ),
                       ),
                     ],
                   ),
@@ -243,14 +298,17 @@ class EmotionGamePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const choices = ['Happy', 'Sad', 'Angry', 'Surprised', 'Scared'];
-    const colors = [
-      Color(0xFFFFF2A8),
-      Color(0xFFBDD8F2),
-      Color(0xFFFFDAC7),
-      Color(0xFFF8C7DF),
-      Color(0xFFDDD0F4),
-    ];
+    final controller = AudyScope.of(context);
+    final question = controller.currentEmotionQuestion;
+    const palette = {
+      'Happy': Color(0xFFFFF2A8),
+      'Sad': Color(0xFFBDD8F2),
+      'Angry': Color(0xFFFFDAC7),
+      'Surprised': Color(0xFFF8C7DF),
+      'Scared': Color(0xFFDDD0F4),
+      'Calm': Color(0xFFC9E8C1),
+      'Proud': Color(0xFFE7D8FA),
+    };
 
     return AudyResponsivePage(
       builder: (context, adaptive) {
@@ -260,12 +318,12 @@ class EmotionGamePage extends StatelessWidget {
             _TopRow(
               adaptive: adaptive,
               leadingLabel: 'Back',
-              trailingText: 'Score: 0 / 1',
+              trailingText: 'Score: ${controller.emotionScore}',
             ),
             SizedBox(height: adaptive.space(24)),
             Center(
               child: Text(
-                'What emotion is this?',
+                question.prompt,
                 style: TextStyle(
                   fontSize: adaptive.space(28),
                   fontWeight: FontWeight.w800,
@@ -276,7 +334,7 @@ class EmotionGamePage extends StatelessWidget {
             SizedBox(height: adaptive.space(18)),
             Center(
               child: AudyBadgeIcon(
-                icon: Icons.sentiment_satisfied_alt_rounded,
+                icon: question.icon,
                 size: adaptive.isPhone ? 110 : 132,
                 background: const Color(0xFFFFE4A6),
                 foreground: const Color(0xFFF59A23),
@@ -289,7 +347,10 @@ class EmotionGamePage extends StatelessWidget {
                 icon: Icons.volume_up_outlined,
                 color: const Color(0xFFBDD8F2),
                 adaptive: adaptive,
-                onPressed: () {},
+                onPressed: () => controller.prepareAudioPrompt(
+                  'emotion_game',
+                  question.correctAnswer,
+                ),
               ),
             ),
             SizedBox(height: adaptive.space(24)),
@@ -302,14 +363,27 @@ class EmotionGamePage extends StatelessWidget {
                   tabletColumns: 2,
                   desktopColumns: 3,
                   items: List.generate(
-                    choices.length,
+                    question.options.length,
                     (index) => AudyAnswerCard(
-                      label: choices[index],
-                      color: colors[index],
+                      label: question.options[index],
+                      color:
+                          palette[question.options[index]] ?? const Color(0xFFE7D8FA),
                       adaptive: adaptive,
-                      onTap: () {},
+                      onTap: () =>
+                          controller.submitEmotionAnswer(question.options[index]),
                     ),
                   ),
+                ),
+              ),
+            ),
+            SizedBox(height: adaptive.space(16)),
+            Center(
+              child: Text(
+                controller.emotionFeedback,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: adaptive.space(14),
+                  color: const Color(0xFF60758F),
                 ),
               ),
             ),
@@ -325,6 +399,8 @@ class EyeContactPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final controller = AudyScope.of(context);
+
     return AudyResponsivePage(
       builder: (context, adaptive) {
         return Column(
@@ -378,7 +454,7 @@ class EyeContactPage extends StatelessWidget {
             SizedBox(height: adaptive.space(24)),
             Center(
               child: Text(
-                '2.9s',
+                controller.eyeContactFormatted,
                 style: TextStyle(
                   fontSize: adaptive.space(44),
                   fontWeight: FontWeight.w800,
@@ -388,11 +464,36 @@ class EyeContactPage extends StatelessWidget {
             ),
             SizedBox(height: adaptive.space(20)),
             Center(
-              child: AudyPillButton(
-                label: 'Stop',
-                color: const Color(0xFFBDD8F2),
-                adaptive: adaptive,
-                onPressed: () => Navigator.pop(context),
+              child: Wrap(
+                spacing: adaptive.space(12),
+                runSpacing: adaptive.space(12),
+                alignment: WrapAlignment.center,
+                children: [
+                  AudyPillButton(
+                    label: controller.eyeContactRunning ? 'Stop' : 'Start',
+                    color: const Color(0xFFBDD8F2),
+                    adaptive: adaptive,
+                    onPressed: controller.eyeContactRunning
+                        ? controller.stopEyeContactSession
+                        : controller.startEyeContactSession,
+                  ),
+                  AudyPillButton(
+                    label: 'Reset',
+                    color: const Color(0xFFFFF2A8),
+                    adaptive: adaptive,
+                    onPressed: controller.resetEyeContactSession,
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(height: adaptive.space(14)),
+            Center(
+              child: Text(
+                'Best: ${(controller.eyeContactBestMs / 1000).toStringAsFixed(1)}s',
+                style: TextStyle(
+                  fontSize: adaptive.space(14),
+                  color: const Color(0xFF60758F),
+                ),
               ),
             ),
           ],
@@ -407,6 +508,7 @@ class ColorSortingPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final controller = AudyScope.of(context);
     final baskets = [
       _BasketData('Red', const Color(0xFFFF8D91)),
       _BasketData('Blue', const Color(0xFF8FBCEC)),
@@ -458,16 +560,19 @@ class ColorSortingPage extends StatelessWidget {
                         fontSize: adaptive.space(15),
                         color: const Color(0xFF617691),
                       ),
-                      children: const [
-                        TextSpan(text: 'Selected: '),
+                      children: [
+                        const TextSpan(text: 'Selected: '),
                         TextSpan(
-                          text: 'Green',
-                          style: TextStyle(
+                          text: controller.selectedColorPiece?.colorName ?? 'None',
+                          style: const TextStyle(
                             fontWeight: FontWeight.w800,
                             color: Color(0xFF243A5A),
                           ),
                         ),
-                        TextSpan(text: ' (circle)'),
+                        TextSpan(
+                          text:
+                              ' (${controller.selectedColorPiece?.shape.name ?? 'none'})',
+                        ),
                       ],
                     ),
                   ),
@@ -491,26 +596,25 @@ class ColorSortingPage extends StatelessWidget {
                     alignment: WrapAlignment.center,
                     spacing: adaptive.space(18),
                     runSpacing: adaptive.space(18),
-                    children: const [
-                      _ShapeChip(
-                        shape: BoxShape.circle,
-                        color: Color(0xFFFF8D91),
-                      ),
-                      _ShapeChip(
-                        shape: BoxShape.rectangle,
-                        color: Color(0xFF8FBCEC),
-                      ),
-                      _ShapeChip(
-                        shape: BoxShape.circle,
-                        color: Color(0xFF90F48A),
-                        selected: true,
-                      ),
-                      _ShapeChip(
-                        shape: BoxShape.rectangle,
-                        color: Color(0xFFFF8D91),
-                      ),
-                      _TriangleChip(color: Color(0xFF8FBCEC)),
-                    ],
+                    children: controller.colorPieces.map((piece) {
+                      final isSelected =
+                          controller.selectedColorPieceId == piece.id;
+                      if (piece.shape == SortShape.triangle) {
+                        return _TriangleChip(
+                          color: piece.color,
+                          selected: isSelected,
+                          onTap: () => controller.selectColorPiece(piece.id),
+                        );
+                      }
+                      return _ShapeChip(
+                        shape: piece.shape == SortShape.circle
+                            ? BoxShape.circle
+                            : BoxShape.rectangle,
+                        color: piece.color,
+                        selected: isSelected,
+                        onTap: () => controller.selectColorPiece(piece.id),
+                      );
+                    }).toList(),
                   ),
                 ],
               ),
@@ -527,9 +631,21 @@ class ColorSortingPage extends StatelessWidget {
                       label: basket.label,
                       color: basket.color,
                       adaptive: adaptive,
+                      onTap: () => controller.submitColorBasket(basket.label),
                     ),
                   )
                   .toList(),
+            ),
+            SizedBox(height: adaptive.space(14)),
+            Center(
+              child: Text(
+                controller.colorFeedback,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: adaptive.space(14),
+                  color: const Color(0xFF60758F),
+                ),
+              ),
             ),
           ],
         );
@@ -543,6 +659,8 @@ class ReactionTimePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final controller = AudyScope.of(context);
+
     return AudyResponsivePage(
       builder: (context, adaptive) {
         return Column(
@@ -551,7 +669,7 @@ class ReactionTimePage extends StatelessWidget {
             _TopRow(
               adaptive: adaptive,
               leadingLabel: 'Back to Home',
-              trailingText: 'Round: 3 / 10',
+              trailingText: controller.reactionRoundLabel,
             ),
             SizedBox(height: adaptive.space(24)),
             Center(
@@ -587,7 +705,7 @@ class ReactionTimePage extends StatelessWidget {
                 children: [
                   Expanded(
                     child: Text(
-                      'Score: 2',
+                      controller.reactionScoreLabel,
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: adaptive.space(18),
@@ -597,7 +715,7 @@ class ReactionTimePage extends StatelessWidget {
                   ),
                   Expanded(
                     child: Text(
-                      'Misses: 1',
+                      controller.reactionMissLabel,
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: adaptive.space(18),
@@ -609,28 +727,54 @@ class ReactionTimePage extends StatelessWidget {
               ),
             ),
             SizedBox(height: adaptive.space(20)),
-            Container(
-              width: double.infinity,
-              constraints: BoxConstraints(
-                minHeight: adaptive.isPhone ? 260 : 420,
-              ),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF3F4FF),
-                borderRadius: BorderRadius.circular(adaptive.space(28)),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF99A9C0).withValues(alpha: 0.15),
-                    blurRadius: 22,
-                    offset: const Offset(0, 12),
-                  ),
-                ],
-              ),
-              child: Center(
-                child: Icon(
-                  Icons.auto_awesome_rounded,
-                  size: adaptive.isPhone ? 56 : 76,
-                  color: const Color(0xFFFFB14F),
+            InkWell(
+              onTap: controller.registerReactionTap,
+              borderRadius: BorderRadius.circular(adaptive.space(28)),
+              child: Container(
+                width: double.infinity,
+                constraints: BoxConstraints(
+                  minHeight: adaptive.isPhone ? 260 : 420,
                 ),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF3F4FF),
+                  borderRadius: BorderRadius.circular(adaptive.space(28)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF99A9C0).withValues(alpha: 0.15),
+                      blurRadius: 22,
+                      offset: const Offset(0, 12),
+                    ),
+                  ],
+                ),
+                child: Center(
+                  child: Icon(
+                    controller.reactionSymbolVisible
+                        ? controller.reactionSymbol
+                        : Icons.touch_app_rounded,
+                    size: adaptive.isPhone ? 56 : 76,
+                    color: const Color(0xFFFFB14F),
+                  ),
+                ),
+              ),
+            ),
+            SizedBox(height: adaptive.space(16)),
+            Center(
+              child: Text(
+                controller.reactionFeedback,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: adaptive.space(14),
+                  color: const Color(0xFF60758F),
+                ),
+              ),
+            ),
+            SizedBox(height: adaptive.space(12)),
+            Center(
+              child: AudyPillButton(
+                label: 'Start Round',
+                color: const Color(0xFFBDD8F2),
+                adaptive: adaptive,
+                onPressed: controller.startReactionRound,
               ),
             ),
           ],
@@ -640,11 +784,31 @@ class ReactionTimePage extends StatelessWidget {
   }
 }
 
-class SocialPracticePage extends StatelessWidget {
+class SocialPracticePage extends StatefulWidget {
   const SocialPracticePage({super.key});
 
   @override
+  State<SocialPracticePage> createState() => _SocialPracticePageState();
+}
+
+class _SocialPracticePageState extends State<SocialPracticePage> {
+  late final TextEditingController messageController;
+
+  @override
+  void initState() {
+    super.initState();
+    messageController = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    messageController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final controller = AudyScope.of(context);
     return AudyResponsivePage(
       builder: (context, adaptive) {
         return Column(
@@ -705,7 +869,7 @@ class SocialPracticePage extends StatelessWidget {
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(999),
                       child: LinearProgressIndicator(
-                        value: 0.20,
+                        value: controller.socialConfidence,
                         minHeight: adaptive.space(12),
                         backgroundColor: const Color(0xFFE1E5EB),
                         valueColor: const AlwaysStoppedAnimation(
@@ -716,7 +880,7 @@ class SocialPracticePage extends StatelessWidget {
                   ),
                   SizedBox(width: adaptive.space(12)),
                   Text(
-                    '20%',
+                    '${(controller.socialConfidence * 100).round()}%',
                     style: TextStyle(
                       fontSize: adaptive.space(16),
                       fontWeight: FontWeight.w700,
@@ -731,19 +895,14 @@ class SocialPracticePage extends StatelessWidget {
               child: SizedBox(
                 height: adaptive.isPhone ? 320 : 420,
                 child: ListView(
-                  children: const [
-                    _ChatBubble(
-                      text: 'Hi! I\'m your friendly chat buddy!',
-                      isUser: false,
-                    ),
-                    _ChatBubble(text: 'What did you eat today?', isUser: false),
-                    _ChatBubble(text: 'Pizza!', isUser: true),
-                    _ChatBubble(text: 'Sounds delicious!', isUser: false),
-                    _ChatBubble(
-                      text: 'What do you like to play?',
-                      isUser: false,
-                    ),
-                  ],
+                  children: controller.socialMessages
+                      .map(
+                        (message) => _ChatBubble(
+                          text: message.text,
+                          isUser: message.isUser,
+                        ),
+                      )
+                      .toList(),
                 ),
               ),
             ),
@@ -764,35 +923,54 @@ class SocialPracticePage extends StatelessWidget {
                   ),
                   SizedBox(width: adaptive.space(12)),
                   Expanded(
-                    child: Container(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: adaptive.space(18),
-                        vertical: adaptive.space(16),
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF3F6F9),
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                      child: Text(
-                        'Type your message...',
-                        style: TextStyle(
-                          fontSize: adaptive.space(15),
-                          color: const Color(0xFF7E8EA3),
+                    child: TextField(
+                      controller: messageController,
+                      decoration: InputDecoration(
+                        hintText: 'Type your message...',
+                        filled: true,
+                        fillColor: const Color(0xFFF3F6F9),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(999),
+                          borderSide: BorderSide.none,
+                        ),
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: adaptive.space(18),
+                          vertical: adaptive.space(16),
                         ),
                       ),
                     ),
                   ),
                   SizedBox(width: adaptive.space(12)),
-                  CircleAvatar(
-                    radius: adaptive.isPhone ? 22 : 26,
-                    backgroundColor: const Color(0xFFC9E8C1),
-                    child: Icon(
-                      Icons.send_outlined,
-                      color: const Color(0xFF243A5A),
-                      size: adaptive.space(20),
+                  InkWell(
+                    onTap: () {
+                      controller.submitSocialMessage(messageController.text);
+                      if (controller.validateChatMessage(messageController.text) ==
+                          null) {
+                        messageController.clear();
+                      }
+                    },
+                    child: CircleAvatar(
+                      radius: adaptive.isPhone ? 22 : 26,
+                      backgroundColor: const Color(0xFFC9E8C1),
+                      child: Icon(
+                        Icons.send_outlined,
+                        color: const Color(0xFF243A5A),
+                        size: adaptive.space(20),
+                      ),
                     ),
                   ),
                 ],
+              ),
+            ),
+            SizedBox(height: adaptive.space(12)),
+            Center(
+              child: Text(
+                controller.socialFeedback,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: adaptive.space(13),
+                  color: const Color(0xFF60758F),
+                ),
               ),
             ),
           ],
@@ -845,11 +1023,13 @@ class _ShapeChip extends StatelessWidget {
     required this.shape,
     required this.color,
     this.selected = false,
+    this.onTap,
   });
 
   final BoxShape shape;
   final Color color;
   final bool selected;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -865,9 +1045,7 @@ class _ShapeChip extends StatelessWidget {
       ),
     );
 
-    if (!selected) return content;
-
-    return Container(
+    final selectedContent = Container(
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(18),
@@ -875,20 +1053,47 @@ class _ShapeChip extends StatelessWidget {
       ),
       child: content,
     );
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(18),
+      child: selected ? selectedContent : content,
+    );
   }
 }
 
 class _TriangleChip extends StatelessWidget {
-  const _TriangleChip({required this.color});
+  const _TriangleChip({
+    required this.color,
+    this.selected = false,
+    this.onTap,
+  });
 
   final Color color;
+  final bool selected;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
+    final triangle = SizedBox(
       width: 56,
       height: 56,
       child: CustomPaint(painter: _TrianglePainter(color)),
+    );
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(18),
+      child: selected
+          ? Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: const Color(0xFFB1C9F5), width: 3),
+              ),
+              child: triangle,
+            )
+          : triangle,
     );
   }
 }
@@ -920,34 +1125,40 @@ class _ColorBasketCard extends StatelessWidget {
     required this.label,
     required this.color,
     required this.adaptive,
+    required this.onTap,
   });
 
   final String label;
   final Color color;
   final AudyAdaptive adaptive;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: adaptive.isPhone ? 150 : 200,
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(adaptive.space(24)),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFFA5B4C7).withValues(alpha: 0.20),
-            blurRadius: 18,
-            offset: const Offset(0, 10),
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(adaptive.space(24)),
+      child: Container(
+        height: adaptive.isPhone ? 150 : 200,
+        decoration: BoxDecoration(
+          color: color,
+          borderRadius: BorderRadius.circular(adaptive.space(24)),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFFA5B4C7).withValues(alpha: 0.20),
+              blurRadius: 18,
+              offset: const Offset(0, 10),
+            ),
+          ],
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: adaptive.space(18),
+            fontWeight: FontWeight.w800,
+            color: const Color(0xFF243A5A),
           ),
-        ],
-      ),
-      alignment: Alignment.center,
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: adaptive.space(18),
-          fontWeight: FontWeight.w800,
-          color: const Color(0xFF243A5A),
         ),
       ),
     );

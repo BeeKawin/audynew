@@ -28,10 +28,28 @@ migrate_working_dir/
 **/ios/Flutter/.last_build_id
 .dart_tool/
 .flutter-plugins-dependencies
+.flutter-plugins
 .pub-cache/
 .pub/
 /build/
 /coverage/
+*.lock
+!pubspec.lock
+
+# Environment and secrets
+.env
+.env.*
+*.pem
+*.key
+*.jks
+*.keystore
+google-services.json
+GoogleService-Info.plist
+
+# Local tool output
+dist/
+tmp/
+temp/
 
 # Symbolication related
 app.*.symbols
