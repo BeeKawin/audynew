@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'src/core/app_routes.dart';
 import 'src/core/audy_theme.dart';
+import 'src/data/service_locator.dart';
 import 'src/features/dashboard_page.dart';
 import 'src/features/feature_pages.dart';
 import 'src/features/mini_puzzle_module.dart';
@@ -12,19 +13,36 @@ import 'src/features/read_pronounce/read_pronounce_controller.dart';
 import 'src/features/sorting_game/sort_level_select_screen.dart';
 import 'src/services/emotion_service.dart';
 import 'src/state/audy_controller.dart';
+import 'src/widgets/achievement_toast.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize services
   try {
     await EmotionService.init();
   } catch (e) {
     debugPrint('Emotion model failed to load: $e');
   }
-  runApp(const AudyApp());
+
+  // Initialize database and storage
+  bool dbInitialized = false;
+  try {
+    await ServiceLocator().initialize();
+    dbInitialized = true;
+    debugPrint('Database initialized successfully');
+  } catch (e) {
+    debugPrint('Database initialization failed: $e');
+    dbInitialized = false;
+  }
+
+  runApp(AudyApp(dbInitialized: dbInitialized));
 }
 
 class AudyApp extends StatefulWidget {
-  const AudyApp({super.key});
+  final bool dbInitialized;
+
+  const AudyApp({super.key, this.dbInitialized = false});
 
   @override
   State<AudyApp> createState() => _AudyAppState();
@@ -37,7 +55,27 @@ class _AudyAppState extends State<AudyApp> {
   @override
   void initState() {
     super.initState();
-    controller = AudyController();
+    // Only use storage if database was initialized successfully
+    controller = AudyController(
+      storage: widget.dbInitialized ? ServiceLocator().storageRepository : null,
+    );
+
+    // Set up achievement unlock callback
+    controller.onAchievementUnlock = (achievement) {
+      if (mounted) {
+        AchievementToast.show(
+          context,
+          icon: Icons.auto_awesome_rounded,
+          title: achievement.title,
+          description: achievement.description,
+        );
+      }
+    };
+
+    // Set up level up callback
+    controller.onLevelUp = (newLevel) {
+      // Level up animation is handled in the rewards page
+    };
   }
 
   @override

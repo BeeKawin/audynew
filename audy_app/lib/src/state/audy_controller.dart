@@ -1,9 +1,18 @@
 import 'dart:async';
 import 'dart:math';
 
+import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 
+import '../data/datasources/local_data_source.dart';
+import '../data/models/progress_model.dart';
+import '../data/repositories/storage_repository.dart';
+
 enum SortShape { circle, square, triangle }
+
+// Callbacks for UI notifications
+typedef AchievementUnlockCallback = void Function(AchievementItem achievement);
+typedef LevelUpCallback = void Function(int newLevel);
 
 enum RequestMethod { get, post, put }
 
@@ -120,10 +129,48 @@ class AchievementItem {
   final bool unlocked;
 }
 
+class PlacedAccessory {
+  final String name;
+  final IconData icon;
+  final int? x;
+  final int? y;
+
+  const PlacedAccessory({
+    required this.name,
+    required this.icon,
+    this.x,
+    this.y,
+  });
+}
+
 class AudyController extends ChangeNotifier {
-  AudyController() {
+  final StorageRepository? storage;
+  final AudioPlayer _audioPlayer = AudioPlayer();
+
+  // Callbacks for UI notifications
+  AchievementUnlockCallback? onAchievementUnlock;
+  LevelUpCallback? onLevelUp;
+
+  AudyController({this.storage}) {
     _seedState();
+    _loadFromStorage();
   }
+
+  // Placed accessories in the room
+  final List<PlacedAccessory> _placedAccessories = [];
+  List<PlacedAccessory> get placedAccessories =>
+      List.unmodifiable(_placedAccessories);
+
+  // Get only owned accessories
+  List<AccessoryItem> get ownedAccessories =>
+      accessories.where((a) => a.owned).toList();
+
+  // Achievement tracking
+  final Set<String> _unlockedAchievementKeys = {};
+
+  // Level tracking
+  int _currentLevel = 0;
+  int get currentLevel => _currentLevel;
 
   final Random _random = Random();
 
@@ -169,9 +216,9 @@ class AudyController extends ChangeNotifier {
   double socialConfidence = 0.20;
   String socialFeedback = 'Start a conversation with a short message.';
 
-  int learningPoints = 245;
-  int gamesPlayed = 47;
-  int dayStreak = 5;
+  int learningPoints = 0;
+  int gamesPlayed = 0;
+  int dayStreak = 1;
   int totalStars = 3;
 
   late List<AccessoryItem> accessories;
@@ -286,17 +333,18 @@ class AudyController extends ChangeNotifier {
     ];
   }
 
-  void submitEmotionAnswer(String answer) {
+  Future<void> submitEmotionAnswer(String answer) async {
     final isCorrect = answer == currentEmotionQuestion.correctAnswer;
     emotionFeedback = isCorrect
         ? 'Great job! $answer is correct.'
         : 'Nice try. The correct answer is ${currentEmotionQuestion.correctAnswer}.';
     if (isCorrect) {
       emotionScore += 1;
-      learningPoints += 5;
       emotionCurrentTarget = currentEmotionQuestion.correctAnswer;
     }
     gamesPlayed += 1;
+    // Add points and check achievements/level up
+    await addPoints(isCorrect ? 5 : 0);
     _prepareRequest(
       feature: 'emotion_game',
       endpoint: '/api/games/emotion/answer',
@@ -352,13 +400,12 @@ class AudyController extends ChangeNotifier {
     notifyListeners();
   }
 
-  void handleColorDrop(ColorPiece piece, String basketColor) {
+  Future<void> handleColorDrop(ColorPiece piece, String basketColor) async {
     final isCorrect =
         piece.colorName.toLowerCase() == basketColor.toLowerCase();
     if (isCorrect) {
       colorMatches += 1;
       _colorRoundMatches += 1;
-      learningPoints += 3;
       _colorPieces.removeWhere((item) => item.id == piece.id);
       _colorFeedback = 'Correct!';
     } else {
@@ -369,6 +416,11 @@ class AudyController extends ChangeNotifier {
 
     if (_colorPieces.isEmpty) {
       _finishColorSortRound();
+    }
+
+    // Add points and check achievements/level up
+    if (isCorrect) {
+      await addPoints(3);
     }
 
     notifyListeners();
@@ -565,16 +617,17 @@ class AudyController extends ChangeNotifier {
     notifyListeners();
   }
 
-  void handleReactionContainerTap() {
+  Future<void> handleReactionContainerTap() async {
     if (reactionState == ReactionGameState.ready) {
       final elapsed = DateTime.now()
           .difference(_reactionRoundStartedAt ?? DateTime.now())
           .inMilliseconds;
       currentReactionTimeMs = elapsed;
       reactionTimes.add(elapsed);
-      learningPoints += 4;
       reactionFeedback = '$elapsed ms';
       reactionState = ReactionGameState.result;
+      // Add points and check achievements/level up
+      await addPoints(4);
       _prepareRequest(
         feature: 'reaction_time',
         endpoint: '/api/games/reaction-time/round',
@@ -633,7 +686,7 @@ class AudyController extends ChangeNotifier {
     return null;
   }
 
-  void submitSocialMessage(String message) {
+  Future<void> submitSocialMessage(String message) async {
     final error = validateChatMessage(message);
     if (error != null) {
       socialFeedback = error;
@@ -660,7 +713,8 @@ class AudyController extends ChangeNotifier {
     );
     socialConfidence = min(1.0, socialConfidence + 0.08);
     socialFeedback = 'Draft conversation prepared for backend syncing.';
-    learningPoints += 2;
+    // Add points and check achievements/level up
+    await addPoints(2);
     _prepareRequest(
       feature: 'social_practice',
       endpoint: '/api/social/messages',
@@ -674,7 +728,7 @@ class AudyController extends ChangeNotifier {
     notifyListeners();
   }
 
-  void unlockAccessory(String accessoryName) {
+  Future<void> unlockAccessory(String accessoryName) async {
     final index = accessories.indexWhere((item) => item.name == accessoryName);
     if (index == -1) return;
     final accessory = accessories[index];
@@ -695,6 +749,15 @@ class AudyController extends ChangeNotifier {
     }
     learningPoints -= accessory.cost;
     accessories[index] = accessory.copyWith(owned: true);
+
+    // Save purchase to storage
+    if (storage != null) {
+      final accessoryData = await storage!.getAllAccessories();
+      final data = accessoryData.firstWhere((a) => a.name == accessoryName);
+      await storage!.purchaseAccessory(data.id);
+      await _saveProgress(); // Save updated points
+    }
+
     _prepareRequest(
       feature: 'rewards',
       endpoint: '/api/rewards/purchase',
@@ -708,9 +771,234 @@ class AudyController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Reset progress but keep owned accessories
+  Future<void> resetProgress() async {
+    learningPoints = 0;
+    gamesPlayed = 0;
+    dayStreak = 1;
+    emotionScore = 0;
+    colorMatches = 0;
+    colorMisses = 0;
+    reactionTimes.clear();
+    reactionMisses = 0;
+    _placedAccessories.clear();
+    _currentLevel = 0;
+    _unlockedAchievementKeys.clear();
+
+    // Reset in storage
+    if (storage != null) {
+      await storage!.resetProgress();
+      await storage!.resetAccessoryPlacements();
+    }
+
+    notifyListeners();
+  }
+
+  /// Place an accessory in the room at specific coordinates
+  Future<void> placeAccessoryInRoom(String accessoryName, int x, int y) async {
+    final accessory = accessories.firstWhere(
+      (a) => a.name == accessoryName && a.owned,
+      orElse: () => throw Exception('Accessory not found or not owned'),
+    );
+
+    _placedAccessories.add(
+      PlacedAccessory(name: accessory.name, icon: accessory.icon, x: x, y: y),
+    );
+
+    // Save placement to storage
+    if (storage != null) {
+      final accessoryData = await storage!.getAllAccessories();
+      final data = accessoryData.firstWhere((a) => a.name == accessoryName);
+      await storage!.placeAccessory(data.id, x, y);
+    }
+
+    notifyListeners();
+  }
+
+  // ==================== STORAGE INTEGRATION ====================
+
+  /// Load data from local storage
+  /// NOTE: Learning points are reset to 0 for each login session
+  Future<void> _loadFromStorage() async {
+    if (storage == null) return;
+
+    try {
+      // Load progress (but reset learning points to 0 for new session)
+      final progress = await storage!.getProgress();
+      if (progress != null) {
+        // RESET: Learning points always start at 0 for each session
+        learningPoints = 0;
+        gamesPlayed = progress.gamesPlayed;
+        dayStreak = progress.dayStreak;
+        _currentLevel = 0;
+
+        // Save the reset points to storage
+        await _saveProgress();
+
+        // Update streak based on last play date
+        await _updateDayStreak();
+      }
+
+      // Load accessories
+      final accessoryData = await storage!.getAllAccessories();
+      for (var data in accessoryData) {
+        final index = accessories.indexWhere((a) => a.name == data.name);
+        if (index != -1) {
+          accessories[index] = accessories[index].copyWith(owned: data.owned);
+          // Restore placed accessories
+          if (data.owned && data.x != null && data.y != null) {
+            _placedAccessories.add(
+              PlacedAccessory(
+                name: data.name,
+                icon: LocalDataSource.getIconFromName(data.iconName),
+                x: data.x,
+                y: data.y,
+              ),
+            );
+          }
+        }
+      }
+
+      // Load achievements
+      final achievementData = await storage!.getAllAchievements();
+      for (var data in achievementData) {
+        if (data.unlocked) {
+          _unlockedAchievementKeys.add(data.key);
+        }
+      }
+
+      notifyListeners();
+    } catch (e) {
+      // Ignore storage errors, use defaults
+      debugPrint('Storage load error: $e');
+    }
+  }
+
+  /// Save progress to storage
+  Future<void> _saveProgress() async {
+    if (storage == null) return;
+
+    try {
+      await storage!.saveProgress(
+        ProgressData(
+          learningPoints: learningPoints,
+          gamesPlayed: gamesPlayed,
+          dayStreak: dayStreak,
+          lastPlayedAt: DateTime.now(),
+        ),
+      );
+    } catch (e) {
+      debugPrint('Storage save error: $e');
+    }
+  }
+
+  /// Update day streak based on last play date
+  Future<void> _updateDayStreak() async {
+    if (storage == null) return;
+
+    final progress = await storage!.getProgress();
+    if (progress?.lastPlayedAt != null) {
+      final lastPlayed = progress!.lastPlayedAt!;
+      final now = DateTime.now();
+      final difference = now.difference(lastPlayed).inDays;
+
+      if (difference == 1) {
+        // Consecutive day
+        dayStreak += 1;
+      } else if (difference > 1) {
+        // Streak broken
+        dayStreak = 1;
+      }
+      // Same day: no change
+    }
+  }
+
+  /// Get current level based on points
+  int _getLevelFromPoints(int points) {
+    if (points >= 1000) return 4; // Master
+    if (points >= 500) return 3; // Expert
+    if (points >= 250) return 2; // Explorer
+    if (points >= 100) return 1; // Learner
+    return 0; // Beginner
+  }
+
+  /// Check for level up and trigger celebration
+  void _checkLevelUp(int oldPoints, int newPoints) {
+    final oldLevel = _getLevelFromPoints(oldPoints);
+    final newLevel = _getLevelFromPoints(newPoints);
+
+    if (newLevel > oldLevel) {
+      _currentLevel = newLevel;
+      _playLevelUpSound();
+      onLevelUp?.call(newLevel);
+    }
+  }
+
+  /// Play level up sound
+  Future<void> _playLevelUpSound() async {
+    try {
+      await _audioPlayer.play(AssetSource('sounds/level_up.mp3'));
+    } catch (e) {
+      // Sound not available, ignore
+    }
+  }
+
+  /// Check achievements and trigger unlock notifications
+  void _checkAchievements() {
+    final currentAchievements = achievements;
+    for (var achievement in currentAchievements) {
+      // Find the key for this achievement
+      String? key;
+      if (achievement.title == 'First Steps') key = 'first_steps';
+      if (achievement.title == 'Emotion Expert') key = 'emotion_expert';
+      if (achievement.title == 'Quick Reflexes') key = 'quick_reflexes';
+      if (achievement.title == 'Color Master') key = 'color_master';
+      if (achievement.title == 'Social Butterfly') key = 'social_butterfly';
+
+      if (key != null &&
+          achievement.unlocked &&
+          !_unlockedAchievementKeys.contains(key)) {
+        _unlockedAchievementKeys.add(key);
+        _unlockAchievementInStorage(key);
+        onAchievementUnlock?.call(achievement);
+      }
+    }
+  }
+
+  /// Unlock achievement in storage
+  Future<void> _unlockAchievementInStorage(String key) async {
+    if (storage == null) return;
+
+    try {
+      final allAchievements = await storage!.getAllAchievements();
+      final achievement = allAchievements.firstWhere((a) => a.key == key);
+      await storage!.unlockAchievement(achievement.id);
+    } catch (e) {
+      debugPrint('Achievement unlock error: $e');
+    }
+  }
+
+  /// Add points with level up check and persistence
+  Future<void> addPoints(int points) async {
+    final oldPoints = learningPoints;
+    learningPoints += points;
+
+    // Check for level up
+    _checkLevelUp(oldPoints, learningPoints);
+
+    // Check achievements
+    _checkAchievements();
+
+    // Save to storage
+    await _saveProgress();
+
+    notifyListeners();
+  }
+
   @override
   void dispose() {
     _reactionRevealTimer?.cancel();
+    _audioPlayer.dispose();
     super.dispose();
   }
 

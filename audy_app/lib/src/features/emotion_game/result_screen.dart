@@ -6,7 +6,7 @@ import '../../core/audy_theme.dart';
 import '../../core/emotion_character_widget.dart';
 import '../../state/audy_controller.dart';
 
-class ResultScreen extends StatelessWidget {
+class ResultScreen extends StatefulWidget {
   const ResultScreen({
     super.key,
     required this.capturedImage,
@@ -20,8 +20,14 @@ class ResultScreen extends StatelessWidget {
   final String detectedEmotion;
   final double confidence;
 
+  @override
+  State<ResultScreen> createState() => _ResultScreenState();
+}
+
+class _ResultScreenState extends State<ResultScreen> {
   bool get isMatch {
-    return detectedEmotion.toLowerCase() == expectedEmotion.toLowerCase();
+    return widget.detectedEmotion.toLowerCase() ==
+        widget.expectedEmotion.toLowerCase();
   }
 
   @override
@@ -63,7 +69,7 @@ class ResultScreen extends StatelessWidget {
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(AudySpacing.radiusXLarge),
-                  child: Image.file(capturedImage, fit: BoxFit.cover),
+                  child: Image.file(widget.capturedImage, fit: BoxFit.cover),
                 ),
               ),
               const SizedBox(height: AudySpacing.sectionGap),
@@ -79,12 +85,18 @@ class ResultScreen extends StatelessWidget {
                 ),
                 child: Column(
                   children: [
-                    _EmotionRow(label: 'Expected', emotion: expectedEmotion),
+                    _EmotionRow(
+                      label: 'Expected',
+                      emotion: widget.expectedEmotion,
+                    ),
                     const SizedBox(height: AudySpacing.elementGap),
-                    _EmotionRow(label: 'You showed', emotion: detectedEmotion),
+                    _EmotionRow(
+                      label: 'You showed',
+                      emotion: widget.detectedEmotion,
+                    ),
                     const SizedBox(height: AudySpacing.smallGap),
                     Text(
-                      'Confidence: ${(confidence * 100).round()}%',
+                      'Confidence: ${(widget.confidence * 100).round()}%',
                       style: AudyTypography.bodySmall.copyWith(
                         color: AudyColors.textLight,
                       ),
@@ -95,20 +107,21 @@ class ResultScreen extends StatelessWidget {
               const SizedBox(height: AudySpacing.sectionGap),
               _FeedbackSection(
                 isMatch: isMatch,
-                expectedEmotion: expectedEmotion,
+                expectedEmotion: widget.expectedEmotion,
               ),
               const Spacer(),
               SizedBox(
                 width: double.infinity,
                 height: AudySpacing.buttonHeight + 12,
                 child: ElevatedButton(
-                  onPressed: () {
+                  onPressed: () async {
+                    final navigator = Navigator.of(context);
                     if (isMatch) {
                       controller.emotionScore += 1;
-                      controller.learningPoints += 5;
+                      await controller.addPoints(5);
                     }
                     controller.gamesPlayed += 1;
-                    Navigator.pop(context);
+                    navigator.pop();
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: isMatch

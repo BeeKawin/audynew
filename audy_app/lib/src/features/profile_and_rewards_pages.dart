@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../core/audy_ui.dart';
 import '../state/audy_controller.dart';
+import '../widgets/gentle_animations.dart';
+import 'rewards/rewards_room_tab.dart';
 
 class RewardsPage extends StatefulWidget {
   const RewardsPage({super.key});
@@ -12,6 +14,23 @@ class RewardsPage extends StatefulWidget {
 
 class _RewardsPageState extends State<RewardsPage> {
   int selectedTab = 0;
+  bool _showLevelUpAnimation = false;
+  int _newLevel = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    // Set up level up callback
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final controller = AudyScope.of(context);
+      controller.onLevelUp = (newLevel) {
+        setState(() {
+          _newLevel = newLevel;
+          _showLevelUpAnimation = true;
+        });
+      };
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -73,18 +92,25 @@ class _RewardsPageState extends State<RewardsPage> {
                   onTap: () => setState(() => selectedTab = 0),
                 ),
                 _RewardTabChip(
+                  label: 'Room',
+                  icon: Icons.home_outlined,
+                  selected: selectedTab == 1,
+                  color: const Color(0xFFE7D8FA),
+                  onTap: () => setState(() => selectedTab = 1),
+                ),
+                _RewardTabChip(
                   label: 'Accessories',
                   icon: Icons.checkroom_outlined,
-                  selected: selectedTab == 1,
+                  selected: selectedTab == 2,
                   color: const Color(0xFFF8C7DF),
-                  onTap: () => setState(() => selectedTab = 1),
+                  onTap: () => setState(() => selectedTab = 2),
                 ),
                 _RewardTabChip(
                   label: 'Achievements',
                   icon: Icons.auto_awesome_outlined,
-                  selected: selectedTab == 2,
+                  selected: selectedTab == 3,
                   color: const Color(0xFFC9E8C1),
-                  onTap: () => setState(() => selectedTab = 2),
+                  onTap: () => setState(() => selectedTab = 3),
                 ),
               ],
             ),
@@ -92,18 +118,103 @@ class _RewardsPageState extends State<RewardsPage> {
             if (selectedTab == 0)
               _RewardsProgressTab(adaptive: adaptive, controller: controller),
             if (selectedTab == 1)
+              RewardsRoomTab(adaptive: adaptive, controller: controller),
+            if (selectedTab == 2)
               _RewardsAccessoriesTab(
                 adaptive: adaptive,
                 controller: controller,
               ),
-            if (selectedTab == 2)
+            if (selectedTab == 3)
               _RewardsAchievementsTab(
                 adaptive: adaptive,
                 controller: controller,
               ),
+            // Level up animation overlay
+            if (_showLevelUpAnimation)
+              Center(
+                child: StarBurstAnimation(
+                  onComplete: () {
+                    setState(() => _showLevelUpAnimation = false);
+                    _showLevelUpDialog(context, _newLevel);
+                  },
+                ),
+              ),
           ],
         );
       },
+    );
+  }
+
+  void _showLevelUpDialog(BuildContext context, int level) {
+    final levelNames = ['Beginner', 'Learner', 'Explorer', 'Expert', 'Master'];
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: GentleFade(
+          child: Container(
+            padding: const EdgeInsets.all(28),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(28),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.workspace_premium_rounded,
+                  size: 64,
+                  color: Color(0xFFF5C532),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'Level Up!',
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF243A5A),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'You reached ${levelNames[level]}!',
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF60758F),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Keep up the great work!',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: const Color(0xFF60758F).withValues(alpha: 0.8),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                ElevatedButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFBDD8F2),
+                    foregroundColor: const Color(0xFF243A5A),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 32,
+                      vertical: 16,
+                    ),
+                    minimumSize: const Size(48, 48),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                  ),
+                  child: const Text('Awesome!'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -362,106 +473,227 @@ class _RewardTabChip extends StatelessWidget {
   }
 }
 
-class _RewardsProgressTab extends StatelessWidget {
+class _RewardsProgressTab extends StatefulWidget {
   const _RewardsProgressTab({required this.adaptive, required this.controller});
 
   final AudyAdaptive adaptive;
   final AudyController controller;
 
   @override
+  State<_RewardsProgressTab> createState() => _RewardsProgressTabState();
+}
+
+class _RewardsProgressTabState extends State<_RewardsProgressTab>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _popController;
+  late Animation<double> _scaleAnimation;
+  int _displayedLevel = -1;
+
+  @override
+  void initState() {
+    super.initState();
+    _popController = AnimationController(
+      duration: const Duration(milliseconds: 600),
+      vsync: this,
+    );
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 1.15).animate(
+      CurvedAnimation(parent: _popController, curve: Curves.elasticOut),
+    );
+
+    // Listen for level changes
+    widget.controller.addListener(_onLevelChanged);
+  }
+
+  @override
+  void dispose() {
+    widget.controller.removeListener(_onLevelChanged);
+    _popController.dispose();
+    super.dispose();
+  }
+
+  void _onLevelChanged() {
+    final currentLevel = widget.controller.currentLevel;
+    if (currentLevel != _displayedLevel && _displayedLevel != -1) {
+      // Level up detected - trigger pop animation
+      _popController.forward().then((_) => _popController.reverse());
+    }
+    _displayedLevel = currentLevel;
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final points = widget.controller.learningPoints;
+    final currentLevel = widget.controller.currentLevel;
+
+    // Define level thresholds and info
     final levels = [
-      ('Beginner', '0 - 100 points', 1.0, const Color(0xFFC9E8C1)),
-      (
-        'Learner',
-        '100 - 250 points',
-        ((controller.learningPoints.clamp(100, 250) - 100) / 150).toDouble(),
-        const Color(0xFFBDD8F2),
-      ),
-      (
-        'Explorer',
-        '250 - 500 points',
-        controller.learningPoints >= 250
-            ? (((controller.learningPoints.clamp(250, 500) - 250) / 250)
-                  .toDouble())
-            : 0.0,
-        const Color(0xFFE7D8FA),
-      ),
-      (
-        'Expert',
-        '500 - 1000 points',
-        controller.learningPoints >= 500
-            ? (((controller.learningPoints.clamp(500, 1000) - 500) / 500)
-                  .toDouble())
-            : 0.0,
-        const Color(0xFFFFF2A8),
-      ),
-      (
-        'Master',
-        '1000 - 2000 points',
-        controller.learningPoints >= 1000
-            ? (((controller.learningPoints.clamp(1000, 2000) - 1000) / 1000)
-                  .toDouble())
-            : 0.0,
-        const Color(0xFFC9E8C1),
-      ),
+      ('Beginner', 0, 100, const Color(0xFFC9E8C1)),
+      ('Learner', 100, 250, const Color(0xFFBDD8F2)),
+      ('Explorer', 250, 500, const Color(0xFFE7D8FA)),
+      ('Expert', 500, 1000, const Color(0xFFFFF2A8)),
+      ('Master', 1000, 2000, const Color(0xFFC9E8C1)),
     ];
 
+    final currentLevelInfo = levels[currentLevel.clamp(0, levels.length - 1)];
+    final levelName = currentLevelInfo.$1;
+    final levelMin = currentLevelInfo.$2;
+    final levelMax = currentLevelInfo.$3;
+    final levelColor = currentLevelInfo.$4;
+
+    // Calculate progress within current level
+    final progressInLevel = points <= levelMin
+        ? 0.0
+        : (points - levelMin) / (levelMax - levelMin);
+    final clampedProgress = progressInLevel.clamp(0.0, 1.0);
+
+    // Points needed for next level
+    final pointsToNext = levelMax - points;
+
     return AudyPanel(
-      adaptive: adaptive,
+      adaptive: widget.adaptive,
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Center(
-            child: Text(
-              'Your Learning Journey',
-              style: TextStyle(
-                fontSize: adaptive.space(22),
-                fontWeight: FontWeight.w800,
-              ),
+          // Title
+          Text(
+            'Your Learning Journey',
+            style: TextStyle(
+              fontSize: widget.adaptive.space(22),
+              fontWeight: FontWeight.w800,
             ),
           ),
-          SizedBox(height: adaptive.space(22)),
-          ...levels.map((level) {
-            return Padding(
-              padding: EdgeInsets.only(bottom: adaptive.space(18)),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          level.$1,
-                          style: TextStyle(
-                            fontSize: adaptive.space(16),
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
+          SizedBox(height: widget.adaptive.space(28)),
+
+          // Current Level Badge with Pop Animation
+          AnimatedBuilder(
+            animation: _scaleAnimation,
+            builder: (context, child) {
+              return Transform.scale(
+                scale: _scaleAnimation.value,
+                child: Container(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: widget.adaptive.space(24),
+                    vertical: widget.adaptive.space(16),
+                  ),
+                  decoration: BoxDecoration(
+                    color: levelColor,
+                    borderRadius: BorderRadius.circular(999),
+                    boxShadow: [
+                      BoxShadow(
+                        color: levelColor.withValues(alpha: 0.4),
+                        blurRadius: 20,
+                        offset: const Offset(0, 8),
                       ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.workspace_premium_rounded,
+                        size: widget.adaptive.space(28),
+                        color: const Color(0xFF243A5A),
+                      ),
+                      SizedBox(width: widget.adaptive.space(12)),
                       Text(
-                        level.$2,
+                        levelName,
                         style: TextStyle(
-                          fontSize: adaptive.space(14),
-                          color: const Color(0xFF60758F),
+                          fontSize: widget.adaptive.space(20),
+                          fontWeight: FontWeight.w800,
+                          color: const Color(0xFF243A5A),
                         ),
                       ),
                     ],
                   ),
-                  SizedBox(height: adaptive.space(8)),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(999),
-                    child: LinearProgressIndicator(
-                      value: level.$3,
-                      minHeight: adaptive.space(16),
-                      backgroundColor: const Color(0xFFE2E5EA),
-                      valueColor: AlwaysStoppedAnimation(level.$4),
-                    ),
-                  ),
-                ],
+                ),
+              );
+            },
+          ),
+
+          SizedBox(height: widget.adaptive.space(32)),
+
+          // Single Progress Bar
+          ClipRRect(
+            borderRadius: BorderRadius.circular(999),
+            child: TweenAnimationBuilder<double>(
+              tween: Tween(begin: 0, end: clampedProgress),
+              duration: const Duration(milliseconds: 800),
+              curve: Curves.easeOutCubic,
+              builder: (context, value, child) {
+                return LinearProgressIndicator(
+                  value: value,
+                  minHeight: widget.adaptive.space(24),
+                  backgroundColor: const Color(0xFFE2E5EA),
+                  valueColor: AlwaysStoppedAnimation(levelColor),
+                );
+              },
+            ),
+          ),
+
+          SizedBox(height: widget.adaptive.space(16)),
+
+          // Progress Text
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                '$points / $levelMax points',
+                style: TextStyle(
+                  fontSize: widget.adaptive.space(16),
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF243A5A),
+                ),
               ),
-            );
-          }),
+              if (currentLevel < levels.length - 1)
+                Text(
+                  '$pointsToNext to next level',
+                  style: TextStyle(
+                    fontSize: widget.adaptive.space(14),
+                    color: const Color(0xFF60758F),
+                  ),
+                )
+              else
+                Text(
+                  'Max Level!',
+                  style: TextStyle(
+                    fontSize: widget.adaptive.space(14),
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF22B860),
+                  ),
+                ),
+            ],
+          ),
+
+          SizedBox(height: widget.adaptive.space(24)),
+
+          // Level indicators (dots)
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: levels.asMap().entries.map((entry) {
+              final index = entry.key;
+              final isActive = index <= currentLevel;
+              final isCurrent = index == currentLevel;
+
+              return Container(
+                width: isCurrent
+                    ? widget.adaptive.space(16)
+                    : widget.adaptive.space(10),
+                height: isCurrent
+                    ? widget.adaptive.space(16)
+                    : widget.adaptive.space(10),
+                margin: EdgeInsets.symmetric(
+                  horizontal: widget.adaptive.space(4),
+                ),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: isActive ? entry.value.$4 : const Color(0xFFE2E5EA),
+                  border: isCurrent
+                      ? Border.all(color: const Color(0xFF243A5A), width: 2)
+                      : null,
+                ),
+              );
+            }).toList(),
+          ),
         ],
       ),
     );

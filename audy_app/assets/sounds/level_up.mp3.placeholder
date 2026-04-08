@@ -1,0 +1,9 @@
+# This is a placeholder file for level_up.mp3
+# The actual audio file should be a gentle chime sound (600ms)
+# Format: MP3
+# Suggested: C major chord, soft, autism-friendly volume
+
+# To add the real sound file:
+# 1. Obtain a gentle level up sound (MP3 format)
+# 2. Replace this file with the actual audio
+# 3. Run: flutter pub get

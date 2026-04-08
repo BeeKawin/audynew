@@ -18,13 +18,21 @@ dependencies:
   path_provider: ^2.1.2
   flutter_tts: ^4.2.2
   speech_to_text: ^7.3.0
+  drift: ^2.32.1
+  drift_flutter: ^0.3.0
+  sqlite3_flutter_libs: ^0.6.0+eol
+  audioplayers: ^6.6.0
+  path: ^1.9.1
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+  drift_dev: ^2.32.1
+  build_runner: ^2.13.1
 
 flutter:
   uses-material-design: true
   assets:
     - assets/models/
+    - assets/sounds/
