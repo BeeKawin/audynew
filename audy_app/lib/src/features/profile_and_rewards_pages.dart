@@ -715,7 +715,7 @@ class _RewardsAccessoriesTab extends StatelessWidget {
       children: [
         Center(
           child: Text(
-            'Dress Up Your Cat!',
+            'Decorate your room!',
             style: TextStyle(
               fontSize: adaptive.space(22),
               fontWeight: FontWeight.w800,

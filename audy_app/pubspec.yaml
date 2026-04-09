@@ -23,6 +23,7 @@ dependencies:
   sqlite3_flutter_libs: ^0.6.0+eol
   audioplayers: ^6.6.0
   path: ^1.9.1
+  http: ^1.2.0  # For Thai chat backend API
 
 dev_dependencies:
   flutter_test:

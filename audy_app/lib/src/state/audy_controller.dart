@@ -7,6 +7,8 @@ import 'package:flutter/material.dart';
 import '../data/datasources/local_data_source.dart';
 import '../data/models/progress_model.dart';
 import '../data/repositories/storage_repository.dart';
+import '../services/chat_service.dart';
+import '../services/speech_service.dart';
 
 enum SortShape { circle, square, triangle }
 
@@ -154,6 +156,7 @@ class AudyController extends ChangeNotifier {
   AudyController({this.storage}) {
     _seedState();
     _loadFromStorage();
+    _initThaiChat();
   }
 
   // Placed accessories in the room
@@ -216,10 +219,27 @@ class AudyController extends ChangeNotifier {
   double socialConfidence = 0.20;
   String socialFeedback = 'Start a conversation with a short message.';
 
+  // Thai Chat Services
+  late final SpeechService speechService;
+  late final ChatService chatService;
+
+  // Thai voice messages
+  final List<SocialMessage> thaiSocialMessages = [];
+
   int learningPoints = 0;
   int gamesPlayed = 0;
   int dayStreak = 1;
   int totalStars = 3;
+
+  // Achievement tracking
+  int puzzleGamesCompleted = 0;
+  int readingExercisesCompleted = 0;
+  int chatMessagesSent = 0;
+  int sortingGamesCompleted = 0;
+  int emotionsRecognized = 0;
+  int colorsSortedCorrectly = 0;
+  int gamesInCurrentSession = 0;
+  DateTime? sessionStartTime;
 
   late List<AccessoryItem> accessories;
 
@@ -329,6 +349,57 @@ class AudyController extends ChangeNotifier {
         description: 'Have 10 conversations',
         unlocked:
             socialMessages.where((message) => message.isUser).length >= 10,
+      ),
+      // NEW ACHIEVEMENTS
+      AchievementItem(
+        title: 'Puzzle Starter',
+        description: 'Complete first mini-puzzle',
+        unlocked: puzzleGamesCompleted >= 1,
+      ),
+      AchievementItem(
+        title: 'Speed Star',
+        description: 'Complete emotion game fast',
+        unlocked: false, // Tracked via trackEmotionGameCompleted
+      ),
+      AchievementItem(
+        title: 'Sorting Champion',
+        description: 'Complete 10 sorting games',
+        unlocked: sortingGamesCompleted >= 10,
+      ),
+      AchievementItem(
+        title: 'Reading Buddy',
+        description: 'Complete 5 reading exercises',
+        unlocked: readingExercisesCompleted >= 5,
+      ),
+      AchievementItem(
+        title: 'Emotion Explorer',
+        description: 'Recognize all 5 emotions',
+        unlocked: emotionsRecognized >= 5,
+      ),
+      AchievementItem(
+        title: 'Streak Keeper',
+        description: 'Play for 3 days in a row',
+        unlocked: dayStreak >= 3,
+      ),
+      AchievementItem(
+        title: 'Social Star',
+        description: 'Send 20 chat messages',
+        unlocked: chatMessagesSent >= 20,
+      ),
+      AchievementItem(
+        title: 'Color Pro',
+        description: 'Sort 50 colors correctly',
+        unlocked: colorsSortedCorrectly >= 50,
+      ),
+      AchievementItem(
+        title: 'Fast Learner',
+        description: 'Complete 3 games in one session',
+        unlocked: gamesInCurrentSession >= 3,
+      ),
+      AchievementItem(
+        title: 'Master Collector',
+        description: 'Own 10 accessories',
+        unlocked: accessories.where((a) => a.owned).length >= 10,
       ),
     ];
   }
@@ -954,6 +1025,16 @@ class AudyController extends ChangeNotifier {
       if (achievement.title == 'Quick Reflexes') key = 'quick_reflexes';
       if (achievement.title == 'Color Master') key = 'color_master';
       if (achievement.title == 'Social Butterfly') key = 'social_butterfly';
+      if (achievement.title == 'Puzzle Starter') key = 'puzzle_starter';
+      if (achievement.title == 'Speed Star') key = 'speed_star';
+      if (achievement.title == 'Sorting Champion') key = 'sorting_champion';
+      if (achievement.title == 'Reading Buddy') key = 'reading_buddy';
+      if (achievement.title == 'Emotion Explorer') key = 'emotion_explorer';
+      if (achievement.title == 'Streak Keeper') key = 'streak_keeper';
+      if (achievement.title == 'Social Star') key = 'social_star';
+      if (achievement.title == 'Color Pro') key = 'color_pro';
+      if (achievement.title == 'Fast Learner') key = 'fast_learner';
+      if (achievement.title == 'Master Collector') key = 'master_collector';
 
       if (key != null &&
           achievement.unlocked &&
@@ -975,6 +1056,242 @@ class AudyController extends ChangeNotifier {
       await storage!.unlockAchievement(achievement.id);
     } catch (e) {
       debugPrint('Achievement unlock error: $e');
+    }
+  }
+
+  // ==================== NEW ACHIEVEMENT TRACKING METHODS ====================
+
+  /// Track puzzle game completion
+  void trackPuzzleCompleted() {
+    puzzleGamesCompleted++;
+    if (puzzleGamesCompleted >= 1) {
+      _unlockAchievement('puzzle_starter');
+    }
+    _checkAchievements();
+    notifyListeners();
+  }
+
+  /// Track reading exercise completion
+  void trackReadingCompleted() {
+    readingExercisesCompleted++;
+    if (readingExercisesCompleted >= 5) {
+      _unlockAchievement('reading_buddy');
+    }
+    _checkAchievements();
+    notifyListeners();
+  }
+
+  /// Track chat message sent
+  void trackMessageSent() {
+    chatMessagesSent++;
+    if (chatMessagesSent >= 20) {
+      _unlockAchievement('social_star');
+    }
+    // Also check Social Butterfly (10 conversations)
+    if (chatMessagesSent >= 10) {
+      _unlockAchievement('social_butterfly');
+    }
+    _checkAchievements();
+    notifyListeners();
+  }
+
+  /// Track sorting game completion
+  void trackSortingCompleted() {
+    sortingGamesCompleted++;
+    if (sortingGamesCompleted >= 10) {
+      _unlockAchievement('sorting_champion');
+    }
+    _trackGameInSession();
+    _checkAchievements();
+    notifyListeners();
+  }
+
+  /// Track color sorted correctly
+  void trackColorSorted() {
+    colorsSortedCorrectly++;
+    if (colorsSortedCorrectly >= 50) {
+      _unlockAchievement('color_pro');
+    }
+    _checkAchievements();
+    notifyListeners();
+  }
+
+  /// Track emotion recognized correctly
+  void trackEmotionRecognized() {
+    emotionsRecognized++;
+    if (emotionsRecognized >= 5) {
+      _unlockAchievement('emotion_explorer');
+    }
+    _checkAchievements();
+    notifyListeners();
+  }
+
+  /// Track emotion game completion (for Speed Star)
+  void trackEmotionGameCompleted({required int durationSeconds}) {
+    if (durationSeconds < 10) {
+      _unlockAchievement('speed_star');
+    }
+    _trackGameInSession();
+    _checkAchievements();
+    notifyListeners();
+  }
+
+  /// Track games in current session (for Fast Learner)
+  void _trackGameInSession() {
+    sessionStartTime ??= DateTime.now();
+    gamesInCurrentSession++;
+    if (gamesInCurrentSession >= 3) {
+      _unlockAchievement('fast_learner');
+    }
+  }
+
+  /// Check Master Collector achievement (called when accessory is purchased)
+  void checkMasterCollector() {
+    final ownedCount = accessories.where((a) => a.owned).length;
+    if (ownedCount >= 10) {
+      _unlockAchievement('master_collector');
+    }
+    _checkAchievements();
+    notifyListeners();
+  }
+
+  // ==================== THAI CHAT METHODS ====================
+
+  /// Initialize Thai chat services
+  void _initThaiChat() {
+    speechService = SpeechService();
+    speechService.init();
+    chatService = ChatService(baseUrl: 'http://localhost:8000');
+
+    // Seed Thai messages
+    final now = DateTime.now();
+    thaiSocialMessages.addAll([
+      SocialMessage(
+        id: 'bot-1',
+        text: 'สวัสดี! ฉันคือเพื่อนที่คุยสนุก 🤗',
+        isUser: false,
+        createdAt: now,
+      ),
+      SocialMessage(
+        id: 'bot-2',
+        text: 'วันนี้เธอทำอะไรมา?',
+        isUser: false,
+        createdAt: now,
+      ),
+    ]);
+  }
+
+  /// Submit Thai message via ChatService
+  Future<void> submitThaiSocialMessage(String message) async {
+    final error = validateThaiChatMessage(message);
+    if (error != null) {
+      socialFeedback = error;
+      notifyListeners();
+      return;
+    }
+
+    final trimmed = message.trim();
+
+    // Add user message
+    thaiSocialMessages.add(
+      SocialMessage(
+        id: 'user-${DateTime.now().microsecondsSinceEpoch}',
+        text: trimmed,
+        isUser: true,
+        createdAt: DateTime.now(),
+      ),
+    );
+
+    try {
+      // Get response from backend
+      final response = await chatService.sendMessage(trimmed);
+
+      // Add bot response
+      thaiSocialMessages.add(
+        SocialMessage(
+          id: 'bot-${DateTime.now().microsecondsSinceEpoch}',
+          text: response.response,
+          isUser: false,
+          createdAt: response.timestamp,
+        ),
+      );
+
+      // Track message sent (achievement)
+      trackMessageSent();
+
+      // Add points
+      await addPoints(2);
+
+      socialFeedback = 'ข้อความส่งแล้ว';
+    } catch (e) {
+      // Fallback to offline mode
+      thaiSocialMessages.add(
+        SocialMessage(
+          id: 'bot-${DateTime.now().microsecondsSinceEpoch}',
+          text: 'ขอโทษนะ เชื่อมต่อไม่ได้ ลองใหม่อีกครั้ง',
+          isUser: false,
+          createdAt: DateTime.now(),
+        ),
+      );
+      socialFeedback = 'เชื่อมต่อล้มเหลว';
+    }
+
+    notifyListeners();
+  }
+
+  /// Speak bot response (Thai TTS)
+  Future<void> speakThaiResponse(String text) async {
+    await speechService.speakThai(text);
+  }
+
+  /// Listen for Thai speech (STT)
+  Future<String?> listenThaiSpeech() async {
+    return await speechService.listenThai();
+  }
+
+  /// Validate Thai message
+  String? validateThaiChatMessage(String message) {
+    final trimmed = message.trim();
+    if (trimmed.isEmpty) {
+      return 'กรุณาพิมพ์ข้อความ';
+    }
+    if (trimmed.length > 200) {
+      return 'ข้อความสั้นเกินไป';
+    }
+    return null;
+  }
+
+  /// Generic unlock achievement by key
+  void _unlockAchievement(String key) {
+    if (!_unlockedAchievementKeys.contains(key)) {
+      _unlockedAchievementKeys.add(key);
+      _unlockAchievementInStorage(key);
+      // Map key to title
+      final keyToTitle = {
+        'first_steps': 'First Steps',
+        'emotion_expert': 'Emotion Expert',
+        'quick_reflexes': 'Quick Reflexes',
+        'color_master': 'Color Master',
+        'social_butterfly': 'Social Butterfly',
+        'puzzle_starter': 'Puzzle Starter',
+        'speed_star': 'Speed Star',
+        'sorting_champion': 'Sorting Champion',
+        'reading_buddy': 'Reading Buddy',
+        'emotion_explorer': 'Emotion Explorer',
+        'streak_keeper': 'Streak Keeper',
+        'social_star': 'Social Star',
+        'color_pro': 'Color Pro',
+        'fast_learner': 'Fast Learner',
+        'master_collector': 'Master Collector',
+      };
+      final title = keyToTitle[key] ?? key;
+      // Find and trigger the callback
+      final achievement = achievements.firstWhere(
+        (a) => a.title == title,
+        orElse: () =>
+            AchievementItem(title: title, description: '', unlocked: true),
+      );
+      onAchievementUnlock?.call(achievement);
     }
   }
 
@@ -1095,14 +1412,14 @@ class AudyController extends ChangeNotifier {
       AccessoryItem(
         name: 'Party Hat',
         icon: Icons.celebration_outlined,
-        cost: 0,
-        owned: true,
+        cost: 20,
+        owned: false,
       ),
       AccessoryItem(
         name: 'Sunglasses',
         icon: Icons.wb_sunny_outlined,
-        cost: 0,
-        owned: true,
+        cost: 20,
+        owned: false,
       ),
       AccessoryItem(
         name: 'Bow Tie',
@@ -1120,6 +1437,66 @@ class AudyController extends ChangeNotifier {
         name: 'Star Badge',
         icon: Icons.star_outline_rounded,
         cost: 60,
+        owned: false,
+      ),
+      AccessoryItem(
+        name: 'Heart Pin',
+        icon: Icons.favorite_outlined,
+        cost: 30,
+        owned: false,
+      ),
+      AccessoryItem(
+        name: 'Rainbow Band',
+        icon: Icons.palette_outlined,
+        cost: 50,
+        owned: false,
+      ),
+      AccessoryItem(
+        name: 'Peace Sign',
+        icon: Icons.spa_outlined,
+        cost: 45,
+        owned: false,
+      ),
+      AccessoryItem(
+        name: 'Music Note',
+        icon: Icons.music_note_outlined,
+        cost: 35,
+        owned: false,
+      ),
+      AccessoryItem(
+        name: 'Bookworm',
+        icon: Icons.menu_book_outlined,
+        cost: 55,
+        owned: false,
+      ),
+      AccessoryItem(
+        name: 'Puzzle Piece',
+        icon: Icons.extension_outlined,
+        cost: 70,
+        owned: false,
+      ),
+      AccessoryItem(
+        name: 'Flower',
+        icon: Icons.local_florist_outlined,
+        cost: 40,
+        owned: false,
+      ),
+      AccessoryItem(
+        name: 'Rocket',
+        icon: Icons.rocket_launch_outlined,
+        cost: 80,
+        owned: false,
+      ),
+      AccessoryItem(
+        name: 'Medal',
+        icon: Icons.military_tech_outlined,
+        cost: 90,
+        owned: false,
+      ),
+      AccessoryItem(
+        name: 'Glow Star',
+        icon: Icons.auto_awesome_outlined,
+        cost: 120,
         owned: false,
       ),
     ];

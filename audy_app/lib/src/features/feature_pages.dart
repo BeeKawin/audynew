@@ -1377,7 +1377,7 @@ class _SocialPracticePageState extends State<SocialPracticePage> {
               child: SizedBox(
                 height: adaptive.isPhone ? 320 : 420,
                 child: ListView(
-                  children: controller.socialMessages
+                  children: controller.thaiSocialMessages
                       .map(
                         (message) => _ChatBubble(
                           text: message.text,
@@ -1394,13 +1394,22 @@ class _SocialPracticePageState extends State<SocialPracticePage> {
               padding: EdgeInsets.all(adaptive.space(14)),
               child: Row(
                 children: [
-                  CircleAvatar(
-                    radius: adaptive.isPhone ? 22 : 26,
-                    backgroundColor: const Color(0xFFF8C7DF),
-                    child: Icon(
-                      Icons.mic_none_rounded,
-                      color: const Color(0xFF243A5A),
-                      size: adaptive.space(20),
+                  // Microphone button (STT for Thai)
+                  InkWell(
+                    onTap: () async {
+                      final text = await controller.listenThaiSpeech();
+                      if (text != null && text.isNotEmpty) {
+                        messageController.text = text;
+                      }
+                    },
+                    child: CircleAvatar(
+                      radius: adaptive.isPhone ? 22 : 26,
+                      backgroundColor: const Color(0xFFF8C7DF),
+                      child: Icon(
+                        Icons.mic_none_rounded,
+                        color: const Color(0xFF243A5A),
+                        size: adaptive.space(20),
+                      ),
                     ),
                   ),
                   SizedBox(width: adaptive.space(12)),
@@ -1408,7 +1417,7 @@ class _SocialPracticePageState extends State<SocialPracticePage> {
                     child: TextField(
                       controller: messageController,
                       decoration: InputDecoration(
-                        hintText: 'Type your message...',
+                        hintText: 'พิมพ์ข้อความ...', // Thai: Type your message
                         filled: true,
                         fillColor: const Color(0xFFF3F6F9),
                         border: OutlineInputBorder(
@@ -1423,10 +1432,35 @@ class _SocialPracticePageState extends State<SocialPracticePage> {
                     ),
                   ),
                   SizedBox(width: adaptive.space(12)),
+                  // Speaker button (TTS for Thai)
                   InkWell(
                     onTap: () {
-                      controller.submitSocialMessage(messageController.text);
-                      if (controller.validateChatMessage(
+                      // Get last bot message and speak it
+                      final botMessages = controller.thaiSocialMessages
+                          .where((m) => !m.isUser)
+                          .toList();
+                      if (botMessages.isNotEmpty) {
+                        controller.speakThaiResponse(botMessages.last.text);
+                      }
+                    },
+                    child: CircleAvatar(
+                      radius: adaptive.isPhone ? 22 : 26,
+                      backgroundColor: const Color(0xFFFFE0B2),
+                      child: Icon(
+                        Icons.volume_up_rounded,
+                        color: const Color(0xFF243A5A),
+                        size: adaptive.space(20),
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: adaptive.space(12)),
+                  // Send button
+                  InkWell(
+                    onTap: () {
+                      controller.submitThaiSocialMessage(
+                        messageController.text,
+                      );
+                      if (controller.validateThaiChatMessage(
                             messageController.text,
                           ) ==
                           null) {

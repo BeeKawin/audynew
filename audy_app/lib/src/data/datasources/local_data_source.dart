@@ -218,9 +218,6 @@ class LocalDataSource {
             .insert(
               UserAccessoriesCompanion.insert(
                 accessoryId: accessory.id,
-                owned: Value(
-                  accessory.cost == 0,
-                ), // Free items owned by default
                 x: const Value.absent(),
                 y: const Value.absent(),
                 updatedAt: DateTime.now(),
@@ -233,11 +230,21 @@ class LocalDataSource {
 
   Future<void> _seedAccessories() async {
     final defaultAccessories = [
-      (name: 'Party Hat', icon: 'celebration_outlined', cost: 0),
-      (name: 'Sunglasses', icon: 'wb_sunny_outlined', cost: 0),
+      (name: 'Party Hat', icon: 'celebration_outlined', cost: 20),
+      (name: 'Sunglasses', icon: 'wb_sunny_outlined', cost: 20),
       (name: 'Bow Tie', icon: 'style_outlined', cost: 40),
       (name: 'Crown', icon: 'workspace_premium_outlined', cost: 100),
       (name: 'Star Badge', icon: 'star_outline_rounded', cost: 60),
+      (name: 'Heart Pin', icon: 'favorite_outlined', cost: 30),
+      (name: 'Rainbow Band', icon: 'palette_outlined', cost: 50),
+      (name: 'Peace Sign', icon: 'spa_outlined', cost: 45),
+      (name: 'Music Note', icon: 'music_note_outlined', cost: 35),
+      (name: 'Bookworm', icon: 'menu_book_outlined', cost: 55),
+      (name: 'Puzzle Piece', icon: 'extension_outlined', cost: 70),
+      (name: 'Flower', icon: 'local_florist_outlined', cost: 40),
+      (name: 'Rocket', icon: 'rocket_launch_outlined', cost: 80),
+      (name: 'Medal', icon: 'military_tech_outlined', cost: 90),
+      (name: 'Glow Star', icon: 'auto_awesome_outlined', cost: 120),
     ];
 
     for (var accessory in defaultAccessories) {
@@ -280,6 +287,48 @@ class LocalDataSource {
         title: 'Social Butterfly',
         desc: 'Have 10 conversations',
       ),
+      (
+        key: 'puzzle_starter',
+        title: 'Puzzle Starter',
+        desc: 'Complete first mini-puzzle',
+      ),
+      (
+        key: 'speed_star',
+        title: 'Speed Star',
+        desc: 'Complete emotion game fast',
+      ),
+      (
+        key: 'sorting_champion',
+        title: 'Sorting Champion',
+        desc: 'Complete 10 sorting games',
+      ),
+      (
+        key: 'reading_buddy',
+        title: 'Reading Buddy',
+        desc: 'Complete 5 reading exercises',
+      ),
+      (
+        key: 'emotion_explorer',
+        title: 'Emotion Explorer',
+        desc: 'Recognize all 5 emotions',
+      ),
+      (
+        key: 'streak_keeper',
+        title: 'Streak Keeper',
+        desc: 'Play for 3 days in a row',
+      ),
+      (key: 'social_star', title: 'Social Star', desc: 'Send 20 chat messages'),
+      (key: 'color_pro', title: 'Color Pro', desc: 'Sort 50 colors correctly'),
+      (
+        key: 'fast_learner',
+        title: 'Fast Learner',
+        desc: 'Complete 3 games in one session',
+      ),
+      (
+        key: 'master_collector',
+        title: 'Master Collector',
+        desc: 'Own 10 accessories',
+      ),
     ];
 
     for (var achievement in defaultAchievements) {
@@ -308,6 +357,26 @@ class LocalDataSource {
         return Icons.workspace_premium_outlined;
       case 'star_outline_rounded':
         return Icons.star_outline_rounded;
+      case 'favorite_outlined':
+        return Icons.favorite_outlined;
+      case 'palette_outlined':
+        return Icons.palette_outlined;
+      case 'spa_outlined':
+        return Icons.spa_outlined;
+      case 'music_note_outlined':
+        return Icons.music_note_outlined;
+      case 'menu_book_outlined':
+        return Icons.menu_book_outlined;
+      case 'extension_outlined':
+        return Icons.extension_outlined;
+      case 'local_florist_outlined':
+        return Icons.local_florist_outlined;
+      case 'rocket_launch_outlined':
+        return Icons.rocket_launch_outlined;
+      case 'military_tech_outlined':
+        return Icons.military_tech_outlined;
+      case 'auto_awesome_outlined':
+        return Icons.auto_awesome_outlined;
       default:
         return Icons.star;
     }
