@@ -1,0 +1,41 @@
+name: audy_app
+description: "A new Flutter project."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.11.4
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  google_fonts: ^6.1.0
+  camera: ^0.10.5+9
+  image: ^4.1.7
+  tflite_flutter: ^0.11.0
+  path_provider: ^2.1.2
+  flutter_tts: ^4.2.2
+  speech_to_text: ^7.3.0
+  drift: ^2.32.1
+  drift_flutter: ^0.3.0
+  sqlite3_flutter_libs: ^0.6.0+eol
+  audioplayers: ^6.6.0
+  path: ^1.9.1
+  http: ^1.2.0  # For Thai chat backend API
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  drift_dev: ^2.32.1
+  build_runner: ^2.13.1
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/models/model.tflite
+    - assets/sounds/
+    - assets/images/
+    - assets/mascot/
