@@ -9,7 +9,7 @@ import 'package:flutter/material.dart';
 import '../core/app_strings.dart';
 import '../data/models/progress_model.dart';
 import '../data/repositories/storage_repository.dart';
-import '../services/chat_service.dart';
+import '../features/social_chat/chat_service.dart';
 import '../services/speech_service.dart';
 
 enum SortShape { circle, square, triangle }

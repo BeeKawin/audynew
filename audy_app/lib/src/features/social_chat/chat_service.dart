@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import '../models/chat_models.dart';
+import 'chat_models.dart';
 
 /// Chat service for communicating with Thai NLP backend
 class ChatService {

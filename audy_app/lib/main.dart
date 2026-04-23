@@ -22,6 +22,7 @@ import 'src/services/emotion_service.dart';
 import 'src/services/sound_service.dart';
 import 'src/state/audy_controller.dart';
 import 'src/widgets/achievement_toast.dart';
+import 'src/features/social_chat/social_chat_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
