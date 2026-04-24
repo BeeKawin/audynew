@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'src/core/app_routes.dart';
 import 'src/core/audy_theme.dart';
 import 'src/data/service_locator.dart';
+import 'src/features/auth/login_page.dart';
 import 'src/features/dashboard_page.dart';
 import 'src/features/emotion_classify_game/emotion_classify_game.dart';
 import 'src/features/emotion_mimic_game/emotion_mimic_game.dart';
@@ -18,6 +20,7 @@ import 'src/features/read_pronounce/read_pronounce_practice.dart';
 import 'src/features/read_pronounce/read_pronounce_controller.dart';
 import 'src/features/reaction_game/reaction_game_screen.dart';
 import 'src/features/sorting_game/sort_level_select_screen.dart';
+import 'src/services/auth_service.dart';
 import 'src/services/emotion_service.dart';
 import 'src/services/sound_service.dart';
 import 'src/state/audy_controller.dart';
@@ -26,6 +29,12 @@ import 'src/features/social_chat/social_chat_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize Supabase first
+  await Supabase.initialize(
+    url: 'https://zltkubxggxprdjnspbfk.supabase.co',
+    anonKey: 'sb_publishable_oMatucQUNC7OFMhiC1SsaA_PzHzj-2z',
+  );
 
   // Initialize services
   try {
@@ -176,8 +185,9 @@ class _AudyAppState extends State<AudyApp> {
             ),
           ),
         ),
-        initialRoute: AppRoutes.dashboard,
+        initialRoute: AppRoutes.login,
         routes: {
+          AppRoutes.login: (_) => const LoginPage(),
           AppRoutes.dashboard: (_) => _HomeShell(currentIndex: _currentIndex),
           AppRoutes.games: (_) => _HomeShell(currentIndex: 1),
           AppRoutes.emotionClassify: (_) => const EmotionClassifyScreen(),

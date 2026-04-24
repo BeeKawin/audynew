@@ -10,6 +10,8 @@ import '../core/app_strings.dart';
 import '../data/models/progress_model.dart';
 import '../data/repositories/storage_repository.dart';
 import '../features/social_chat/chat_service.dart';
+import '../services/auth_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' show AuthChangeEvent;
 import '../services/speech_service.dart';
 
 enum SortShape { circle, square, triangle }
@@ -168,15 +170,64 @@ class AchievementItem {
 class AudyController extends ChangeNotifier {
   final StorageRepository? storage;
   final AudioPlayer _audioPlayer = AudioPlayer();
+  final _authService = AuthService();
 
   // Callbacks for UI notifications
   AchievementUnlockCallback? onAchievementUnlock;
   LevelUpCallback? onLevelUp;
 
+  // Auth state
+  UserProfile? _currentUser;
+  UserProfile? get currentUser => _currentUser;
+  bool get isLoggedIn => _currentUser != null;
+
   AudyController({this.storage}) {
     _seedState();
     _loadFromStorage();
     _initThaiChat();
+    _initAuth();
+  }
+
+  /// Initialize auth state from current Supabase session
+  void _initAuth() {
+    _loadCurrentUser();
+    // Listen for auth state changes
+    _authService.authStateStream.listen((state) async {
+      if (state.event == AuthChangeEvent.signedOut) {
+        _currentUser = null;
+        notifyListeners();
+      } else if (state.event == AuthChangeEvent.signedIn &&
+          state.session != null) {
+        await _loadCurrentUser();
+      }
+    });
+  }
+
+  /// Load current user profile from Supabase
+  Future<void> _loadCurrentUser() async {
+    final profile = await _authService.getCurrentProfile();
+    if (profile != null) {
+      _currentUser = profile;
+      notifyListeners();
+    }
+  }
+
+  /// Set user after login (called from LoginPage after successful auth)
+  void setUser(UserProfile profile) {
+    _currentUser = profile;
+    notifyListeners();
+  }
+
+  /// Clear user on logout
+  void clearUser() {
+    _currentUser = null;
+    notifyListeners();
+  }
+
+  /// Logout the current user
+  Future<void> logout() async {
+    await _authService.signOut();
+    clearUser();
   }
 
   // Get only owned accessories
@@ -753,12 +804,14 @@ class AudyController extends ChangeNotifier {
   }
 
   /// Get current child profile data for institution panel
+  /// Uses authenticated user data or defaults if not logged in
   ChildProfileData get currentChildProfile {
+    final user = _currentUser;
     return ChildProfileData(
-      id: 'child-001',
-      name: 'CEDT',
-      age: 17,
-      joinedDate: DateTime(2026, 1, 15),
+      id: user?.id ?? 'child-001',
+      name: user?.name ?? 'User',
+      age: user?.age ?? 10,
+      joinedDate: user?.createdAt ?? DateTime.now(),
       gamesPlayed: gamesPlayed,
       learningPoints: learningPoints,
       achievementsUnlocked: unlockedAchievementCount,

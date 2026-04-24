@@ -25,6 +25,7 @@ dependencies:
   path: ^1.9.1
   http: ^1.2.0  # For Thai chat backend API
   avatar_glow: ^3.0.1
+  supabase_flutter: ^2.12.4
 
 
 dev_dependencies:

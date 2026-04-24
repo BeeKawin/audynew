@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../core/app_routes.dart';
+import '../core/audy_theme.dart';
 import '../core/audy_ui.dart';
 import '../services/sound_service.dart';
 import '../state/audy_controller.dart';
@@ -347,6 +349,13 @@ class _ProfileTabContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final user = controller.currentUser;
+    final profileName = user?.name ?? 'User';
+    final profileAge = user?.age ?? 10;
+    final joinedDate = user?.createdAt ?? DateTime.now();
+    final formattedDate =
+        '${_getMonthName(joinedDate.month)} ${joinedDate.day}, ${joinedDate.year}';
+
     return Column(
       children: [
         AudyPanel(
@@ -370,7 +379,7 @@ class _ProfileTabContent extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'CEDT',
+                          profileName,
                           style: TextStyle(
                             fontSize: adaptive.space(24),
                             fontWeight: FontWeight.w800,
@@ -378,14 +387,14 @@ class _ProfileTabContent extends StatelessWidget {
                         ),
                         SizedBox(height: adaptive.space(6)),
                         Text(
-                          'Age: 17',
+                          'Age: $profileAge',
                           style: TextStyle(
                             fontSize: adaptive.space(15),
                             color: const Color(0xFF60758F),
                           ),
                         ),
                         Text(
-                          'Member since January 15, 2026',
+                          'Member since $formattedDate',
                           style: TextStyle(
                             fontSize: adaptive.space(15),
                             color: const Color(0xFF60758F),
@@ -434,7 +443,61 @@ class _ProfileTabContent extends StatelessWidget {
         ),
         SizedBox(height: adaptive.space(20)),
         _RequestSummaryCard(controller: controller),
+        SizedBox(height: adaptive.space(20)),
+        _buildLogoutButton(context, adaptive),
       ],
+    );
+  }
+
+  String _getMonthName(int month) {
+    const months = [
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
+    ];
+    return months[month - 1];
+  }
+
+  Widget _buildLogoutButton(BuildContext context, AudyAdaptive adaptive) {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton.icon(
+        onPressed: () {
+          SoundService.instance.playTap();
+          controller.logout();
+          Navigator.pushReplacementNamed(context, AppRoutes.login);
+        },
+        icon: const Icon(Icons.logout_rounded, size: 24),
+        label: Text(
+          'Log Out',
+          style: TextStyle(
+            fontSize: adaptive.space(16),
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AudyColors.error.withOpacity(0.9),
+          foregroundColor: AudyColors.textOnColor,
+          padding: EdgeInsets.symmetric(
+            horizontal: adaptive.space(24),
+            vertical: adaptive.space(16),
+          ),
+          minimumSize: const Size(48, 56),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(999),
+          ),
+          elevation: 4,
+        ),
+      ),
     );
   }
 }

@@ -1,4 +1,5 @@
 final class AppRoutes {
+  static const login = '/login';
   static const dashboard = '/';
   static const games = '/games';
   static const emotionGame = '/games/emotion';
