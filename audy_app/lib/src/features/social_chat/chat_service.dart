@@ -2,12 +2,36 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'chat_models.dart';
 
+/// Backend API configuration
+///
+/// For local development (Android Emulator): 'http://10.0.2.2:8000'
+/// For Railway deployment: 'https://your-app.up.railway.app'
+///
+/// TODO: Replace with your Railway URL after deployment
+class ApiConfig {
+  /// Default Railway URL - replace after deployment
+  static const String railwayUrl = 'https://your-app.up.railway.app';
+
+  /// Local development URL for Android Emulator
+  static const String localUrl = 'http://10.0.2.2:8000';
+
+  /// Local development URL for iOS Simulator
+  static const String localUrlIOS = 'http://localhost:8000';
+
+  /// Get the appropriate base URL
+  /// Set USE_LOCAL=true for local development
+  static String get baseUrl {
+    const useLocal = bool.fromEnvironment('USE_LOCAL', defaultValue: false);
+    return useLocal ? localUrl : railwayUrl;
+  }
+}
+
 /// Chat service for communicating with Thai NLP backend
 class ChatService {
   final String baseUrl;
   String? _sessionId;
 
-  ChatService({required this.baseUrl});
+  ChatService({String? baseUrl}) : baseUrl = baseUrl ?? ApiConfig.baseUrl;
 
   String? get sessionId => _sessionId;
 

@@ -4,14 +4,26 @@ import 'dart:math';
 import 'package:image/image.dart' as img;
 import 'package:tflite_flutter/tflite_flutter.dart';
 
+import 'emotion_service_api.dart';
+
 class EmotionResult {
   const EmotionResult({
     required this.detectedEmotion,
     required this.confidence,
+    this.source = 'local',
   });
 
   final String detectedEmotion;
   final double confidence;
+  final String source; // 'local' or 'api'
+
+  factory EmotionResult.fromApi(EmotionApiResult apiResult) {
+    return EmotionResult(
+      detectedEmotion: apiResult.detectedEmotion,
+      confidence: apiResult.confidence,
+      source: 'api',
+    );
+  }
 }
 
 class EmotionLoadException implements Exception {
@@ -27,6 +39,8 @@ class EmotionService {
   static Interpreter? _interpreter;
   static bool _initialized = false;
   static String? _loadError;
+  static final EmotionApiService _apiService = EmotionApiService();
+  static bool _useApiFallback = true;
 
   static const Map<int, String> _modelLabels = {
     0: 'Happy',
@@ -67,14 +81,45 @@ class EmotionService {
   static bool get isReady => _initialized && _interpreter != null;
   static String? get loadError => _loadError;
 
+  /// Enable or disable API fallback when local model fails
+  static void setApiFallback(bool enabled) {
+    _useApiFallback = enabled;
+  }
+
+  /// Detect emotion using local TFLite model with optional API fallback
   static Future<EmotionResult> detectEmotion(File image) async {
-    if (_interpreter == null) {
-      throw EmotionLoadException(
-        _loadError ??
-            'Emotion model not loaded. Call EmotionService.init() first.',
-      );
+    // Try local model first
+    if (_interpreter != null) {
+      try {
+        final result = await _detectLocal(image);
+        return result;
+      } catch (e) {
+        // Local failed, try API if enabled
+        if (_useApiFallback) {
+          return await detectEmotionRemote(image);
+        }
+        rethrow;
+      }
     }
 
+    // No local model, use API
+    if (_useApiFallback) {
+      return await detectEmotionRemote(image);
+    }
+
+    throw EmotionLoadException(
+      _loadError ?? 'Emotion model not loaded and API fallback disabled.',
+    );
+  }
+
+  /// Detect emotion using Railway API
+  /// Works on all platforms including web
+  static Future<EmotionResult> detectEmotionRemote(File image) async {
+    final apiResult = await _apiService.detectEmotion(image);
+    return EmotionResult.fromApi(apiResult);
+  }
+
+  static Future<EmotionResult> _detectLocal(File image) async {
     final input = _preprocess(image);
     final output = List.filled(7, 0.0).reshape([1, 7]);
 
@@ -88,7 +133,11 @@ class EmotionService {
     final modelLabel = _modelLabels[maxIdx] ?? 'neutral';
     final appEmotion = _modelToApp[modelLabel] ?? 'Calm';
 
-    return EmotionResult(detectedEmotion: appEmotion, confidence: maxConf);
+    return EmotionResult(
+      detectedEmotion: appEmotion,
+      confidence: maxConf,
+      source: 'local',
+    );
   }
 
   static List<List<List<List<double>>>> _preprocess(File image) {

@@ -72,7 +72,7 @@ class AuthService {
   }
 
   /// Sign up with email, password, name, and age
-  /// Creates auth user and profile row automatically
+  /// Profile row is created automatically by database trigger
   Future<User> signUp({
     required String email,
     required String password,
@@ -80,30 +80,25 @@ class AuthService {
     required int age,
   }) async {
     try {
-      // Create auth user
+      // Create auth user with profile data in metadata
+      // The database trigger will read this and create the profile row
       final response = await _client.auth.signUp(
         email: email.trim(),
         password: password,
+        data: {'name': name.trim(), 'age': age},
       );
 
       if (response.user == null) {
         throw Exception('Sign up failed. Please try again.');
       }
 
-      final user = response.user!;
-
-      // Create profile row
-      await _client.from('profiles').insert({
-        'id': user.id,
-        'name': name.trim(),
-        'age': age,
-        'created_at': DateTime.now().toIso8601String(),
-      });
-
-      return user;
+      // Profile is created automatically by the database trigger
+      // handle_new_user() reads raw_user_meta_data and inserts into profiles
+      return response.user!;
     } on AuthException catch (e) {
       throw Exception(_getFriendlyErrorMessage(e.message));
     } catch (e) {
+      debugPrint('Sign up error: $e');
       throw Exception('Sign up failed. Please try again.');
     }
   }

@@ -24,7 +24,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application code
 COPY app/ ./app/
 
-# Copy model file (you'll need to copy model.onnx to backend/models/)
+# Create models directory (emotion model added later)
+# The .gitkeep file ensures the directory exists but is empty initially
 COPY models/ ./models/
 
 # Create non-root user for security
