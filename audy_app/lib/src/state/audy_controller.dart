@@ -312,6 +312,7 @@ class AudyController extends ChangeNotifier {
     'Scared',
     'Angry',
     'Calm',
+    'Disgust',
   ];
 
   int mimicCurrentRound = 1;
