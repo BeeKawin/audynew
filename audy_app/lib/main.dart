@@ -20,7 +20,6 @@ import 'src/features/read_pronounce/read_pronounce_practice.dart';
 import 'src/features/read_pronounce/read_pronounce_controller.dart';
 import 'src/features/reaction_game/reaction_game_screen.dart';
 import 'src/features/sorting_game/sort_level_select_screen.dart';
-import 'src/services/auth_service.dart';
 import 'src/services/emotion_service.dart';
 import 'src/services/sound_service.dart';
 import 'src/state/audy_controller.dart';

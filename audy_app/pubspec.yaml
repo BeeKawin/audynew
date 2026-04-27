@@ -24,6 +24,7 @@ dependencies:
   audioplayers: ^6.6.0
   path: ^1.9.1
   http: ^1.2.0  # For Thai chat backend API
+  http_parser: ^4.0.2  # For multipart form data in emotion API
   avatar_glow: ^3.0.1
   supabase_flutter: ^2.12.4
 

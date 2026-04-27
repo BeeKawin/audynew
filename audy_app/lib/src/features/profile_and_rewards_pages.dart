@@ -485,7 +485,7 @@ class _ProfileTabContent extends StatelessWidget {
           ),
         ),
         style: ElevatedButton.styleFrom(
-          backgroundColor: AudyColors.error.withOpacity(0.9),
+          backgroundColor: AudyColors.error.withValues(alpha: 0.9),
           foregroundColor: AudyColors.textOnColor,
           padding: EdgeInsets.symmetric(
             horizontal: adaptive.space(24),

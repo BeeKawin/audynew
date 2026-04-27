@@ -10,7 +10,7 @@ import 'chat_models.dart';
 /// TODO: Replace with your Railway URL after deployment
 class ApiConfig {
   /// Default Railway URL - replace after deployment
-  static const String railwayUrl = 'https://your-app.up.railway.app';
+  static const String railwayUrl = 'https://audynew-production.up.railway.app';
 
   /// Local development URL for Android Emulator
   static const String localUrl = 'http://10.0.2.2:8000';

@@ -339,7 +339,7 @@ class _LoginPageState extends State<LoginPage> {
         width: 48,
         height: 48,
         decoration: BoxDecoration(
-          color: AudyColors.skyBlue.withOpacity(0.2),
+          color: AudyColors.skyBlue.withValues(alpha: 0.2),
           shape: BoxShape.circle,
         ),
         child: Icon(icon, color: AudyColors.skyBlue, size: 24),
@@ -352,13 +352,13 @@ class _LoginPageState extends State<LoginPage> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: isError
-            ? AudyColors.error.withOpacity(0.1)
-            : AudyColors.success.withOpacity(0.1),
+            ? AudyColors.error.withValues(alpha: 0.1)
+            : AudyColors.success.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(AudySpacing.radiusMedium),
         border: Border.all(
           color: isError
-              ? AudyColors.error.withOpacity(0.3)
-              : AudyColors.success.withOpacity(0.3),
+              ? AudyColors.error.withValues(alpha: 0.3)
+              : AudyColors.success.withValues(alpha: 0.3),
           width: 1,
         ),
       ),
@@ -421,7 +421,7 @@ class _LoginPageState extends State<LoginPage> {
             borderRadius: BorderRadius.circular(999),
           ),
           elevation: 4,
-          shadowColor: AudyColors.skyBlue.withOpacity(0.4),
+          shadowColor: AudyColors.skyBlue.withValues(alpha: 0.4),
         ),
       ),
     );

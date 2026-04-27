@@ -1,9 +1,7 @@
 import 'dart:async';
-import 'dart:io';
 import 'dart:math';
 
 import 'package:audioplayers/audioplayers.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../core/app_strings.dart';
@@ -1128,18 +1126,10 @@ class AudyController extends ChangeNotifier {
   /// - iOS Simulator: localhost
   /// - Physical Device: Your computer's IP (e.g., 192.168.1.x)
   /// - Web: localhost
-  String get _backendBaseUrl {
-    if (kIsWeb) {
-      return 'http://localhost:8000';
-    }
-    if (Platform.isAndroid) {
-      return 'http://10.0.2.2:8000';
-    }
-    if (Platform.isIOS) {
-      return 'http://localhost:8000';
-    }
-    return 'http://localhost:8000';
-  }
+  ///
+  /// To use Railway backend (default): Just use ApiConfig.baseUrl
+  /// To use local backend: Run with --dart-define=USE_LOCAL=true
+  String get _backendBaseUrl => ApiConfig.baseUrl;
 
   /// Initialize Thai chat services
   void _initThaiChat() {
