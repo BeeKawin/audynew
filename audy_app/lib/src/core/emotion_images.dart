@@ -12,6 +12,7 @@ class EmotionImages {
     'Angry': ['angry1.jpg', 'angry2.jpg', 'angry3.jpg'],
     'Scared': ['scared1.jpg', 'scared2.jpg', 'scared3.jpg'],
     'Surprised': ['surprised1.jpg', 'surprised2.jpg', 'surprised3.jpg'],
+    'Disgust': [],
   };
 
   /// Base path for emotion images

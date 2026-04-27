@@ -13,8 +13,6 @@ dependencies:
   cupertino_icons: ^1.0.8
   google_fonts: ^6.1.0
   camera: ^0.10.5+9
-  image: ^4.1.7
-  tflite_flutter: ^0.11.0
   path_provider: ^2.1.2
   flutter_tts: ^4.2.2
   speech_to_text: ^7.3.0
@@ -39,7 +37,6 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
-    - assets/models/model.tflite
     - assets/sounds/
     - assets/images/
     - assets/mascot/

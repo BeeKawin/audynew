@@ -1,76 +1,79 @@
 """
-Emotion Classification Service using ONNX Runtime.
-Loads the converted emotion model and provides inference.
+Emotion Classification Service using HuggingFace Transformers.
+Loads the ViT model from mo-thecreator/vit-Facial-Expression-Recognition.
 """
 
 import numpy as np
 from PIL import Image
 import io
-from typing import Dict, List
+from typing import Dict
 import logging
 
 logger = logging.getLogger(__name__)
 
-# Try to import onnxruntime, provide fallback if not available
+# Try to import transformers, provide fallback if not available
 try:
-    import onnxruntime as ort
+    from transformers import ViTForImageClassification, ViTImageProcessor
+    import torch
 
-    ONNX_AVAILABLE = True
+    TRANSFORMERS_AVAILABLE = True
 except ImportError:
-    ONNX_AVAILABLE = False
-    logger.warning("onnxruntime not installed. Emotion classification will not work.")
+    TRANSFORMERS_AVAILABLE = False
+    logger.warning(
+        "transformers/torch not installed. Emotion classification will not work."
+    )
 
-# Model mappings (same as Flutter app)
+# Model label mapping (id -> label) as returned by the ViT model.
+# The model has 7 classes: angry, disgust, fear, happy, sad, surprise, neutral
 MODEL_LABELS = {
-    0: "Happy",
-    1: "Sad",
-    2: "Surprised",
-    3: "Fearful",
-    4: "Angry",
-    5: "Disgusted",
-    6: "Neutral",
+    0: "angry",
+    1: "disgust",
+    2: "fear",
+    3: "happy",
+    4: "sad",
+    5: "surprise",
+    6: "neutral",
 }
 
+# Map model labels to app-friendly emotion names (7 emotions)
 MODEL_TO_APP = {
-    "Angry": "Angry",
-    "Fearful": "Scared",
-    "Happy": "Happy",
-    "Neutral": "Calm",
-    "Sad": "Sad",
-    "Surprised": "Surprised",
-    "Disgusted": "Scared",
+    "angry": "Angry",
+    "disgust": "Disgust",
+    "fear": "Scared",
+    "happy": "Happy",
+    "neutral": "Calm",
+    "sad": "Sad",
+    "surprise": "Surprised",
 }
 
 MIN_CONFIDENCE = 0.4
-INPUT_SIZE = 48
 
 
 class EmotionService:
-    """ONNX-based emotion classification service."""
+    """HuggingFace ViT-based emotion classification service."""
 
-    def __init__(self, model_path: str = "models/model.onnx"):
-        self.model_path = model_path
-        self.session = None
+    def __init__(
+        self,
+        model_name: str = "mo-thecreator/vit-Facial-Expression-Recognition",
+    ):
+        self.model_name = model_name
+        self.model = None
+        self.processor = None
         self.initialized = False
         self._load_error = None
 
-        if ONNX_AVAILABLE:
+        if TRANSFORMERS_AVAILABLE:
             self._load_model()
 
     def _load_model(self):
-        """Load the ONNX model."""
+        """Load the ViT model and processor from HuggingFace."""
         try:
-            # Create inference session with CPU provider
-            self.session = ort.InferenceSession(
-                self.model_path, providers=["CPUExecutionProvider"]
-            )
+            logger.info(f"Loading emotion model: {self.model_name}")
+            self.processor = ViTImageProcessor.from_pretrained(self.model_name)
+            self.model = ViTForImageClassification.from_pretrained(self.model_name)
+            self.model.eval()  # Set to evaluation mode
             self.initialized = True
-            logger.info(f"Emotion model loaded from {self.model_path}")
-
-            # Log model info
-            input_name = self.session.get_inputs()[0].name
-            input_shape = self.session.get_inputs()[0].shape
-            logger.info(f"Model input: {input_name}, shape: {input_shape}")
+            logger.info("Emotion model loaded successfully")
 
         except Exception as e:
             self._load_error = str(e)
@@ -78,36 +81,26 @@ class EmotionService:
 
     def is_ready(self) -> bool:
         """Check if model is loaded and ready."""
-        return self.initialized and self.session is not None
+        return (
+            self.initialized
+            and self.model is not None
+            and self.processor is not None
+        )
 
-    def preprocess(self, image_bytes: bytes) -> np.ndarray:
+    def preprocess(self, image_bytes: bytes):
         """
-        Preprocess image for model inference.
-
-        Args:
-            image_bytes: Raw image bytes (JPEG/PNG)
-
-        Returns:
-            Preprocessed numpy array [1, 48, 48, 3]
+        Preprocess image for ViT model.
+        Uses ViTImageProcessor which handles resize to 224x224 and normalization.
         """
-        # Load image from bytes
         image = Image.open(io.BytesIO(image_bytes))
 
         # Convert to RGB if needed
         if image.mode != "RGB":
             image = image.convert("RGB")
 
-        # Resize to model input size
-        image = image.resize((INPUT_SIZE, INPUT_SIZE), Image.Resampling.LANCZOS)
-
-        # Convert to numpy array and normalize
-        img_array = np.array(image, dtype=np.float32)
-        img_array = img_array / 255.0  # Normalize to 0-1
-
-        # Add batch dimension: [48, 48, 3] -> [1, 48, 48, 3]
-        img_array = np.expand_dims(img_array, axis=0)
-
-        return img_array
+        # Use ViTImageProcessor for consistent preprocessing
+        inputs = self.processor(images=image, return_tensors="pt")
+        return inputs
 
     def softmax(self, x: np.ndarray) -> np.ndarray:
         """Apply softmax activation."""
@@ -117,12 +110,6 @@ class EmotionService:
     def classify(self, image_bytes: bytes) -> Dict:
         """
         Classify emotion from image.
-
-        Args:
-            image_bytes: Raw image bytes
-
-        Returns:
-            Dict with detected_emotion, confidence, all_probabilities
         """
         if not self.is_ready():
             raise RuntimeError(
@@ -130,23 +117,21 @@ class EmotionService:
             )
 
         # Preprocess
-        input_data = self.preprocess(image_bytes)
+        inputs = self.preprocess(image_bytes)
 
-        # Get input name
-        input_name = self.session.get_inputs()[0].name
+        # Run inference (no gradient computation)
+        with torch.no_grad():
+            outputs = self.model(**inputs)
 
-        # Run inference
-        outputs = self.session.run(None, {input_name: input_data})
-
-        # Process outputs
-        logits = outputs[0][0]  # Remove batch dimension
+        # Get logits and apply softmax
+        logits = outputs.logits[0].cpu().numpy()
         probabilities = self.softmax(logits)
 
         # Get prediction
         max_idx = int(np.argmax(probabilities))
         max_conf = float(probabilities[max_idx])
 
-        model_label = MODEL_LABELS.get(max_idx, "Neutral")
+        model_label = MODEL_LABELS.get(max_idx, "neutral")
         app_emotion = MODEL_TO_APP.get(model_label, "Calm")
 
         # Build all probabilities dict

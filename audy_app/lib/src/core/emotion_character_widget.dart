@@ -31,6 +31,8 @@ class EmotionCharacterWidget extends StatelessWidget {
         return Icons.auto_awesome_rounded;
       case 'Scared':
         return Icons.psychology_rounded;
+      case 'Disgust':
+        return Icons.mood_bad_rounded;
       case 'Calm':
         return Icons.sentiment_neutral_rounded;
       default:
@@ -50,6 +52,8 @@ class EmotionCharacterWidget extends StatelessWidget {
         return const Color(0xFFF8C7DF);
       case 'Scared':
         return const Color(0xFFDDD0F4);
+      case 'Disgust':
+        return const Color(0xFFE0F4D0);
       case 'Calm':
         return const Color(0xFFC9E8C1);
       default:
@@ -69,6 +73,8 @@ class EmotionCharacterWidget extends StatelessWidget {
         return const Color(0xFFE87EA8);
       case 'Scared':
         return const Color(0xFF9B8FD4);
+      case 'Disgust':
+        return const Color(0xFF8BC34A);
       case 'Calm':
         return const Color(0xFF69B85A);
       default:

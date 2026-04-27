@@ -15,18 +15,19 @@ RUN apt-get update && apt-get install -y \
     libgomp1 \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements first (for better Docker layer caching)
-COPY requirements.txt .
+# Install torch CPU-only first (smaller than full torch wheel)
+RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
 
-# Install Python dependencies
+# Copy requirements and install remaining Python dependencies
+COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
 COPY app/ ./app/
 
-# Create models directory (emotion model added later)
-# The .gitkeep file ensures the directory exists but is empty initially
-COPY models/ ./models/
+# Pre-download HuggingFace model for faster cold starts
+# Model: mo-thecreator/vit-Facial-Expression-Recognition (~330 MB)
+RUN python -c "from transformers import ViTForImageClassification, ViTImageProcessor; ViTImageProcessor.from_pretrained('mo-thecreator/vit-Facial-Expression-Recognition'); ViTForImageClassification.from_pretrained('mo-thecreator/vit-Facial-Expression-Recognition')"
 
 # Create non-root user for security
 RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app

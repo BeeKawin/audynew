@@ -36,11 +36,7 @@ void main() async {
   );
 
   // Initialize services
-  try {
-    await EmotionService.init();
-  } catch (e) {
-    debugPrint('Emotion model failed to load: $e');
-  }
+  await EmotionService.init();
 
   // Initialize sound service
   try {
