@@ -165,7 +165,7 @@ class _SortGameScreenState extends State<SortGameScreen> {
         Flexible(
           child: StarRewardDisplay(
             starsEarned: _engine.liveProgressStars,
-            maxStars: widget.level.totalRounds * 3,
+            maxStars: _engine.totalItemsInLevel,
             starSize: adaptive.space(24),
           ),
         ),
@@ -302,7 +302,7 @@ class _SortGameScreenState extends State<SortGameScreen> {
                   SizedBox(height: adaptive.space(24)),
                   StarRewardDisplay(
                     starsEarned: stars,
-                    maxStars: 3,
+                    maxStars: _engine.totalItemsInCurrentRound,
                     starSize: adaptive.space(40),
                   ),
                   SizedBox(height: adaptive.space(24)),

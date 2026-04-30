@@ -117,6 +117,14 @@ class SortGameEngine extends ChangeNotifier {
   /// Current round number (1-indexed for display).
   int get currentRoundNumber => _currentRoundIndex + 1;
 
+  /// Total sortable items in the entire level (for star display).
+  int get totalItemsInLevel =>
+      _currentLevel?.rounds.fold<int>(0, (sum, r) => sum + r.items.length) ?? 0;
+
+  /// Total sortable items in the current round (for star display).
+  int get totalItemsInCurrentRound =>
+      _currentLevel?.rounds[_currentRoundIndex].items.length ?? 0;
+
   /// Live star progress that updates with each correct answer.
   /// Shows: (completed rounds * 3) + progress toward current round stars.
   int get liveProgressStars {

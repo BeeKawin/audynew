@@ -469,12 +469,12 @@ class UserProgressCompanion extends UpdateCompanion<UserProgressData> {
   }
 }
 
-class $AccessoriesTable extends Accessories
-    with TableInfo<$AccessoriesTable, Accessory> {
+class $UserRewardsTable extends UserRewards
+    with TableInfo<$UserRewardsTable, UserReward> {
   @override
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
-  $AccessoriesTable(this.attachedDatabase, [this._alias]);
+  $UserRewardsTable(this.attachedDatabase, [this._alias]);
   static const VerificationMeta _idMeta = const VerificationMeta('id');
   @override
   late final GeneratedColumn<int> id = GeneratedColumn<int>(
@@ -488,339 +488,89 @@ class $AccessoriesTable extends Accessories
       'PRIMARY KEY AUTOINCREMENT',
     ),
   );
-  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  static const VerificationMeta _prizeMeta = const VerificationMeta('prize');
   @override
-  late final GeneratedColumn<String> name = GeneratedColumn<String>(
-    'name',
+  late final GeneratedColumn<String> prize = GeneratedColumn<String>(
+    'prize',
     aliasedName,
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
-  static const VerificationMeta _costMeta = const VerificationMeta('cost');
+  static const VerificationMeta _conditionTypeMeta = const VerificationMeta(
+    'conditionType',
+  );
   @override
-  late final GeneratedColumn<int> cost = GeneratedColumn<int>(
-    'cost',
+  late final GeneratedColumn<String> conditionType = GeneratedColumn<String>(
+    'condition_type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _targetCountMeta = const VerificationMeta(
+    'targetCount',
+  );
+  @override
+  late final GeneratedColumn<int> targetCount = GeneratedColumn<int>(
+    'target_count',
     aliasedName,
     false,
     type: DriftSqlType.int,
     requiredDuringInsert: true,
   );
-  static const VerificationMeta _iconNameMeta = const VerificationMeta(
-    'iconName',
+  static const VerificationMeta _currentProgressMeta = const VerificationMeta(
+    'currentProgress',
   );
   @override
-  late final GeneratedColumn<String> iconName = GeneratedColumn<String>(
-    'icon_name',
+  late final GeneratedColumn<int> currentProgress = GeneratedColumn<int>(
+    'current_progress',
     aliasedName,
     false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-  @override
-  List<GeneratedColumn> get $columns => [id, name, cost, iconName];
-  @override
-  String get aliasedName => _alias ?? actualTableName;
-  @override
-  String get actualTableName => $name;
-  static const String $name = 'accessories';
-  @override
-  VerificationContext validateIntegrity(
-    Insertable<Accessory> instance, {
-    bool isInserting = false,
-  }) {
-    final context = VerificationContext();
-    final data = instance.toColumns(true);
-    if (data.containsKey('id')) {
-      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
-    }
-    if (data.containsKey('name')) {
-      context.handle(
-        _nameMeta,
-        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_nameMeta);
-    }
-    if (data.containsKey('cost')) {
-      context.handle(
-        _costMeta,
-        cost.isAcceptableOrUnknown(data['cost']!, _costMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_costMeta);
-    }
-    if (data.containsKey('icon_name')) {
-      context.handle(
-        _iconNameMeta,
-        iconName.isAcceptableOrUnknown(data['icon_name']!, _iconNameMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_iconNameMeta);
-    }
-    return context;
-  }
-
-  @override
-  Set<GeneratedColumn> get $primaryKey => {id};
-  @override
-  Accessory map(Map<String, dynamic> data, {String? tablePrefix}) {
-    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return Accessory(
-      id: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}id'],
-      )!,
-      name: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}name'],
-      )!,
-      cost: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}cost'],
-      )!,
-      iconName: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}icon_name'],
-      )!,
-    );
-  }
-
-  @override
-  $AccessoriesTable createAlias(String alias) {
-    return $AccessoriesTable(attachedDatabase, alias);
-  }
-}
-
-class Accessory extends DataClass implements Insertable<Accessory> {
-  final int id;
-  final String name;
-  final int cost;
-  final String iconName;
-  const Accessory({
-    required this.id,
-    required this.name,
-    required this.cost,
-    required this.iconName,
-  });
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    map['id'] = Variable<int>(id);
-    map['name'] = Variable<String>(name);
-    map['cost'] = Variable<int>(cost);
-    map['icon_name'] = Variable<String>(iconName);
-    return map;
-  }
-
-  AccessoriesCompanion toCompanion(bool nullToAbsent) {
-    return AccessoriesCompanion(
-      id: Value(id),
-      name: Value(name),
-      cost: Value(cost),
-      iconName: Value(iconName),
-    );
-  }
-
-  factory Accessory.fromJson(
-    Map<String, dynamic> json, {
-    ValueSerializer? serializer,
-  }) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return Accessory(
-      id: serializer.fromJson<int>(json['id']),
-      name: serializer.fromJson<String>(json['name']),
-      cost: serializer.fromJson<int>(json['cost']),
-      iconName: serializer.fromJson<String>(json['iconName']),
-    );
-  }
-  @override
-  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return <String, dynamic>{
-      'id': serializer.toJson<int>(id),
-      'name': serializer.toJson<String>(name),
-      'cost': serializer.toJson<int>(cost),
-      'iconName': serializer.toJson<String>(iconName),
-    };
-  }
-
-  Accessory copyWith({int? id, String? name, int? cost, String? iconName}) =>
-      Accessory(
-        id: id ?? this.id,
-        name: name ?? this.name,
-        cost: cost ?? this.cost,
-        iconName: iconName ?? this.iconName,
-      );
-  Accessory copyWithCompanion(AccessoriesCompanion data) {
-    return Accessory(
-      id: data.id.present ? data.id.value : this.id,
-      name: data.name.present ? data.name.value : this.name,
-      cost: data.cost.present ? data.cost.value : this.cost,
-      iconName: data.iconName.present ? data.iconName.value : this.iconName,
-    );
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('Accessory(')
-          ..write('id: $id, ')
-          ..write('name: $name, ')
-          ..write('cost: $cost, ')
-          ..write('iconName: $iconName')
-          ..write(')'))
-        .toString();
-  }
-
-  @override
-  int get hashCode => Object.hash(id, name, cost, iconName);
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      (other is Accessory &&
-          other.id == this.id &&
-          other.name == this.name &&
-          other.cost == this.cost &&
-          other.iconName == this.iconName);
-}
-
-class AccessoriesCompanion extends UpdateCompanion<Accessory> {
-  final Value<int> id;
-  final Value<String> name;
-  final Value<int> cost;
-  final Value<String> iconName;
-  const AccessoriesCompanion({
-    this.id = const Value.absent(),
-    this.name = const Value.absent(),
-    this.cost = const Value.absent(),
-    this.iconName = const Value.absent(),
-  });
-  AccessoriesCompanion.insert({
-    this.id = const Value.absent(),
-    required String name,
-    required int cost,
-    required String iconName,
-  }) : name = Value(name),
-       cost = Value(cost),
-       iconName = Value(iconName);
-  static Insertable<Accessory> custom({
-    Expression<int>? id,
-    Expression<String>? name,
-    Expression<int>? cost,
-    Expression<String>? iconName,
-  }) {
-    return RawValuesInsertable({
-      if (id != null) 'id': id,
-      if (name != null) 'name': name,
-      if (cost != null) 'cost': cost,
-      if (iconName != null) 'icon_name': iconName,
-    });
-  }
-
-  AccessoriesCompanion copyWith({
-    Value<int>? id,
-    Value<String>? name,
-    Value<int>? cost,
-    Value<String>? iconName,
-  }) {
-    return AccessoriesCompanion(
-      id: id ?? this.id,
-      name: name ?? this.name,
-      cost: cost ?? this.cost,
-      iconName: iconName ?? this.iconName,
-    );
-  }
-
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    if (id.present) {
-      map['id'] = Variable<int>(id.value);
-    }
-    if (name.present) {
-      map['name'] = Variable<String>(name.value);
-    }
-    if (cost.present) {
-      map['cost'] = Variable<int>(cost.value);
-    }
-    if (iconName.present) {
-      map['icon_name'] = Variable<String>(iconName.value);
-    }
-    return map;
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('AccessoriesCompanion(')
-          ..write('id: $id, ')
-          ..write('name: $name, ')
-          ..write('cost: $cost, ')
-          ..write('iconName: $iconName')
-          ..write(')'))
-        .toString();
-  }
-}
-
-class $UserAccessoriesTable extends UserAccessories
-    with TableInfo<$UserAccessoriesTable, UserAccessory> {
-  @override
-  final GeneratedDatabase attachedDatabase;
-  final String? _alias;
-  $UserAccessoriesTable(this.attachedDatabase, [this._alias]);
-  static const VerificationMeta _idMeta = const VerificationMeta('id');
-  @override
-  late final GeneratedColumn<int> id = GeneratedColumn<int>(
-    'id',
-    aliasedName,
-    false,
-    hasAutoIncrement: true,
     type: DriftSqlType.int,
     requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'PRIMARY KEY AUTOINCREMENT',
-    ),
+    defaultValue: const Constant(0),
   );
-  static const VerificationMeta _accessoryIdMeta = const VerificationMeta(
-    'accessoryId',
+  static const VerificationMeta _isCompletedMeta = const VerificationMeta(
+    'isCompleted',
   );
   @override
-  late final GeneratedColumn<int> accessoryId = GeneratedColumn<int>(
-    'accessory_id',
-    aliasedName,
-    false,
-    type: DriftSqlType.int,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _ownedMeta = const VerificationMeta('owned');
-  @override
-  late final GeneratedColumn<bool> owned = GeneratedColumn<bool>(
-    'owned',
+  late final GeneratedColumn<bool> isCompleted = GeneratedColumn<bool>(
+    'is_completed',
     aliasedName,
     false,
     type: DriftSqlType.bool,
     requiredDuringInsert: false,
     defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'CHECK ("owned" IN (0, 1))',
+      'CHECK ("is_completed" IN (0, 1))',
     ),
     defaultValue: const Constant(false),
   );
-  static const VerificationMeta _xMeta = const VerificationMeta('x');
-  @override
-  late final GeneratedColumn<int> x = GeneratedColumn<int>(
-    'x',
-    aliasedName,
-    true,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
+  static const VerificationMeta _isClaimedMeta = const VerificationMeta(
+    'isClaimed',
   );
-  static const VerificationMeta _yMeta = const VerificationMeta('y');
   @override
-  late final GeneratedColumn<int> y = GeneratedColumn<int>(
-    'y',
+  late final GeneratedColumn<bool> isClaimed = GeneratedColumn<bool>(
+    'is_claimed',
     aliasedName,
-    true,
-    type: DriftSqlType.int,
+    false,
+    type: DriftSqlType.bool,
     requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_claimed" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
   );
   static const VerificationMeta _updatedAtMeta = const VerificationMeta(
     'updatedAt',
@@ -833,39 +583,26 @@ class $UserAccessoriesTable extends UserAccessories
     type: DriftSqlType.dateTime,
     requiredDuringInsert: true,
   );
-  static const VerificationMeta _isSyncedMeta = const VerificationMeta(
-    'isSynced',
-  );
-  @override
-  late final GeneratedColumn<bool> isSynced = GeneratedColumn<bool>(
-    'is_synced',
-    aliasedName,
-    false,
-    type: DriftSqlType.bool,
-    requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'CHECK ("is_synced" IN (0, 1))',
-    ),
-    defaultValue: const Constant(false),
-  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
-    accessoryId,
-    owned,
-    x,
-    y,
+    prize,
+    conditionType,
+    targetCount,
+    currentProgress,
+    isCompleted,
+    isClaimed,
+    createdAt,
     updatedAt,
-    isSynced,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
   String get actualTableName => $name;
-  static const String $name = 'user_accessories';
+  static const String $name = 'user_rewards';
   @override
   VerificationContext validateIntegrity(
-    Insertable<UserAccessory> instance, {
+    Insertable<UserReward> instance, {
     bool isInserting = false,
   }) {
     final context = VerificationContext();
@@ -873,28 +610,67 @@ class $UserAccessoriesTable extends UserAccessories
     if (data.containsKey('id')) {
       context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
     }
-    if (data.containsKey('accessory_id')) {
+    if (data.containsKey('prize')) {
       context.handle(
-        _accessoryIdMeta,
-        accessoryId.isAcceptableOrUnknown(
-          data['accessory_id']!,
-          _accessoryIdMeta,
+        _prizeMeta,
+        prize.isAcceptableOrUnknown(data['prize']!, _prizeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_prizeMeta);
+    }
+    if (data.containsKey('condition_type')) {
+      context.handle(
+        _conditionTypeMeta,
+        conditionType.isAcceptableOrUnknown(
+          data['condition_type']!,
+          _conditionTypeMeta,
         ),
       );
     } else if (isInserting) {
-      context.missing(_accessoryIdMeta);
+      context.missing(_conditionTypeMeta);
     }
-    if (data.containsKey('owned')) {
+    if (data.containsKey('target_count')) {
       context.handle(
-        _ownedMeta,
-        owned.isAcceptableOrUnknown(data['owned']!, _ownedMeta),
+        _targetCountMeta,
+        targetCount.isAcceptableOrUnknown(
+          data['target_count']!,
+          _targetCountMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_targetCountMeta);
+    }
+    if (data.containsKey('current_progress')) {
+      context.handle(
+        _currentProgressMeta,
+        currentProgress.isAcceptableOrUnknown(
+          data['current_progress']!,
+          _currentProgressMeta,
+        ),
       );
     }
-    if (data.containsKey('x')) {
-      context.handle(_xMeta, x.isAcceptableOrUnknown(data['x']!, _xMeta));
+    if (data.containsKey('is_completed')) {
+      context.handle(
+        _isCompletedMeta,
+        isCompleted.isAcceptableOrUnknown(
+          data['is_completed']!,
+          _isCompletedMeta,
+        ),
+      );
     }
-    if (data.containsKey('y')) {
-      context.handle(_yMeta, y.isAcceptableOrUnknown(data['y']!, _yMeta));
+    if (data.containsKey('is_claimed')) {
+      context.handle(
+        _isClaimedMeta,
+        isClaimed.isAcceptableOrUnknown(data['is_claimed']!, _isClaimedMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
     }
     if (data.containsKey('updated_at')) {
       context.handle(
@@ -904,117 +680,125 @@ class $UserAccessoriesTable extends UserAccessories
     } else if (isInserting) {
       context.missing(_updatedAtMeta);
     }
-    if (data.containsKey('is_synced')) {
-      context.handle(
-        _isSyncedMeta,
-        isSynced.isAcceptableOrUnknown(data['is_synced']!, _isSyncedMeta),
-      );
-    }
     return context;
   }
 
   @override
   Set<GeneratedColumn> get $primaryKey => {id};
   @override
-  UserAccessory map(Map<String, dynamic> data, {String? tablePrefix}) {
+  UserReward map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return UserAccessory(
+    return UserReward(
       id: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}id'],
       )!,
-      accessoryId: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}accessory_id'],
+      prize: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}prize'],
       )!,
-      owned: attachedDatabase.typeMapping.read(
+      conditionType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}condition_type'],
+      )!,
+      targetCount: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}target_count'],
+      )!,
+      currentProgress: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}current_progress'],
+      )!,
+      isCompleted: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
-        data['${effectivePrefix}owned'],
+        data['${effectivePrefix}is_completed'],
       )!,
-      x: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}x'],
-      ),
-      y: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}y'],
-      ),
+      isClaimed: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_claimed'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
       updatedAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}updated_at'],
-      )!,
-      isSynced: attachedDatabase.typeMapping.read(
-        DriftSqlType.bool,
-        data['${effectivePrefix}is_synced'],
       )!,
     );
   }
 
   @override
-  $UserAccessoriesTable createAlias(String alias) {
-    return $UserAccessoriesTable(attachedDatabase, alias);
+  $UserRewardsTable createAlias(String alias) {
+    return $UserRewardsTable(attachedDatabase, alias);
   }
 }
 
-class UserAccessory extends DataClass implements Insertable<UserAccessory> {
+class UserReward extends DataClass implements Insertable<UserReward> {
   final int id;
-  final int accessoryId;
-  final bool owned;
-  final int? x;
-  final int? y;
+  final String prize;
+  final String conditionType;
+  final int targetCount;
+  final int currentProgress;
+  final bool isCompleted;
+  final bool isClaimed;
+  final DateTime createdAt;
   final DateTime updatedAt;
-  final bool isSynced;
-  const UserAccessory({
+  const UserReward({
     required this.id,
-    required this.accessoryId,
-    required this.owned,
-    this.x,
-    this.y,
+    required this.prize,
+    required this.conditionType,
+    required this.targetCount,
+    required this.currentProgress,
+    required this.isCompleted,
+    required this.isClaimed,
+    required this.createdAt,
     required this.updatedAt,
-    required this.isSynced,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['id'] = Variable<int>(id);
-    map['accessory_id'] = Variable<int>(accessoryId);
-    map['owned'] = Variable<bool>(owned);
-    if (!nullToAbsent || x != null) {
-      map['x'] = Variable<int>(x);
-    }
-    if (!nullToAbsent || y != null) {
-      map['y'] = Variable<int>(y);
-    }
+    map['prize'] = Variable<String>(prize);
+    map['condition_type'] = Variable<String>(conditionType);
+    map['target_count'] = Variable<int>(targetCount);
+    map['current_progress'] = Variable<int>(currentProgress);
+    map['is_completed'] = Variable<bool>(isCompleted);
+    map['is_claimed'] = Variable<bool>(isClaimed);
+    map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
-    map['is_synced'] = Variable<bool>(isSynced);
     return map;
   }
 
-  UserAccessoriesCompanion toCompanion(bool nullToAbsent) {
-    return UserAccessoriesCompanion(
+  UserRewardsCompanion toCompanion(bool nullToAbsent) {
+    return UserRewardsCompanion(
       id: Value(id),
-      accessoryId: Value(accessoryId),
-      owned: Value(owned),
-      x: x == null && nullToAbsent ? const Value.absent() : Value(x),
-      y: y == null && nullToAbsent ? const Value.absent() : Value(y),
+      prize: Value(prize),
+      conditionType: Value(conditionType),
+      targetCount: Value(targetCount),
+      currentProgress: Value(currentProgress),
+      isCompleted: Value(isCompleted),
+      isClaimed: Value(isClaimed),
+      createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
-      isSynced: Value(isSynced),
     );
   }
 
-  factory UserAccessory.fromJson(
+  factory UserReward.fromJson(
     Map<String, dynamic> json, {
     ValueSerializer? serializer,
   }) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
-    return UserAccessory(
+    return UserReward(
       id: serializer.fromJson<int>(json['id']),
-      accessoryId: serializer.fromJson<int>(json['accessoryId']),
-      owned: serializer.fromJson<bool>(json['owned']),
-      x: serializer.fromJson<int?>(json['x']),
-      y: serializer.fromJson<int?>(json['y']),
+      prize: serializer.fromJson<String>(json['prize']),
+      conditionType: serializer.fromJson<String>(json['conditionType']),
+      targetCount: serializer.fromJson<int>(json['targetCount']),
+      currentProgress: serializer.fromJson<int>(json['currentProgress']),
+      isCompleted: serializer.fromJson<bool>(json['isCompleted']),
+      isClaimed: serializer.fromJson<bool>(json['isClaimed']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
-      isSynced: serializer.fromJson<bool>(json['isSynced']),
     );
   }
   @override
@@ -1022,140 +806,184 @@ class UserAccessory extends DataClass implements Insertable<UserAccessory> {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
       'id': serializer.toJson<int>(id),
-      'accessoryId': serializer.toJson<int>(accessoryId),
-      'owned': serializer.toJson<bool>(owned),
-      'x': serializer.toJson<int?>(x),
-      'y': serializer.toJson<int?>(y),
+      'prize': serializer.toJson<String>(prize),
+      'conditionType': serializer.toJson<String>(conditionType),
+      'targetCount': serializer.toJson<int>(targetCount),
+      'currentProgress': serializer.toJson<int>(currentProgress),
+      'isCompleted': serializer.toJson<bool>(isCompleted),
+      'isClaimed': serializer.toJson<bool>(isClaimed),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
-      'isSynced': serializer.toJson<bool>(isSynced),
     };
   }
 
-  UserAccessory copyWith({
+  UserReward copyWith({
     int? id,
-    int? accessoryId,
-    bool? owned,
-    Value<int?> x = const Value.absent(),
-    Value<int?> y = const Value.absent(),
+    String? prize,
+    String? conditionType,
+    int? targetCount,
+    int? currentProgress,
+    bool? isCompleted,
+    bool? isClaimed,
+    DateTime? createdAt,
     DateTime? updatedAt,
-    bool? isSynced,
-  }) => UserAccessory(
+  }) => UserReward(
     id: id ?? this.id,
-    accessoryId: accessoryId ?? this.accessoryId,
-    owned: owned ?? this.owned,
-    x: x.present ? x.value : this.x,
-    y: y.present ? y.value : this.y,
+    prize: prize ?? this.prize,
+    conditionType: conditionType ?? this.conditionType,
+    targetCount: targetCount ?? this.targetCount,
+    currentProgress: currentProgress ?? this.currentProgress,
+    isCompleted: isCompleted ?? this.isCompleted,
+    isClaimed: isClaimed ?? this.isClaimed,
+    createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
-    isSynced: isSynced ?? this.isSynced,
   );
-  UserAccessory copyWithCompanion(UserAccessoriesCompanion data) {
-    return UserAccessory(
+  UserReward copyWithCompanion(UserRewardsCompanion data) {
+    return UserReward(
       id: data.id.present ? data.id.value : this.id,
-      accessoryId: data.accessoryId.present
-          ? data.accessoryId.value
-          : this.accessoryId,
-      owned: data.owned.present ? data.owned.value : this.owned,
-      x: data.x.present ? data.x.value : this.x,
-      y: data.y.present ? data.y.value : this.y,
+      prize: data.prize.present ? data.prize.value : this.prize,
+      conditionType: data.conditionType.present
+          ? data.conditionType.value
+          : this.conditionType,
+      targetCount: data.targetCount.present
+          ? data.targetCount.value
+          : this.targetCount,
+      currentProgress: data.currentProgress.present
+          ? data.currentProgress.value
+          : this.currentProgress,
+      isCompleted: data.isCompleted.present
+          ? data.isCompleted.value
+          : this.isCompleted,
+      isClaimed: data.isClaimed.present ? data.isClaimed.value : this.isClaimed,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
-      isSynced: data.isSynced.present ? data.isSynced.value : this.isSynced,
     );
   }
 
   @override
   String toString() {
-    return (StringBuffer('UserAccessory(')
+    return (StringBuffer('UserReward(')
           ..write('id: $id, ')
-          ..write('accessoryId: $accessoryId, ')
-          ..write('owned: $owned, ')
-          ..write('x: $x, ')
-          ..write('y: $y, ')
-          ..write('updatedAt: $updatedAt, ')
-          ..write('isSynced: $isSynced')
+          ..write('prize: $prize, ')
+          ..write('conditionType: $conditionType, ')
+          ..write('targetCount: $targetCount, ')
+          ..write('currentProgress: $currentProgress, ')
+          ..write('isCompleted: $isCompleted, ')
+          ..write('isClaimed: $isClaimed, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, accessoryId, owned, x, y, updatedAt, isSynced);
+  int get hashCode => Object.hash(
+    id,
+    prize,
+    conditionType,
+    targetCount,
+    currentProgress,
+    isCompleted,
+    isClaimed,
+    createdAt,
+    updatedAt,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      (other is UserAccessory &&
+      (other is UserReward &&
           other.id == this.id &&
-          other.accessoryId == this.accessoryId &&
-          other.owned == this.owned &&
-          other.x == this.x &&
-          other.y == this.y &&
-          other.updatedAt == this.updatedAt &&
-          other.isSynced == this.isSynced);
+          other.prize == this.prize &&
+          other.conditionType == this.conditionType &&
+          other.targetCount == this.targetCount &&
+          other.currentProgress == this.currentProgress &&
+          other.isCompleted == this.isCompleted &&
+          other.isClaimed == this.isClaimed &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt);
 }
 
-class UserAccessoriesCompanion extends UpdateCompanion<UserAccessory> {
+class UserRewardsCompanion extends UpdateCompanion<UserReward> {
   final Value<int> id;
-  final Value<int> accessoryId;
-  final Value<bool> owned;
-  final Value<int?> x;
-  final Value<int?> y;
+  final Value<String> prize;
+  final Value<String> conditionType;
+  final Value<int> targetCount;
+  final Value<int> currentProgress;
+  final Value<bool> isCompleted;
+  final Value<bool> isClaimed;
+  final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
-  final Value<bool> isSynced;
-  const UserAccessoriesCompanion({
+  const UserRewardsCompanion({
     this.id = const Value.absent(),
-    this.accessoryId = const Value.absent(),
-    this.owned = const Value.absent(),
-    this.x = const Value.absent(),
-    this.y = const Value.absent(),
+    this.prize = const Value.absent(),
+    this.conditionType = const Value.absent(),
+    this.targetCount = const Value.absent(),
+    this.currentProgress = const Value.absent(),
+    this.isCompleted = const Value.absent(),
+    this.isClaimed = const Value.absent(),
+    this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
-    this.isSynced = const Value.absent(),
   });
-  UserAccessoriesCompanion.insert({
+  UserRewardsCompanion.insert({
     this.id = const Value.absent(),
-    required int accessoryId,
-    this.owned = const Value.absent(),
-    this.x = const Value.absent(),
-    this.y = const Value.absent(),
+    required String prize,
+    required String conditionType,
+    required int targetCount,
+    this.currentProgress = const Value.absent(),
+    this.isCompleted = const Value.absent(),
+    this.isClaimed = const Value.absent(),
+    required DateTime createdAt,
     required DateTime updatedAt,
-    this.isSynced = const Value.absent(),
-  }) : accessoryId = Value(accessoryId),
+  }) : prize = Value(prize),
+       conditionType = Value(conditionType),
+       targetCount = Value(targetCount),
+       createdAt = Value(createdAt),
        updatedAt = Value(updatedAt);
-  static Insertable<UserAccessory> custom({
+  static Insertable<UserReward> custom({
     Expression<int>? id,
-    Expression<int>? accessoryId,
-    Expression<bool>? owned,
-    Expression<int>? x,
-    Expression<int>? y,
+    Expression<String>? prize,
+    Expression<String>? conditionType,
+    Expression<int>? targetCount,
+    Expression<int>? currentProgress,
+    Expression<bool>? isCompleted,
+    Expression<bool>? isClaimed,
+    Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
-    Expression<bool>? isSynced,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
-      if (accessoryId != null) 'accessory_id': accessoryId,
-      if (owned != null) 'owned': owned,
-      if (x != null) 'x': x,
-      if (y != null) 'y': y,
+      if (prize != null) 'prize': prize,
+      if (conditionType != null) 'condition_type': conditionType,
+      if (targetCount != null) 'target_count': targetCount,
+      if (currentProgress != null) 'current_progress': currentProgress,
+      if (isCompleted != null) 'is_completed': isCompleted,
+      if (isClaimed != null) 'is_claimed': isClaimed,
+      if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
-      if (isSynced != null) 'is_synced': isSynced,
     });
   }
 
-  UserAccessoriesCompanion copyWith({
+  UserRewardsCompanion copyWith({
     Value<int>? id,
-    Value<int>? accessoryId,
-    Value<bool>? owned,
-    Value<int?>? x,
-    Value<int?>? y,
+    Value<String>? prize,
+    Value<String>? conditionType,
+    Value<int>? targetCount,
+    Value<int>? currentProgress,
+    Value<bool>? isCompleted,
+    Value<bool>? isClaimed,
+    Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
-    Value<bool>? isSynced,
   }) {
-    return UserAccessoriesCompanion(
+    return UserRewardsCompanion(
       id: id ?? this.id,
-      accessoryId: accessoryId ?? this.accessoryId,
-      owned: owned ?? this.owned,
-      x: x ?? this.x,
-      y: y ?? this.y,
+      prize: prize ?? this.prize,
+      conditionType: conditionType ?? this.conditionType,
+      targetCount: targetCount ?? this.targetCount,
+      currentProgress: currentProgress ?? this.currentProgress,
+      isCompleted: isCompleted ?? this.isCompleted,
+      isClaimed: isClaimed ?? this.isClaimed,
+      createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
-      isSynced: isSynced ?? this.isSynced,
     );
   }
 
@@ -1165,37 +993,45 @@ class UserAccessoriesCompanion extends UpdateCompanion<UserAccessory> {
     if (id.present) {
       map['id'] = Variable<int>(id.value);
     }
-    if (accessoryId.present) {
-      map['accessory_id'] = Variable<int>(accessoryId.value);
+    if (prize.present) {
+      map['prize'] = Variable<String>(prize.value);
     }
-    if (owned.present) {
-      map['owned'] = Variable<bool>(owned.value);
+    if (conditionType.present) {
+      map['condition_type'] = Variable<String>(conditionType.value);
     }
-    if (x.present) {
-      map['x'] = Variable<int>(x.value);
+    if (targetCount.present) {
+      map['target_count'] = Variable<int>(targetCount.value);
     }
-    if (y.present) {
-      map['y'] = Variable<int>(y.value);
+    if (currentProgress.present) {
+      map['current_progress'] = Variable<int>(currentProgress.value);
+    }
+    if (isCompleted.present) {
+      map['is_completed'] = Variable<bool>(isCompleted.value);
+    }
+    if (isClaimed.present) {
+      map['is_claimed'] = Variable<bool>(isClaimed.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
     }
     if (updatedAt.present) {
       map['updated_at'] = Variable<DateTime>(updatedAt.value);
-    }
-    if (isSynced.present) {
-      map['is_synced'] = Variable<bool>(isSynced.value);
     }
     return map;
   }
 
   @override
   String toString() {
-    return (StringBuffer('UserAccessoriesCompanion(')
+    return (StringBuffer('UserRewardsCompanion(')
           ..write('id: $id, ')
-          ..write('accessoryId: $accessoryId, ')
-          ..write('owned: $owned, ')
-          ..write('x: $x, ')
-          ..write('y: $y, ')
-          ..write('updatedAt: $updatedAt, ')
-          ..write('isSynced: $isSynced')
+          ..write('prize: $prize, ')
+          ..write('conditionType: $conditionType, ')
+          ..write('targetCount: $targetCount, ')
+          ..write('currentProgress: $currentProgress, ')
+          ..write('isCompleted: $isCompleted, ')
+          ..write('isClaimed: $isClaimed, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
           ..write(')'))
         .toString();
   }
@@ -1917,10 +1753,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
   late final $UserProgressTable userProgress = $UserProgressTable(this);
-  late final $AccessoriesTable accessories = $AccessoriesTable(this);
-  late final $UserAccessoriesTable userAccessories = $UserAccessoriesTable(
-    this,
-  );
+  late final $UserRewardsTable userRewards = $UserRewardsTable(this);
   late final $AchievementsTable achievements = $AchievementsTable(this);
   late final $UserAchievementsTable userAchievements = $UserAchievementsTable(
     this,
@@ -1931,8 +1764,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   @override
   List<DatabaseSchemaEntity> get allSchemaEntities => [
     userProgress,
-    accessories,
-    userAccessories,
+    userRewards,
     achievements,
     userAchievements,
   ];
@@ -2176,202 +2008,34 @@ typedef $$UserProgressTableProcessedTableManager =
       UserProgressData,
       PrefetchHooks Function()
     >;
-typedef $$AccessoriesTableCreateCompanionBuilder =
-    AccessoriesCompanion Function({
+typedef $$UserRewardsTableCreateCompanionBuilder =
+    UserRewardsCompanion Function({
       Value<int> id,
-      required String name,
-      required int cost,
-      required String iconName,
-    });
-typedef $$AccessoriesTableUpdateCompanionBuilder =
-    AccessoriesCompanion Function({
-      Value<int> id,
-      Value<String> name,
-      Value<int> cost,
-      Value<String> iconName,
-    });
-
-class $$AccessoriesTableFilterComposer
-    extends Composer<_$AppDatabase, $AccessoriesTable> {
-  $$AccessoriesTableFilterComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnFilters<int> get id => $composableBuilder(
-    column: $table.id,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get name => $composableBuilder(
-    column: $table.name,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<int> get cost => $composableBuilder(
-    column: $table.cost,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get iconName => $composableBuilder(
-    column: $table.iconName,
-    builder: (column) => ColumnFilters(column),
-  );
-}
-
-class $$AccessoriesTableOrderingComposer
-    extends Composer<_$AppDatabase, $AccessoriesTable> {
-  $$AccessoriesTableOrderingComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnOrderings<int> get id => $composableBuilder(
-    column: $table.id,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get name => $composableBuilder(
-    column: $table.name,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<int> get cost => $composableBuilder(
-    column: $table.cost,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get iconName => $composableBuilder(
-    column: $table.iconName,
-    builder: (column) => ColumnOrderings(column),
-  );
-}
-
-class $$AccessoriesTableAnnotationComposer
-    extends Composer<_$AppDatabase, $AccessoriesTable> {
-  $$AccessoriesTableAnnotationComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  GeneratedColumn<int> get id =>
-      $composableBuilder(column: $table.id, builder: (column) => column);
-
-  GeneratedColumn<String> get name =>
-      $composableBuilder(column: $table.name, builder: (column) => column);
-
-  GeneratedColumn<int> get cost =>
-      $composableBuilder(column: $table.cost, builder: (column) => column);
-
-  GeneratedColumn<String> get iconName =>
-      $composableBuilder(column: $table.iconName, builder: (column) => column);
-}
-
-class $$AccessoriesTableTableManager
-    extends
-        RootTableManager<
-          _$AppDatabase,
-          $AccessoriesTable,
-          Accessory,
-          $$AccessoriesTableFilterComposer,
-          $$AccessoriesTableOrderingComposer,
-          $$AccessoriesTableAnnotationComposer,
-          $$AccessoriesTableCreateCompanionBuilder,
-          $$AccessoriesTableUpdateCompanionBuilder,
-          (
-            Accessory,
-            BaseReferences<_$AppDatabase, $AccessoriesTable, Accessory>,
-          ),
-          Accessory,
-          PrefetchHooks Function()
-        > {
-  $$AccessoriesTableTableManager(_$AppDatabase db, $AccessoriesTable table)
-    : super(
-        TableManagerState(
-          db: db,
-          table: table,
-          createFilteringComposer: () =>
-              $$AccessoriesTableFilterComposer($db: db, $table: table),
-          createOrderingComposer: () =>
-              $$AccessoriesTableOrderingComposer($db: db, $table: table),
-          createComputedFieldComposer: () =>
-              $$AccessoriesTableAnnotationComposer($db: db, $table: table),
-          updateCompanionCallback:
-              ({
-                Value<int> id = const Value.absent(),
-                Value<String> name = const Value.absent(),
-                Value<int> cost = const Value.absent(),
-                Value<String> iconName = const Value.absent(),
-              }) => AccessoriesCompanion(
-                id: id,
-                name: name,
-                cost: cost,
-                iconName: iconName,
-              ),
-          createCompanionCallback:
-              ({
-                Value<int> id = const Value.absent(),
-                required String name,
-                required int cost,
-                required String iconName,
-              }) => AccessoriesCompanion.insert(
-                id: id,
-                name: name,
-                cost: cost,
-                iconName: iconName,
-              ),
-          withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
-              .toList(),
-          prefetchHooksCallback: null,
-        ),
-      );
-}
-
-typedef $$AccessoriesTableProcessedTableManager =
-    ProcessedTableManager<
-      _$AppDatabase,
-      $AccessoriesTable,
-      Accessory,
-      $$AccessoriesTableFilterComposer,
-      $$AccessoriesTableOrderingComposer,
-      $$AccessoriesTableAnnotationComposer,
-      $$AccessoriesTableCreateCompanionBuilder,
-      $$AccessoriesTableUpdateCompanionBuilder,
-      (Accessory, BaseReferences<_$AppDatabase, $AccessoriesTable, Accessory>),
-      Accessory,
-      PrefetchHooks Function()
-    >;
-typedef $$UserAccessoriesTableCreateCompanionBuilder =
-    UserAccessoriesCompanion Function({
-      Value<int> id,
-      required int accessoryId,
-      Value<bool> owned,
-      Value<int?> x,
-      Value<int?> y,
+      required String prize,
+      required String conditionType,
+      required int targetCount,
+      Value<int> currentProgress,
+      Value<bool> isCompleted,
+      Value<bool> isClaimed,
+      required DateTime createdAt,
       required DateTime updatedAt,
-      Value<bool> isSynced,
     });
-typedef $$UserAccessoriesTableUpdateCompanionBuilder =
-    UserAccessoriesCompanion Function({
+typedef $$UserRewardsTableUpdateCompanionBuilder =
+    UserRewardsCompanion Function({
       Value<int> id,
-      Value<int> accessoryId,
-      Value<bool> owned,
-      Value<int?> x,
-      Value<int?> y,
+      Value<String> prize,
+      Value<String> conditionType,
+      Value<int> targetCount,
+      Value<int> currentProgress,
+      Value<bool> isCompleted,
+      Value<bool> isClaimed,
+      Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
-      Value<bool> isSynced,
     });
 
-class $$UserAccessoriesTableFilterComposer
-    extends Composer<_$AppDatabase, $UserAccessoriesTable> {
-  $$UserAccessoriesTableFilterComposer({
+class $$UserRewardsTableFilterComposer
+    extends Composer<_$AppDatabase, $UserRewardsTable> {
+  $$UserRewardsTableFilterComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
@@ -2383,23 +2047,38 @@ class $$UserAccessoriesTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<int> get accessoryId => $composableBuilder(
-    column: $table.accessoryId,
+  ColumnFilters<String> get prize => $composableBuilder(
+    column: $table.prize,
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<bool> get owned => $composableBuilder(
-    column: $table.owned,
+  ColumnFilters<String> get conditionType => $composableBuilder(
+    column: $table.conditionType,
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<int> get x => $composableBuilder(
-    column: $table.x,
+  ColumnFilters<int> get targetCount => $composableBuilder(
+    column: $table.targetCount,
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<int> get y => $composableBuilder(
-    column: $table.y,
+  ColumnFilters<int> get currentProgress => $composableBuilder(
+    column: $table.currentProgress,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isCompleted => $composableBuilder(
+    column: $table.isCompleted,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isClaimed => $composableBuilder(
+    column: $table.isClaimed,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -2407,16 +2086,11 @@ class $$UserAccessoriesTableFilterComposer
     column: $table.updatedAt,
     builder: (column) => ColumnFilters(column),
   );
-
-  ColumnFilters<bool> get isSynced => $composableBuilder(
-    column: $table.isSynced,
-    builder: (column) => ColumnFilters(column),
-  );
 }
 
-class $$UserAccessoriesTableOrderingComposer
-    extends Composer<_$AppDatabase, $UserAccessoriesTable> {
-  $$UserAccessoriesTableOrderingComposer({
+class $$UserRewardsTableOrderingComposer
+    extends Composer<_$AppDatabase, $UserRewardsTable> {
+  $$UserRewardsTableOrderingComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
@@ -2428,23 +2102,38 @@ class $$UserAccessoriesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<int> get accessoryId => $composableBuilder(
-    column: $table.accessoryId,
+  ColumnOrderings<String> get prize => $composableBuilder(
+    column: $table.prize,
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<bool> get owned => $composableBuilder(
-    column: $table.owned,
+  ColumnOrderings<String> get conditionType => $composableBuilder(
+    column: $table.conditionType,
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<int> get x => $composableBuilder(
-    column: $table.x,
+  ColumnOrderings<int> get targetCount => $composableBuilder(
+    column: $table.targetCount,
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<int> get y => $composableBuilder(
-    column: $table.y,
+  ColumnOrderings<int> get currentProgress => $composableBuilder(
+    column: $table.currentProgress,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isCompleted => $composableBuilder(
+    column: $table.isCompleted,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isClaimed => $composableBuilder(
+    column: $table.isClaimed,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -2452,16 +2141,11 @@ class $$UserAccessoriesTableOrderingComposer
     column: $table.updatedAt,
     builder: (column) => ColumnOrderings(column),
   );
-
-  ColumnOrderings<bool> get isSynced => $composableBuilder(
-    column: $table.isSynced,
-    builder: (column) => ColumnOrderings(column),
-  );
 }
 
-class $$UserAccessoriesTableAnnotationComposer
-    extends Composer<_$AppDatabase, $UserAccessoriesTable> {
-  $$UserAccessoriesTableAnnotationComposer({
+class $$UserRewardsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $UserRewardsTable> {
+  $$UserRewardsTableAnnotationComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
@@ -2471,93 +2155,111 @@ class $$UserAccessoriesTableAnnotationComposer
   GeneratedColumn<int> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
 
-  GeneratedColumn<int> get accessoryId => $composableBuilder(
-    column: $table.accessoryId,
+  GeneratedColumn<String> get prize =>
+      $composableBuilder(column: $table.prize, builder: (column) => column);
+
+  GeneratedColumn<String> get conditionType => $composableBuilder(
+    column: $table.conditionType,
     builder: (column) => column,
   );
 
-  GeneratedColumn<bool> get owned =>
-      $composableBuilder(column: $table.owned, builder: (column) => column);
+  GeneratedColumn<int> get targetCount => $composableBuilder(
+    column: $table.targetCount,
+    builder: (column) => column,
+  );
 
-  GeneratedColumn<int> get x =>
-      $composableBuilder(column: $table.x, builder: (column) => column);
+  GeneratedColumn<int> get currentProgress => $composableBuilder(
+    column: $table.currentProgress,
+    builder: (column) => column,
+  );
 
-  GeneratedColumn<int> get y =>
-      $composableBuilder(column: $table.y, builder: (column) => column);
+  GeneratedColumn<bool> get isCompleted => $composableBuilder(
+    column: $table.isCompleted,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get isClaimed =>
+      $composableBuilder(column: $table.isClaimed, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
 
   GeneratedColumn<DateTime> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
-
-  GeneratedColumn<bool> get isSynced =>
-      $composableBuilder(column: $table.isSynced, builder: (column) => column);
 }
 
-class $$UserAccessoriesTableTableManager
+class $$UserRewardsTableTableManager
     extends
         RootTableManager<
           _$AppDatabase,
-          $UserAccessoriesTable,
-          UserAccessory,
-          $$UserAccessoriesTableFilterComposer,
-          $$UserAccessoriesTableOrderingComposer,
-          $$UserAccessoriesTableAnnotationComposer,
-          $$UserAccessoriesTableCreateCompanionBuilder,
-          $$UserAccessoriesTableUpdateCompanionBuilder,
+          $UserRewardsTable,
+          UserReward,
+          $$UserRewardsTableFilterComposer,
+          $$UserRewardsTableOrderingComposer,
+          $$UserRewardsTableAnnotationComposer,
+          $$UserRewardsTableCreateCompanionBuilder,
+          $$UserRewardsTableUpdateCompanionBuilder,
           (
-            UserAccessory,
-            BaseReferences<_$AppDatabase, $UserAccessoriesTable, UserAccessory>,
+            UserReward,
+            BaseReferences<_$AppDatabase, $UserRewardsTable, UserReward>,
           ),
-          UserAccessory,
+          UserReward,
           PrefetchHooks Function()
         > {
-  $$UserAccessoriesTableTableManager(
-    _$AppDatabase db,
-    $UserAccessoriesTable table,
-  ) : super(
+  $$UserRewardsTableTableManager(_$AppDatabase db, $UserRewardsTable table)
+    : super(
         TableManagerState(
           db: db,
           table: table,
           createFilteringComposer: () =>
-              $$UserAccessoriesTableFilterComposer($db: db, $table: table),
+              $$UserRewardsTableFilterComposer($db: db, $table: table),
           createOrderingComposer: () =>
-              $$UserAccessoriesTableOrderingComposer($db: db, $table: table),
+              $$UserRewardsTableOrderingComposer($db: db, $table: table),
           createComputedFieldComposer: () =>
-              $$UserAccessoriesTableAnnotationComposer($db: db, $table: table),
+              $$UserRewardsTableAnnotationComposer($db: db, $table: table),
           updateCompanionCallback:
               ({
                 Value<int> id = const Value.absent(),
-                Value<int> accessoryId = const Value.absent(),
-                Value<bool> owned = const Value.absent(),
-                Value<int?> x = const Value.absent(),
-                Value<int?> y = const Value.absent(),
+                Value<String> prize = const Value.absent(),
+                Value<String> conditionType = const Value.absent(),
+                Value<int> targetCount = const Value.absent(),
+                Value<int> currentProgress = const Value.absent(),
+                Value<bool> isCompleted = const Value.absent(),
+                Value<bool> isClaimed = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
-                Value<bool> isSynced = const Value.absent(),
-              }) => UserAccessoriesCompanion(
+              }) => UserRewardsCompanion(
                 id: id,
-                accessoryId: accessoryId,
-                owned: owned,
-                x: x,
-                y: y,
+                prize: prize,
+                conditionType: conditionType,
+                targetCount: targetCount,
+                currentProgress: currentProgress,
+                isCompleted: isCompleted,
+                isClaimed: isClaimed,
+                createdAt: createdAt,
                 updatedAt: updatedAt,
-                isSynced: isSynced,
               ),
           createCompanionCallback:
               ({
                 Value<int> id = const Value.absent(),
-                required int accessoryId,
-                Value<bool> owned = const Value.absent(),
-                Value<int?> x = const Value.absent(),
-                Value<int?> y = const Value.absent(),
+                required String prize,
+                required String conditionType,
+                required int targetCount,
+                Value<int> currentProgress = const Value.absent(),
+                Value<bool> isCompleted = const Value.absent(),
+                Value<bool> isClaimed = const Value.absent(),
+                required DateTime createdAt,
                 required DateTime updatedAt,
-                Value<bool> isSynced = const Value.absent(),
-              }) => UserAccessoriesCompanion.insert(
+              }) => UserRewardsCompanion.insert(
                 id: id,
-                accessoryId: accessoryId,
-                owned: owned,
-                x: x,
-                y: y,
+                prize: prize,
+                conditionType: conditionType,
+                targetCount: targetCount,
+                currentProgress: currentProgress,
+                isCompleted: isCompleted,
+                isClaimed: isClaimed,
+                createdAt: createdAt,
                 updatedAt: updatedAt,
-                isSynced: isSynced,
               ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
@@ -2567,21 +2269,21 @@ class $$UserAccessoriesTableTableManager
       );
 }
 
-typedef $$UserAccessoriesTableProcessedTableManager =
+typedef $$UserRewardsTableProcessedTableManager =
     ProcessedTableManager<
       _$AppDatabase,
-      $UserAccessoriesTable,
-      UserAccessory,
-      $$UserAccessoriesTableFilterComposer,
-      $$UserAccessoriesTableOrderingComposer,
-      $$UserAccessoriesTableAnnotationComposer,
-      $$UserAccessoriesTableCreateCompanionBuilder,
-      $$UserAccessoriesTableUpdateCompanionBuilder,
+      $UserRewardsTable,
+      UserReward,
+      $$UserRewardsTableFilterComposer,
+      $$UserRewardsTableOrderingComposer,
+      $$UserRewardsTableAnnotationComposer,
+      $$UserRewardsTableCreateCompanionBuilder,
+      $$UserRewardsTableUpdateCompanionBuilder,
       (
-        UserAccessory,
-        BaseReferences<_$AppDatabase, $UserAccessoriesTable, UserAccessory>,
+        UserReward,
+        BaseReferences<_$AppDatabase, $UserRewardsTable, UserReward>,
       ),
-      UserAccessory,
+      UserReward,
       PrefetchHooks Function()
     >;
 typedef $$AchievementsTableCreateCompanionBuilder =
@@ -2990,10 +2692,8 @@ class $AppDatabaseManager {
   $AppDatabaseManager(this._db);
   $$UserProgressTableTableManager get userProgress =>
       $$UserProgressTableTableManager(_db, _db.userProgress);
-  $$AccessoriesTableTableManager get accessories =>
-      $$AccessoriesTableTableManager(_db, _db.accessories);
-  $$UserAccessoriesTableTableManager get userAccessories =>
-      $$UserAccessoriesTableTableManager(_db, _db.userAccessories);
+  $$UserRewardsTableTableManager get userRewards =>
+      $$UserRewardsTableTableManager(_db, _db.userRewards);
   $$AchievementsTableTableManager get achievements =>
       $$AchievementsTableTableManager(_db, _db.achievements);
   $$UserAchievementsTableTableManager get userAchievements =>

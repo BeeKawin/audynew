@@ -1,5 +1,4 @@
 import '../datasources/local_data_source.dart';
-import '../models/progress_model.dart';
 
 /// Storage repository implementing offline-first architecture
 /// Local database is source of truth
@@ -31,20 +30,24 @@ class StorageRepository {
     }
   }
 
-  // ==================== ACCESSORIES ====================
+  // ==================== USER REWARDS ====================
 
-  Future<List<AccessoryData>> getAllAccessories() => local.getAllAccessories();
+  Future<List<RewardData>> getUserRewards() => local.getUserRewards();
 
-  Future<List<AccessoryData>> getOwnedAccessories() =>
-      local.getOwnedAccessories();
+  Future<List<RewardData>> getActiveRewards() => local.getActiveRewards();
 
-  Future<void> purchaseAccessory(int accessoryId) =>
-      local.purchaseAccessory(accessoryId);
+  Future<int> addReward(String prize, String conditionType, int targetCount) =>
+      local.addReward(prize, conditionType, targetCount);
 
-  Future<void> placeAccessory(int accessoryId, int x, int y) =>
-      local.placeAccessory(accessoryId, x, y);
+  Future<void> updateRewardProgress(int rewardId, int progress) =>
+      local.updateRewardProgress(rewardId, progress);
 
-  Future<void> resetAccessoryPlacements() => local.resetAccessoryPlacements();
+  Future<void> markRewardCompleted(int rewardId) =>
+      local.markRewardCompleted(rewardId);
+
+  Future<void> claimReward(int rewardId) => local.claimReward(rewardId);
+
+  Future<void> deleteReward(int rewardId) => local.deleteReward(rewardId);
 
   // ==================== ACHIEVEMENTS ====================
 

@@ -38,27 +38,55 @@ class ColorPiece {
   final Color color;
 }
 
-class AccessoryItem {
-  const AccessoryItem({
-    required this.name,
-    required this.icon,
-    required this.cost,
-    required this.owned,
+enum RewardCondition {
+  emotionClassify,
+  emotionMimic,
+  miniPuzzle,
+  sortingGame,
+  reactionTime,
+  reading,
+  socialChat,
+}
+
+class UserReward {
+  final int id;
+  final String prize;
+  final RewardCondition condition;
+  final int targetCount;
+  final int currentProgress;
+  final bool isCompleted;
+  final bool isClaimed;
+  final DateTime createdAt;
+
+  const UserReward({
+    required this.id,
+    required this.prize,
+    required this.condition,
+    required this.targetCount,
+    this.currentProgress = 0,
+    this.isCompleted = false,
+    this.isClaimed = false,
+    required this.createdAt,
   });
 
-  final String name;
-  final IconData icon;
-  final int cost;
-  final bool owned;
-
-  AccessoryItem copyWith({bool? owned}) {
-    return AccessoryItem(
-      name: name,
-      icon: icon,
-      cost: cost,
-      owned: owned ?? this.owned,
+  UserReward copyWith({
+    int? currentProgress,
+    bool? isCompleted,
+    bool? isClaimed,
+  }) {
+    return UserReward(
+      id: id,
+      prize: prize,
+      condition: condition,
+      targetCount: targetCount,
+      currentProgress: currentProgress ?? this.currentProgress,
+      isCompleted: isCompleted ?? this.isCompleted,
+      isClaimed: isClaimed ?? this.isClaimed,
+      createdAt: createdAt,
     );
   }
+
+  double get progressRatio => currentProgress / targetCount;
 }
 
 class ColorSortRoundData {
@@ -228,9 +256,19 @@ class AudyController extends ChangeNotifier {
     clearUser();
   }
 
-  // Get only owned accessories
-  List<AccessoryItem> get ownedAccessories =>
-      accessories.where((a) => a.owned).toList();
+  // User rewards - max 3 active at a time
+  late List<UserReward> userRewards;
+
+  List<UserReward> get activeRewards =>
+      userRewards.where((r) => !r.isCompleted).toList();
+
+  List<UserReward> get completedRewards =>
+      userRewards.where((r) => r.isCompleted && !r.isClaimed).toList();
+
+  List<UserReward> get claimedRewards =>
+      userRewards.where((r) => r.isClaimed).toList();
+
+  bool get canAddReward => activeRewards.length < 3;
 
   // Achievement tracking
   final Set<String> _unlockedAchievementKeys = {};
@@ -355,6 +393,7 @@ class AudyController extends ChangeNotifier {
     }
     _trackGameInSession();
     updateQuestProgress('game');
+    _updateRewardProgress(RewardCondition.emotionClassify);
     _checkAchievements();
     notifyListeners();
   }
@@ -366,6 +405,7 @@ class AudyController extends ChangeNotifier {
     }
     _trackGameInSession();
     updateQuestProgress('game');
+    _updateRewardProgress(RewardCondition.emotionMimic);
     _checkAchievements();
     notifyListeners();
   }
@@ -409,8 +449,6 @@ class AudyController extends ChangeNotifier {
   // NEW Sorting Game tracking
   int newSortingCorrectActions =
       0; // Tracks correct actions in new sorting game for points
-
-  late List<AccessoryItem> accessories;
 
   Timer? _reactionRevealTimer;
   final Stopwatch _reactionStopwatch = Stopwatch();
@@ -502,9 +540,9 @@ class AudyController extends ChangeNotifier {
         unlocked: gamesInCurrentSession >= 3,
       ),
       AchievementItem(
-        title: 'Master Collector',
-        description: 'Own 10 accessories',
-        unlocked: accessories.where((a) => a.owned).length >= 10,
+        title: 'Reward Creator',
+        description: 'Create 5 rewards',
+        unlocked: userRewards.length >= 5,
       ),
     ];
   }
@@ -640,44 +678,134 @@ class AudyController extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> unlockAccessory(String accessoryName) async {
-    final index = accessories.indexWhere((item) => item.name == accessoryName);
-    if (index == -1) return;
-    final accessory = accessories[index];
-    if (accessory.owned) return;
-    if (learningPoints < accessory.cost) {
-      _prepareRequest(
-        feature: 'rewards',
-        endpoint: '/api/rewards/purchase-attempt',
-        method: RequestMethod.post,
-        payload: {
-          'accessory': accessory.name,
-          'result': 'insufficient_points',
-          'points': learningPoints,
-        },
-      );
-      notifyListeners();
-      return;
-    }
-    learningPoints -= accessory.cost;
-    accessories[index] = accessory.copyWith(owned: true);
+  // ==================== USER REWARDS ====================
 
-    // Save purchase to storage
+  /// Add a new user reward
+  Future<void> addReward(String prize, RewardCondition condition, int targetCount) async {
+    if (!canAddReward) return;
+
+    final now = DateTime.now();
+    final newId = userRewards.isEmpty ? 1 : userRewards.map((r) => r.id).reduce((a, b) => a > b ? a : b) + 1;
+
+    final newReward = UserReward(
+      id: newId,
+      prize: prize,
+      condition: condition,
+      targetCount: targetCount,
+      createdAt: now,
+    );
+
+    userRewards.add(newReward);
+
+    // Save to storage
     if (storage != null) {
-      final accessoryData = await storage!.getAllAccessories();
-      final data = accessoryData.firstWhere((a) => a.name == accessoryName);
-      await storage!.purchaseAccessory(data.id);
-      await _saveProgress(); // Save updated points
+      await storage!.addReward(prize, condition.name, targetCount);
     }
 
     _prepareRequest(
       feature: 'rewards',
-      endpoint: '/api/rewards/purchase',
+      endpoint: '/api/rewards/create',
       method: RequestMethod.post,
       payload: {
-        'accessory': accessory.name,
-        'cost': accessory.cost,
-        'remainingPoints': learningPoints,
+        'prize': prize,
+        'condition': condition.name,
+        'targetCount': targetCount,
+      },
+    );
+    notifyListeners();
+  }
+
+  /// Update reward progress when a game is completed
+  void _updateRewardProgress(RewardCondition completedCondition) {
+    bool progressUpdated = false;
+
+    for (var i = 0; i < userRewards.length; i++) {
+      final reward = userRewards[i];
+      if (reward.condition == completedCondition && !reward.isCompleted) {
+        final newProgress = reward.currentProgress + 1;
+        if (newProgress >= reward.targetCount) {
+          // Reward completed!
+          userRewards[i] = reward.copyWith(
+            currentProgress: newProgress,
+            isCompleted: true,
+          );
+          _onRewardCompleted(reward);
+        } else {
+          userRewards[i] = reward.copyWith(currentProgress: newProgress);
+        }
+        progressUpdated = true;
+
+        // Save to storage
+        if (storage != null) {
+          storage!.updateRewardProgress(reward.id, newProgress);
+          if (newProgress >= reward.targetCount) {
+            storage!.markRewardCompleted(reward.id);
+          }
+        }
+      }
+    }
+
+    if (progressUpdated) {
+      notifyListeners();
+    }
+  }
+
+  void _onRewardCompleted(UserReward reward) {
+    _prepareRequest(
+      feature: 'rewards',
+      endpoint: '/api/rewards/completed',
+      method: RequestMethod.post,
+      payload: {
+        'rewardId': reward.id,
+        'prize': reward.prize,
+        'condition': reward.condition.name,
+        'targetCount': reward.targetCount,
+      },
+    );
+  }
+
+  /// Claim a completed reward
+  Future<void> claimReward(int rewardId) async {
+    final index = userRewards.indexWhere((r) => r.id == rewardId);
+    if (index == -1) return;
+
+    final reward = userRewards[index];
+    if (!reward.isCompleted || reward.isClaimed) return;
+
+    userRewards[index] = reward.copyWith(isClaimed: true);
+
+    // Save to storage
+    if (storage != null) {
+      await storage!.claimReward(rewardId);
+    }
+
+    _prepareRequest(
+      feature: 'rewards',
+      endpoint: '/api/rewards/claim',
+      method: RequestMethod.post,
+      payload: {
+        'rewardId': rewardId,
+        'prize': reward.prize,
+      },
+    );
+    notifyListeners();
+  }
+
+  /// Delete a reward
+  Future<void> deleteReward(int rewardId) async {
+    userRewards.removeWhere((r) => r.id == rewardId);
+
+    // Save to storage
+    if (storage != null) {
+      await storage!.deleteReward(rewardId);
+    }
+
+    _prepareRequest(
+      feature: 'rewards',
+      endpoint: '/api/rewards/delete',
+      method: RequestMethod.post,
+      payload: {
+        'rewardId': rewardId,
       },
     );
     notifyListeners();
@@ -878,14 +1006,25 @@ class AudyController extends ChangeNotifier {
         await _updateDayStreak();
       }
 
-      // Load accessories
-      final accessoryData = await storage!.getAllAccessories();
-      for (var data in accessoryData) {
-        final index = accessories.indexWhere((a) => a.name == data.name);
-        if (index != -1) {
-          accessories[index] = accessories[index].copyWith(owned: data.owned);
-        }
-      }
+      // Load user rewards
+      final rewardData = await storage!.getUserRewards();
+      userRewards = rewardData
+          .map(
+            (r) => UserReward(
+              id: r.id,
+              prize: r.prize,
+              condition: RewardCondition.values.firstWhere(
+                (c) => c.name == r.conditionType,
+                orElse: () => RewardCondition.emotionClassify,
+              ),
+              targetCount: r.targetCount,
+              currentProgress: r.currentProgress,
+              isCompleted: r.isCompleted,
+              isClaimed: r.isClaimed,
+              createdAt: r.createdAt,
+            ),
+          )
+          .toList();
 
       // Load achievements
       final achievementData = await storage!.getAllAchievements();
@@ -979,7 +1118,7 @@ class AudyController extends ChangeNotifier {
       if (achievement.title == 'Social Star') key = 'social_star';
       if (achievement.title == 'Color Pro') key = 'color_pro';
       if (achievement.title == 'Fast Learner') key = 'fast_learner';
-      if (achievement.title == 'Master Collector') key = 'master_collector';
+      if (achievement.title == 'Reward Creator') key = 'reward_creator';
 
       if (key != null &&
           achievement.unlocked &&
@@ -1013,6 +1152,7 @@ class AudyController extends ChangeNotifier {
       _unlockAchievement('puzzle_starter');
     }
     updateQuestProgress('game');
+    _updateRewardProgress(RewardCondition.miniPuzzle);
     _checkAchievements();
     notifyListeners();
   }
@@ -1024,6 +1164,7 @@ class AudyController extends ChangeNotifier {
       _unlockAchievement('reading_buddy');
     }
     updateQuestProgress('learn');
+    _updateRewardProgress(RewardCondition.reading);
     _checkAchievements();
     notifyListeners();
   }
@@ -1039,6 +1180,7 @@ class AudyController extends ChangeNotifier {
       _unlockAchievement('social_butterfly');
     }
     updateQuestProgress('chat');
+    _updateRewardProgress(RewardCondition.socialChat);
     _checkAchievements();
     notifyListeners();
   }
@@ -1051,6 +1193,7 @@ class AudyController extends ChangeNotifier {
     }
     updateQuestProgress('game');
     _trackGameInSession();
+    _updateRewardProgress(RewardCondition.sortingGame);
     _checkAchievements();
     notifyListeners();
   }
@@ -1059,6 +1202,7 @@ class AudyController extends ChangeNotifier {
   void trackReactionCompleted() {
     updateQuestProgress('game');
     _trackGameInSession();
+    _updateRewardProgress(RewardCondition.reactionTime);
     _checkAchievements();
     notifyListeners();
   }
@@ -1105,11 +1249,10 @@ class AudyController extends ChangeNotifier {
     }
   }
 
-  /// Check Master Collector achievement (called when accessory is purchased)
-  void checkMasterCollector() {
-    final ownedCount = accessories.where((a) => a.owned).length;
-    if (ownedCount >= 10) {
-      _unlockAchievement('master_collector');
+  /// Check Reward Creator achievement (called when a reward is created)
+  void checkRewardCreator() {
+    if (userRewards.length >= 5) {
+      _unlockAchievement('reward_creator');
     }
     _checkAchievements();
     notifyListeners();
@@ -1283,7 +1426,7 @@ class AudyController extends ChangeNotifier {
         'social_star': 'Social Star',
         'color_pro': 'Color Pro',
         'fast_learner': 'Fast Learner',
-        'master_collector': 'Master Collector',
+        'reward_creator': 'Reward Creator',
       };
       final title = keyToTitle[key] ?? key;
       // Find and trigger the callback
@@ -1430,98 +1573,7 @@ class AudyController extends ChangeNotifier {
       ),
     ]);
 
-    accessories = const [
-      AccessoryItem(
-        name: 'Party Hat',
-        icon: Icons.celebration_outlined,
-        cost: 20,
-        owned: false,
-      ),
-      AccessoryItem(
-        name: 'Sunglasses',
-        icon: Icons.wb_sunny_outlined,
-        cost: 20,
-        owned: false,
-      ),
-      AccessoryItem(
-        name: 'Bow Tie',
-        icon: Icons.style_outlined,
-        cost: 40,
-        owned: false,
-      ),
-      AccessoryItem(
-        name: 'Crown',
-        icon: Icons.workspace_premium_outlined,
-        cost: 100,
-        owned: false,
-      ),
-      AccessoryItem(
-        name: 'Star Badge',
-        icon: Icons.star_outline_rounded,
-        cost: 60,
-        owned: false,
-      ),
-      AccessoryItem(
-        name: 'Heart Pin',
-        icon: Icons.favorite_outlined,
-        cost: 30,
-        owned: false,
-      ),
-      AccessoryItem(
-        name: 'Rainbow Band',
-        icon: Icons.palette_outlined,
-        cost: 50,
-        owned: false,
-      ),
-      AccessoryItem(
-        name: 'Peace Sign',
-        icon: Icons.spa_outlined,
-        cost: 45,
-        owned: false,
-      ),
-      AccessoryItem(
-        name: 'Music Note',
-        icon: Icons.music_note_outlined,
-        cost: 35,
-        owned: false,
-      ),
-      AccessoryItem(
-        name: 'Bookworm',
-        icon: Icons.menu_book_outlined,
-        cost: 55,
-        owned: false,
-      ),
-      AccessoryItem(
-        name: 'Puzzle Piece',
-        icon: Icons.extension_outlined,
-        cost: 70,
-        owned: false,
-      ),
-      AccessoryItem(
-        name: 'Flower',
-        icon: Icons.local_florist_outlined,
-        cost: 40,
-        owned: false,
-      ),
-      AccessoryItem(
-        name: 'Rocket',
-        icon: Icons.rocket_launch_outlined,
-        cost: 80,
-        owned: false,
-      ),
-      AccessoryItem(
-        name: 'Medal',
-        icon: Icons.military_tech_outlined,
-        cost: 90,
-        owned: false,
-      ),
-      AccessoryItem(
-        name: 'Glow Star',
-        icon: Icons.auto_awesome_outlined,
-        cost: 120,
-        owned: false,
-      ),
-    ];
+    userRewards = [];
 
     // Initialize daily quests
     _initDailyQuests();

@@ -3,8 +3,7 @@ import 'package:drift_flutter/drift_flutter.dart';
 import 'package:path_provider/path_provider.dart';
 
 import 'tables/user_progress.dart';
-import 'tables/accessories.dart';
-import 'tables/user_accessories.dart';
+import 'tables/user_rewards.dart';
 import 'tables/achievements.dart';
 import 'tables/user_achievements.dart';
 
@@ -26,8 +25,7 @@ QueryExecutor _openConnection() {
 @DriftDatabase(
   tables: [
     UserProgress,
-    Accessories,
-    UserAccessories,
+    UserRewards,
     Achievements,
     UserAchievements,
   ],

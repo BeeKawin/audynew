@@ -242,24 +242,41 @@ class AppStrings {
     'games_played': {'en': 'Games Played', 'th': 'เกมที่เล่น'},
     'day_streak': {'en': 'Day Streak', 'th': 'วันต่อเนื่อง'},
     'achievements': {'en': 'Achievements', 'th': 'ความสำเร็จ'},
-    'completed': {'en': 'completed', 'th': 'สำเร็จแล้ว'},
+    'completed': {'en': 'Completed', 'th': 'สำเร็จแล้ว'},
     'locked': {'en': 'Locked', 'th': 'ล็อก'},
     'reset_progress': {'en': 'Reset Progress', 'th': 'รีเซ็ตความก้าวหน้า'},
 
     // Rewards
     'your_rewards': {'en': 'Your Rewards', 'th': 'รางวัลของคุณ'},
-    'collect_accessories': {
-      'en': 'Collect accessories and customize your profile!',
-      'th': 'สะสมอุปกรณ์ตกแต่งและปรับแต่งโปรไฟล์ของคุณ!',
+    'my_rewards': {'en': 'My Rewards', 'th': 'รางวัลของฉัน'},
+    'add_reward': {'en': 'Add Reward', 'th': 'เพิ่มรางวัล'},
+    'active_rewards': {'en': 'Active', 'th': 'กำลังทำ'},
+    'completed_rewards': {'en': 'Completed', 'th': 'สำเร็จแล้ว'},
+    'claimed_rewards': {'en': 'Claimed', 'th': 'รับแล้ว'},
+    'claimed': {'en': 'Claimed', 'th': 'รับแล้ว'},
+    'claim': {'en': 'Claim', 'th': 'รับรางวัล'},
+    'no_rewards_yet': {'en': 'No Rewards Yet', 'th': 'ยังไม่มีรางวัล'},
+    'create_reward_hint': {
+      'en': 'Tap "Add Reward" to create your first reward!',
+      'th': 'แตะ "เพิ่มรางวัล" เพื่อสร้างรางวัลแรกของคุณ!',
     },
-    'accessories': {'en': 'Accessories', 'th': 'อุปกรณ์ตกแต่ง'},
-    'available': {'en': 'Available', 'th': 'ที่มีอยู่'},
-    'owned': {'en': 'Owned', 'th': 'ที่มีแล้ว'},
-    'points_needed': {
-      'en': 'Need {points} more points',
-      'th': 'ต้องการอีก {points} คะแนน',
+    'max_rewards_reached': {
+      'en': 'Max 3 rewards',
+      'th': 'สูงสุด 3 รางวัล',
     },
-    'unlock': {'en': 'Unlock', 'th': 'ปลดล็อก'},
+
+    // Create Reward Dialog
+    'create_reward': {'en': 'Create Reward', 'th': 'สร้างรางวัล'},
+    'prize_label': {'en': 'Prize', 'th': 'รางวัล'},
+    'prize_hint': {
+      'en': 'e.g. 10 minutes of playtime',
+      'th': 'เช่น เล่นเกม 10 นาที',
+    },
+    'condition_label': {'en': 'Condition', 'th': 'เงื่อนไข'},
+    'target_label': {'en': 'How many?', 'th': 'ทำกี่ครั้ง?'},
+    'create': {'en': 'Create', 'th': 'สร้าง'},
+
+    // Reward Conditions (using existing keys from games section)
 
     // Common
     'continue': {'en': 'Continue', 'th': 'ดำเนินการต่อ'},

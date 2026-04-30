@@ -45,7 +45,8 @@ class _SortGameResultScreenState extends State<SortGameResultScreen> {
   }
 
   int get totalStarsEarned => widget.sessionData.totalStars;
-  int get maxStars => widget.sessionData.roundResults.length * 3;
+  int get maxStars => widget.sessionData.roundResults.fold<int>(
+      0, (sum, r) => sum + r.correctCount + r.incorrectCount);
 
   @override
   void initState() {
@@ -414,15 +415,18 @@ class _SortGameResultScreenState extends State<SortGameResultScreen> {
                   SizedBox(height: adaptive.space(4)),
                   Wrap(
                     spacing: 2,
-                    children: List.generate(3, (i) {
-                      return Icon(
-                        Icons.star_rounded,
-                        size: adaptive.space(20),
-                        color: i < round.starsEarned
-                            ? AudyColors.starGold
-                            : AudyColors.starSilver,
-                      );
-                    }),
+                    children: List.generate(
+                      round.correctCount + round.incorrectCount,
+                      (i) {
+                        return Icon(
+                          Icons.star_rounded,
+                          size: adaptive.space(20),
+                          color: i < round.starsEarned
+                              ? AudyColors.starGold
+                              : AudyColors.starSilver,
+                        );
+                      },
+                    ),
                   ),
                 ],
               ),

@@ -13,24 +13,26 @@ class ProgressData {
   });
 }
 
-/// Accessory data with ownership and placement info
-class AccessoryData {
+/// User reward data
+class RewardData {
   final int id;
-  final String name;
-  final String iconName;
-  final int cost;
-  final bool owned;
-  final int? x;
-  final int? y;
+  final String prize;
+  final String conditionType;
+  final int targetCount;
+  final int currentProgress;
+  final bool isCompleted;
+  final bool isClaimed;
+  final DateTime createdAt;
 
-  const AccessoryData({
+  const RewardData({
     required this.id,
-    required this.name,
-    required this.iconName,
-    required this.cost,
-    required this.owned,
-    this.x,
-    this.y,
+    required this.prize,
+    required this.conditionType,
+    required this.targetCount,
+    required this.currentProgress,
+    required this.isCompleted,
+    required this.isClaimed,
+    required this.createdAt,
   });
 }
 

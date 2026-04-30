@@ -105,8 +105,8 @@ class _RewardsPageState extends State<RewardsPage> {
                   },
                 ),
                 _RewardTabChip(
-                  label: _tr(context, 'accessories'),
-                  icon: Icons.checkroom_outlined,
+                  label: _tr(context, 'my_rewards'),
+                  icon: Icons.card_giftcard_outlined,
                   selected: selectedTab == 1,
                   color: const Color(0xFFF8C7DF),
                   onTap: () {
@@ -130,7 +130,7 @@ class _RewardsPageState extends State<RewardsPage> {
             if (selectedTab == 0)
               _RewardsProgressTab(adaptive: adaptive, controller: controller),
             if (selectedTab == 1)
-              _RewardsAccessoriesTab(
+              _RewardsMyRewardsTab(
                 adaptive: adaptive,
                 controller: controller,
               ),
@@ -1357,8 +1357,8 @@ class _RewardsProgressTabState extends State<_RewardsProgressTab>
   }
 }
 
-class _RewardsAccessoriesTab extends StatelessWidget {
-  const _RewardsAccessoriesTab({
+class _RewardsMyRewardsTab extends StatelessWidget {
+  const _RewardsMyRewardsTab({
     required this.adaptive,
     required this.controller,
   });
@@ -1368,97 +1368,203 @@ class _RewardsAccessoriesTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final activeRewards = controller.activeRewards;
+    final completedRewards = controller.completedRewards;
+    final claimedRewards = controller.claimedRewards;
+
     return Column(
       children: [
-        Center(
-          child: Text(
-            'Your Collection',
-            style: TextStyle(
-              fontSize: adaptive.space(22),
-              fontWeight: FontWeight.w800,
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              _tr(context, 'my_rewards'),
+              style: TextStyle(
+                fontSize: adaptive.space(22),
+                fontWeight: FontWeight.w800,
+              ),
             ),
-          ),
-        ),
-        SizedBox(height: adaptive.space(18)),
-        AudyAdaptiveGrid(
-          adaptive: adaptive,
-          phoneColumns: 2,
-          tabletColumns: 3,
-          desktopColumns: 5,
-          items: controller.accessories.map((item) {
-            return InkWell(
-              onTap: item.owned
-                  ? null
-                  : () {
-                      SoundService.instance.playTap();
-                      controller.unlockAccessory(item.name);
-                    },
-              borderRadius: BorderRadius.circular(adaptive.space(28)),
-              child: AudyPanel(
-                adaptive: adaptive,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
+            if (controller.canAddReward)
+              ElevatedButton.icon(
+                onPressed: () {
+                  SoundService.instance.playTap();
+                  _showAddRewardDialog(context);
+                },
+                icon: Icon(Icons.add, size: adaptive.space(20)),
+                label: Text(
+                  _tr(context, 'add_reward'),
+                  style: TextStyle(fontSize: adaptive.space(14)),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFF8C7DF),
+                  foregroundColor: const Color(0xFF243A5A),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: adaptive.space(16),
+                    vertical: adaptive.space(12),
+                  ),
+                  minimumSize: const Size(48, 48),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                ),
+              )
+            else
+              Container(
+                padding: EdgeInsets.symmetric(
+                  horizontal: adaptive.space(12),
+                  vertical: adaptive.space(8),
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE2E5EA),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(
-                      item.icon,
-                      size: adaptive.space(42),
-                      color: const Color(0xFF5D4F97),
+                      Icons.info_outline,
+                      size: adaptive.space(16),
+                      color: const Color(0xFF60758F),
                     ),
-                    SizedBox(height: adaptive.space(12)),
+                    SizedBox(width: adaptive.space(6)),
                     Text(
-                      item.name,
-                      textAlign: TextAlign.center,
+                      _tr(context, 'max_rewards_reached'),
                       style: TextStyle(
-                        fontSize: adaptive.space(16),
-                        fontWeight: FontWeight.w700,
+                        fontSize: adaptive.space(12),
+                        color: const Color(0xFF60758F),
                       ),
                     ),
-                    SizedBox(height: adaptive.space(10)),
-                    if (item.owned)
-                      Text(
-                        'Owned',
-                        style: TextStyle(
-                          fontSize: adaptive.space(14),
-                          fontWeight: FontWeight.w700,
-                          color: const Color(0xFF22B860),
-                        ),
-                      ),
-                    if (!item.owned)
-                      Container(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: adaptive.space(12),
-                          vertical: adaptive.space(8),
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFFF2A8),
-                          borderRadius: BorderRadius.circular(999),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              '${item.cost}',
-                              style: TextStyle(
-                                fontSize: adaptive.space(14),
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                            SizedBox(width: adaptive.space(4)),
-                            Icon(
-                              Icons.star_rounded,
-                              size: adaptive.space(16),
-                              color: const Color(0xFFF5C532),
-                            ),
-                          ],
-                        ),
-                      ),
                   ],
                 ),
               ),
-            );
-          }).toList(),
+          ],
+        ),
+        SizedBox(height: adaptive.space(18)),
+
+        // Active Rewards Section
+        if (activeRewards.isNotEmpty) ...[
+          _buildRewardSection(
+            context,
+            title: _tr(context, 'active_rewards'),
+            rewards: activeRewards,
+            isClaimable: false,
+          ),
+          SizedBox(height: adaptive.space(16)),
+        ],
+
+        // Completed Rewards Section
+        if (completedRewards.isNotEmpty) ...[
+          _buildRewardSection(
+            context,
+            title: _tr(context, 'completed_rewards'),
+            rewards: completedRewards,
+            isClaimable: true,
+          ),
+          SizedBox(height: adaptive.space(16)),
+        ],
+
+        // Claimed Rewards Section
+        if (claimedRewards.isNotEmpty) ...[
+          _buildRewardSection(
+            context,
+            title: _tr(context, 'claimed_rewards'),
+            rewards: claimedRewards,
+            isClaimable: false,
+            isClaimed: true,
+          ),
+        ],
+
+        // Empty State
+        if (activeRewards.isEmpty && completedRewards.isEmpty && claimedRewards.isEmpty)
+          _buildEmptyState(context),
+      ],
+    );
+  }
+
+  Widget _buildRewardSection(
+    BuildContext context, {
+    required String title,
+    required List<UserReward> rewards,
+    required bool isClaimable,
+    bool isClaimed = false,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: TextStyle(
+            fontSize: adaptive.space(16),
+            fontWeight: FontWeight.w700,
+            color: const Color(0xFF60758F),
+          ),
+        ),
+        SizedBox(height: adaptive.space(12)),
+        AudyAdaptiveGrid(
+          adaptive: adaptive,
+          phoneColumns: 1,
+          tabletColumns: 2,
+          desktopColumns: 2,
+          items: rewards.map((reward) => _RewardCard(
+            reward: reward,
+            adaptive: adaptive,
+            isClaimable: isClaimable,
+            isClaimed: isClaimed,
+            onClaim: () => controller.claimReward(reward.id),
+          )).toList(),
         ),
       ],
+    );
+  }
+
+  Widget _buildEmptyState(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.all(adaptive.space(32)),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8F9FA),
+        borderRadius: BorderRadius.circular(adaptive.space(24)),
+      ),
+      child: Column(
+        children: [
+          Icon(
+            Icons.card_giftcard_outlined,
+            size: adaptive.space(64),
+            color: const Color(0xFFBDD8F2),
+          ),
+          SizedBox(height: adaptive.space(16)),
+          Text(
+            _tr(context, 'no_rewards_yet'),
+            style: TextStyle(
+              fontSize: adaptive.space(18),
+              fontWeight: FontWeight.w700,
+              color: const Color(0xFF243A5A),
+            ),
+            textAlign: TextAlign.center,
+          ),
+          SizedBox(height: adaptive.space(8)),
+          Text(
+            _tr(context, 'create_reward_hint'),
+            style: TextStyle(
+              fontSize: adaptive.space(14),
+              color: const Color(0xFF60758F),
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showAddRewardDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => _AddRewardDialog(
+        adaptive: adaptive,
+        onCreate: (prize, condition, target) {
+          controller.addReward(prize, condition, target);
+          Navigator.pop(context);
+        },
+      ),
     );
   }
 }
@@ -1729,5 +1835,536 @@ class _LineChartPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant _LineChartPainter oldDelegate) {
     return oldDelegate.values != values || oldDelegate.color != color;
+  }
+}
+
+// ==================== REWARD CARD WIDGET ====================
+
+class _RewardCard extends StatelessWidget {
+  const _RewardCard({
+    required this.reward,
+    required this.adaptive,
+    required this.isClaimable,
+    this.isClaimed = false,
+    this.onClaim,
+  });
+
+  final UserReward reward;
+  final AudyAdaptive adaptive;
+  final bool isClaimable;
+  final bool isClaimed;
+  final VoidCallback? onClaim;
+
+  @override
+  Widget build(BuildContext context) {
+    final progress = reward.progressRatio.clamp(0.0, 1.0);
+    final isCompleted = reward.isCompleted;
+
+    return AudyPanel(
+      adaptive: adaptive,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  reward.prize,
+                  style: TextStyle(
+                    fontSize: adaptive.space(18),
+                    fontWeight: FontWeight.w800,
+                    color: const Color(0xFF243A5A),
+                  ),
+                ),
+              ),
+              if (isClaimed)
+                Container(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: adaptive.space(8),
+                    vertical: adaptive.space(4),
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFC9E8C1),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.check_circle_outline,
+                        size: adaptive.space(14),
+                        color: const Color(0xFF22B860),
+                      ),
+                      SizedBox(width: adaptive.space(4)),
+                      Text(
+                        _tr(context, 'claimed'),
+                        style: TextStyle(
+                          fontSize: adaptive.space(12),
+                          fontWeight: FontWeight.w700,
+                          color: const Color(0xFF22B860),
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              else if (isCompleted)
+                Container(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: adaptive.space(8),
+                    vertical: adaptive.space(4),
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFF2A8),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.workspace_premium,
+                        size: adaptive.space(14),
+                        color: const Color(0xFFF5C532),
+                      ),
+                      SizedBox(width: adaptive.space(4)),
+                      Text(
+                        _tr(context, 'completed'),
+                        style: TextStyle(
+                          fontSize: adaptive.space(12),
+                          fontWeight: FontWeight.w700,
+                          color: const Color(0xFF243A5A),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+          SizedBox(height: adaptive.space(12)),
+          Row(
+            children: [
+              Icon(
+                _getConditionIcon(reward.condition),
+                size: adaptive.space(20),
+                color: const Color(0xFF60758F),
+              ),
+              SizedBox(width: adaptive.space(8)),
+              Text(
+                _getConditionLabel(context, reward.condition),
+                style: TextStyle(
+                  fontSize: adaptive.space(14),
+                  color: const Color(0xFF60758F),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: adaptive.space(12)),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(999),
+            child: LinearProgressIndicator(
+              value: progress,
+              minHeight: adaptive.space(12),
+              backgroundColor: const Color(0xFFE2E5EA),
+              valueColor: AlwaysStoppedAnimation(
+                isCompleted ? const Color(0xFF22B860) : const Color(0xFFBDD8F2),
+              ),
+            ),
+          ),
+          SizedBox(height: adaptive.space(8)),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                '${reward.currentProgress}/${reward.targetCount}',
+                style: TextStyle(
+                  fontSize: adaptive.space(14),
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF243A5A),
+                ),
+              ),
+              if (isClaimable && onClaim != null)
+                ElevatedButton(
+                  onPressed: () {
+                    SoundService.instance.playTap();
+                    onClaim!();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFC9E8C1),
+                    foregroundColor: const Color(0xFF243A5A),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: adaptive.space(16),
+                      vertical: adaptive.space(8),
+                    ),
+                    minimumSize: const Size(48, 36),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                  ),
+                  child: Text(
+                    _tr(context, 'claim'),
+                    style: TextStyle(fontSize: adaptive.space(12)),
+                  ),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  IconData _getConditionIcon(RewardCondition condition) {
+    switch (condition) {
+      case RewardCondition.emotionClassify:
+        return Icons.sentiment_satisfied_rounded;
+      case RewardCondition.emotionMimic:
+        return Icons.face_rounded;
+      case RewardCondition.miniPuzzle:
+        return Icons.extension_rounded;
+      case RewardCondition.sortingGame:
+        return Icons.category_rounded;
+      case RewardCondition.reactionTime:
+        return Icons.flash_on_rounded;
+      case RewardCondition.reading:
+        return Icons.menu_book_rounded;
+      case RewardCondition.socialChat:
+        return Icons.chat_bubble_rounded;
+    }
+  }
+
+  String _getConditionLabel(BuildContext context, RewardCondition condition) {
+    final labels = {
+      RewardCondition.emotionClassify: _tr(context, 'emotion_classify'),
+      RewardCondition.emotionMimic: _tr(context, 'emotion_mimic'),
+      RewardCondition.miniPuzzle: _tr(context, 'mini_puzzle'),
+      RewardCondition.sortingGame: _tr(context, 'sorting_game'),
+      RewardCondition.reactionTime: _tr(context, 'reaction_time'),
+      RewardCondition.reading: _tr(context, 'reading'),
+      RewardCondition.socialChat: _tr(context, 'social_chat'),
+    };
+    return labels[condition] ?? '';
+  }
+}
+
+// ==================== ADD REWARD DIALOG ====================
+
+class _AddRewardDialog extends StatefulWidget {
+  const _AddRewardDialog({
+    required this.adaptive,
+    required this.onCreate,
+  });
+
+  final AudyAdaptive adaptive;
+  final void Function(String prize, RewardCondition condition, int target) onCreate;
+
+  @override
+  State<_AddRewardDialog> createState() => _AddRewardDialogState();
+}
+
+class _AddRewardDialogState extends State<_AddRewardDialog> {
+  final _prizeController = TextEditingController();
+  RewardCondition _selectedCondition = RewardCondition.emotionClassify;
+  int _targetCount = 5;
+
+  @override
+  void dispose() {
+    _prizeController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      child: Container(
+        padding: EdgeInsets.all(widget.adaptive.space(24)),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(widget.adaptive.space(28)),
+        ),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Text(
+                  _tr(context, 'create_reward'),
+                  style: TextStyle(
+                    fontSize: widget.adaptive.space(22),
+                    fontWeight: FontWeight.w800,
+                    color: const Color(0xFF243A5A),
+                  ),
+                ),
+              ),
+              SizedBox(height: widget.adaptive.space(24)),
+
+              // Prize Field
+              Text(
+                _tr(context, 'prize_label'),
+                style: TextStyle(
+                  fontSize: widget.adaptive.space(14),
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF60758F),
+                ),
+              ),
+              SizedBox(height: widget.adaptive.space(8)),
+              TextField(
+                controller: _prizeController,
+                decoration: InputDecoration(
+                  hintText: _tr(context, 'prize_hint'),
+                  hintStyle: TextStyle(color: const Color(0xFFB8BFCA)),
+                  filled: true,
+                  fillColor: const Color(0xFFF8F9FA),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: widget.adaptive.space(16),
+                    vertical: widget.adaptive.space(14),
+                  ),
+                ),
+              ),
+              SizedBox(height: widget.adaptive.space(20)),
+
+              // Condition Selector
+              Text(
+                _tr(context, 'condition_label'),
+                style: TextStyle(
+                  fontSize: widget.adaptive.space(14),
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF60758F),
+                ),
+              ),
+              SizedBox(height: widget.adaptive.space(12)),
+              Wrap(
+                spacing: widget.adaptive.space(8),
+                runSpacing: widget.adaptive.space(8),
+                children: RewardCondition.values.map((condition) {
+                  final isSelected = _selectedCondition == condition;
+                  return InkWell(
+                    onTap: () {
+                      SoundService.instance.playTap();
+                      setState(() => _selectedCondition = condition);
+                    },
+                    borderRadius: BorderRadius.circular(999),
+                    child: Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: widget.adaptive.space(12),
+                        vertical: widget.adaptive.space(10),
+                      ),
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? const Color(0xFFF8C7DF)
+                            : const Color(0xFFF8F9FA),
+                        borderRadius: BorderRadius.circular(999),
+                        border: isSelected
+                            ? Border.all(
+                                color: const Color(0xFF5D6A7E),
+                                width: 1.5,
+                              )
+                            : null,
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            _getConditionIcon(condition),
+                            size: widget.adaptive.space(18),
+                            color: const Color(0xFF243A5A),
+                          ),
+                          SizedBox(width: widget.adaptive.space(6)),
+                          Text(
+                            _getConditionLabel(context, condition),
+                            style: TextStyle(
+                              fontSize: widget.adaptive.space(14),
+                              fontWeight: FontWeight.w700,
+                              color: const Color(0xFF243A5A),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+              SizedBox(height: widget.adaptive.space(20)),
+
+              // Target Count
+              Text(
+                _tr(context, 'target_label'),
+                style: TextStyle(
+                  fontSize: widget.adaptive.space(14),
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF60758F),
+                ),
+              ),
+              SizedBox(height: widget.adaptive.space(12)),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  _CountButton(
+                    icon: Icons.remove,
+                    onPressed: _targetCount > 1
+                        ? () => setState(() => _targetCount--)
+                        : null,
+                    adaptive: widget.adaptive,
+                  ),
+                  SizedBox(width: widget.adaptive.space(16)),
+                  Container(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: widget.adaptive.space(24),
+                      vertical: widget.adaptive.space(12),
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF8F9FA),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      '$_targetCount',
+                      style: TextStyle(
+                        fontSize: widget.adaptive.space(24),
+                        fontWeight: FontWeight.w800,
+                        color: const Color(0xFF243A5A),
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: widget.adaptive.space(16)),
+                  _CountButton(
+                    icon: Icons.add,
+                    onPressed: _targetCount < 20
+                        ? () => setState(() => _targetCount++)
+                        : null,
+                    adaptive: widget.adaptive,
+                  ),
+                ],
+              ),
+              SizedBox(height: widget.adaptive.space(24)),
+
+              // Buttons
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        SoundService.instance.playTap();
+                        Navigator.pop(context);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFE2E5EA),
+                        foregroundColor: const Color(0xFF60758F),
+                        padding: EdgeInsets.symmetric(
+                          vertical: widget.adaptive.space(14),
+                        ),
+                        minimumSize: const Size(48, 48),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                      ),
+                      child: Text(_tr(context, 'cancel')),
+                    ),
+                  ),
+                  SizedBox(width: widget.adaptive.space(12)),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: _prizeController.text.trim().isNotEmpty
+                          ? () {
+                              SoundService.instance.playTap();
+                              widget.onCreate(
+                                _prizeController.text.trim(),
+                                _selectedCondition,
+                                _targetCount,
+                              );
+                            }
+                          : null,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFF8C7DF),
+                        foregroundColor: const Color(0xFF243A5A),
+                        padding: EdgeInsets.symmetric(
+                          vertical: widget.adaptive.space(14),
+                        ),
+                        disabledBackgroundColor: const Color(0xFFE2E5EA),
+                        minimumSize: const Size(48, 48),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                      ),
+                      child: Text(_tr(context, 'create')),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  IconData _getConditionIcon(RewardCondition condition) {
+    switch (condition) {
+      case RewardCondition.emotionClassify:
+        return Icons.sentiment_satisfied_rounded;
+      case RewardCondition.emotionMimic:
+        return Icons.face_rounded;
+      case RewardCondition.miniPuzzle:
+        return Icons.extension_rounded;
+      case RewardCondition.sortingGame:
+        return Icons.category_rounded;
+      case RewardCondition.reactionTime:
+        return Icons.flash_on_rounded;
+      case RewardCondition.reading:
+        return Icons.menu_book_rounded;
+      case RewardCondition.socialChat:
+        return Icons.chat_bubble_rounded;
+    }
+  }
+
+  String _getConditionLabel(BuildContext context, RewardCondition condition) {
+    final labels = {
+      RewardCondition.emotionClassify: _tr(context, 'emotion_classify'),
+      RewardCondition.emotionMimic: _tr(context, 'emotion_mimic'),
+      RewardCondition.miniPuzzle: _tr(context, 'mini_puzzle'),
+      RewardCondition.sortingGame: _tr(context, 'sorting_game'),
+      RewardCondition.reactionTime: _tr(context, 'reaction_time'),
+      RewardCondition.reading: _tr(context, 'reading'),
+      RewardCondition.socialChat: _tr(context, 'social_chat'),
+    };
+    return labels[condition] ?? '';
+  }
+}
+
+class _CountButton extends StatelessWidget {
+  const _CountButton({
+    required this.icon,
+    required this.onPressed,
+    required this.adaptive,
+  });
+
+  final IconData icon;
+  final VoidCallback? onPressed;
+  final AudyAdaptive adaptive;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: onPressed != null
+          ? const Color(0xFFBDD8F2)
+          : const Color(0xFFE2E5EA),
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: EdgeInsets.all(adaptive.space(12)),
+          child: Icon(
+            icon,
+            size: adaptive.space(24),
+            color: onPressed != null
+                ? const Color(0xFF243A5A)
+                : const Color(0xFFB8BFCA),
+          ),
+        ),
+      ),
+    );
   }
 }
