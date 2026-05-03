@@ -72,6 +72,7 @@ class AudyApp extends StatefulWidget {
 class _AudyAppState extends State<AudyApp> {
   late final AudyController controller;
   final int _currentIndex = 0;
+  bool _isInitializing = true;
 
   @override
   void initState() {
@@ -101,6 +102,18 @@ class _AudyAppState extends State<AudyApp> {
       SoundService.instance.playLevelUp();
       // Level up animation is handled in the rewards page
     };
+
+    // Initialize controller (loads storage + checks auth)
+    _initializeApp();
+  }
+
+  Future<void> _initializeApp() async {
+    await controller.init();
+    if (mounted) {
+      setState(() {
+        _isInitializing = false;
+      });
+    }
   }
 
   @override
@@ -112,6 +125,43 @@ class _AudyAppState extends State<AudyApp> {
 
   @override
   Widget build(BuildContext context) {
+    // Show splash screen while initializing
+    if (_isInitializing) {
+      return MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: Scaffold(
+          backgroundColor: AudyColors.backgroundPrimary,
+          body: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.child_care_rounded,
+                  size: 80,
+                  color: AudyColors.skyBlue,
+                ),
+                const SizedBox(height: 24),
+                Text(
+                  'AUDY',
+                  style: AudyTypography.displayLarge.copyWith(
+                    color: AudyColors.skyBlue,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const CircularProgressIndicator(
+                  color: AudyColors.skyBlue,
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    // Determine initial route based on auth state
+    final initialRoute =
+        controller.isLoggedIn ? AppRoutes.dashboard : AppRoutes.login;
+
     return AudyScope(
       controller: controller,
       child: MaterialApp(
@@ -180,7 +230,7 @@ class _AudyAppState extends State<AudyApp> {
             ),
           ),
         ),
-        initialRoute: AppRoutes.login,
+        initialRoute: initialRoute,
         routes: {
           AppRoutes.login: (_) => const LoginPage(),
           AppRoutes.dashboard: (_) => _HomeShell(currentIndex: _currentIndex),

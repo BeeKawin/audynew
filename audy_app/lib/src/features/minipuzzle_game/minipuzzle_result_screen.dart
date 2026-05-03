@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../core/app_routes.dart';
 import '../../core/audy_theme.dart';
 import '../../core/audy_ui.dart';
+import '../../data/models/game_session_model.dart';
 import '../../services/sound_service.dart';
 import '../../state/audy_controller.dart';
 import '../../widgets/point_celebration_dialog.dart';
@@ -87,6 +88,19 @@ class _MiniPuzzleResultScreenState extends State<MiniPuzzleResultScreen> {
     if (mounted) {
       await widget.controller.addPoints(_pointsEarned);
       widget.controller.trackPuzzleCompleted();
+
+      // Record session to analytics
+      final session = GameSessionData.fromTimes(
+        gameType: 'minipuzzle',
+        levelId: widget.sessionData.gameType.name,
+        difficulty: widget.sessionData.difficulty.name,
+        correctActions: widget.sessionData.totalCorrect,
+        totalActions: widget.sessionData.totalAttempts,
+        starsEarned: widget.sessionData.stars,
+        sessionStartedAt: widget.sessionData.startTime,
+        sessionEndedAt: widget.sessionData.endTime,
+      );
+      await widget.controller.recordGameSession(session);
     }
   }
 

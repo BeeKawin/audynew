@@ -145,14 +145,7 @@ class SortGameEngine extends ChangeNotifier {
   /// Calculate stars for current round based on accuracy.
   int get currentRoundStars {
     if (_currentRoundActions.isEmpty) return 0;
-    final totalActions = _currentRoundActions.length;
-    final correctActions = _currentRoundActions
-        .where((a) => a.isCorrect)
-        .length;
-    final accuracy = correctActions / totalActions;
-    if (accuracy >= 0.9) return 3;
-    if (accuracy >= 0.6) return 2;
-    return 1;
+    return _currentRoundActions.where((a) => a.isCorrect).length;
   }
 
   /// Get all level definitions.

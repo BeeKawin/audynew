@@ -60,4 +60,24 @@ class StorageRepository {
   // ==================== SEED ====================
 
   Future<void> seedInitialData() => local.seedInitialData();
+
+  // ==================== GAME SESSIONS ====================
+
+  Future<int> saveGameSession(GameSessionData session) =>
+      local.saveGameSession(session);
+
+  Future<List<GameSessionData>> getGameSessions({int? daysBack}) =>
+      local.getGameSessions(daysBack: daysBack);
+
+  Future<int> getTotalPlayTimeSeconds({int? daysBack}) =>
+      local.getTotalPlayTimeSeconds(daysBack: daysBack);
+
+  Future<Map<String, int>> getPlayTimeByGameType({int? daysBack}) =>
+      local.getPlayTimeByGameType(daysBack: daysBack);
+
+  Future<Map<String, double>> getSkillAverages({int daysBack = 30}) =>
+      local.getSkillAverages(daysBack: daysBack);
+
+  Future<Map<String, List<double>>> getSkillTrends({int daysBack = 7}) =>
+      local.getSkillTrends(daysBack: daysBack);
 }

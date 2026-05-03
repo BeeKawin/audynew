@@ -39,4 +39,5 @@ flutter:
   assets:
     - assets/sounds/
     - assets/images/
+    - assets/images/sorting/
     - assets/mascot/

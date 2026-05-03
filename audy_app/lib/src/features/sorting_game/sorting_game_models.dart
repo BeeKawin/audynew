@@ -13,7 +13,7 @@ class SortItem {
 
   final String id;
   final String label;
-  final IconData icon;
+  final String icon;
   final String categoryId;
   final Color? color;
 }

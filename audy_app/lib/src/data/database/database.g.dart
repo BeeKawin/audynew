@@ -95,6 +95,74 @@ class $UserProgressTable extends UserProgress
     ),
     defaultValue: const Constant(false),
   );
+  static const VerificationMeta _puzzleGamesCompletedMeta =
+      const VerificationMeta('puzzleGamesCompleted');
+  @override
+  late final GeneratedColumn<int> puzzleGamesCompleted = GeneratedColumn<int>(
+    'puzzle_games_completed',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _readingExercisesCompletedMeta =
+      const VerificationMeta('readingExercisesCompleted');
+  @override
+  late final GeneratedColumn<int> readingExercisesCompleted =
+      GeneratedColumn<int>(
+        'reading_exercises_completed',
+        aliasedName,
+        false,
+        type: DriftSqlType.int,
+        requiredDuringInsert: false,
+        defaultValue: const Constant(0),
+      );
+  static const VerificationMeta _sortingGamesCompletedMeta =
+      const VerificationMeta('sortingGamesCompleted');
+  @override
+  late final GeneratedColumn<int> sortingGamesCompleted = GeneratedColumn<int>(
+    'sorting_games_completed',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _emotionsRecognizedMeta =
+      const VerificationMeta('emotionsRecognized');
+  @override
+  late final GeneratedColumn<int> emotionsRecognized = GeneratedColumn<int>(
+    'emotions_recognized',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _chatMessagesSentMeta = const VerificationMeta(
+    'chatMessagesSent',
+  );
+  @override
+  late final GeneratedColumn<int> chatMessagesSent = GeneratedColumn<int>(
+    'chat_messages_sent',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _colorsSortedCorrectlyMeta =
+      const VerificationMeta('colorsSortedCorrectly');
+  @override
+  late final GeneratedColumn<int> colorsSortedCorrectly = GeneratedColumn<int>(
+    'colors_sorted_correctly',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -104,6 +172,12 @@ class $UserProgressTable extends UserProgress
     lastPlayedAt,
     updatedAt,
     isSynced,
+    puzzleGamesCompleted,
+    readingExercisesCompleted,
+    sortingGamesCompleted,
+    emotionsRecognized,
+    chatMessagesSent,
+    colorsSortedCorrectly,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -167,6 +241,60 @@ class $UserProgressTable extends UserProgress
         isSynced.isAcceptableOrUnknown(data['is_synced']!, _isSyncedMeta),
       );
     }
+    if (data.containsKey('puzzle_games_completed')) {
+      context.handle(
+        _puzzleGamesCompletedMeta,
+        puzzleGamesCompleted.isAcceptableOrUnknown(
+          data['puzzle_games_completed']!,
+          _puzzleGamesCompletedMeta,
+        ),
+      );
+    }
+    if (data.containsKey('reading_exercises_completed')) {
+      context.handle(
+        _readingExercisesCompletedMeta,
+        readingExercisesCompleted.isAcceptableOrUnknown(
+          data['reading_exercises_completed']!,
+          _readingExercisesCompletedMeta,
+        ),
+      );
+    }
+    if (data.containsKey('sorting_games_completed')) {
+      context.handle(
+        _sortingGamesCompletedMeta,
+        sortingGamesCompleted.isAcceptableOrUnknown(
+          data['sorting_games_completed']!,
+          _sortingGamesCompletedMeta,
+        ),
+      );
+    }
+    if (data.containsKey('emotions_recognized')) {
+      context.handle(
+        _emotionsRecognizedMeta,
+        emotionsRecognized.isAcceptableOrUnknown(
+          data['emotions_recognized']!,
+          _emotionsRecognizedMeta,
+        ),
+      );
+    }
+    if (data.containsKey('chat_messages_sent')) {
+      context.handle(
+        _chatMessagesSentMeta,
+        chatMessagesSent.isAcceptableOrUnknown(
+          data['chat_messages_sent']!,
+          _chatMessagesSentMeta,
+        ),
+      );
+    }
+    if (data.containsKey('colors_sorted_correctly')) {
+      context.handle(
+        _colorsSortedCorrectlyMeta,
+        colorsSortedCorrectly.isAcceptableOrUnknown(
+          data['colors_sorted_correctly']!,
+          _colorsSortedCorrectlyMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -204,6 +332,30 @@ class $UserProgressTable extends UserProgress
         DriftSqlType.bool,
         data['${effectivePrefix}is_synced'],
       )!,
+      puzzleGamesCompleted: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}puzzle_games_completed'],
+      )!,
+      readingExercisesCompleted: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}reading_exercises_completed'],
+      )!,
+      sortingGamesCompleted: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}sorting_games_completed'],
+      )!,
+      emotionsRecognized: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}emotions_recognized'],
+      )!,
+      chatMessagesSent: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}chat_messages_sent'],
+      )!,
+      colorsSortedCorrectly: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}colors_sorted_correctly'],
+      )!,
     );
   }
 
@@ -222,6 +374,12 @@ class UserProgressData extends DataClass
   final DateTime? lastPlayedAt;
   final DateTime updatedAt;
   final bool isSynced;
+  final int puzzleGamesCompleted;
+  final int readingExercisesCompleted;
+  final int sortingGamesCompleted;
+  final int emotionsRecognized;
+  final int chatMessagesSent;
+  final int colorsSortedCorrectly;
   const UserProgressData({
     required this.id,
     required this.learningPoints,
@@ -230,6 +388,12 @@ class UserProgressData extends DataClass
     this.lastPlayedAt,
     required this.updatedAt,
     required this.isSynced,
+    required this.puzzleGamesCompleted,
+    required this.readingExercisesCompleted,
+    required this.sortingGamesCompleted,
+    required this.emotionsRecognized,
+    required this.chatMessagesSent,
+    required this.colorsSortedCorrectly,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -243,6 +407,14 @@ class UserProgressData extends DataClass
     }
     map['updated_at'] = Variable<DateTime>(updatedAt);
     map['is_synced'] = Variable<bool>(isSynced);
+    map['puzzle_games_completed'] = Variable<int>(puzzleGamesCompleted);
+    map['reading_exercises_completed'] = Variable<int>(
+      readingExercisesCompleted,
+    );
+    map['sorting_games_completed'] = Variable<int>(sortingGamesCompleted);
+    map['emotions_recognized'] = Variable<int>(emotionsRecognized);
+    map['chat_messages_sent'] = Variable<int>(chatMessagesSent);
+    map['colors_sorted_correctly'] = Variable<int>(colorsSortedCorrectly);
     return map;
   }
 
@@ -257,6 +429,12 @@ class UserProgressData extends DataClass
           : Value(lastPlayedAt),
       updatedAt: Value(updatedAt),
       isSynced: Value(isSynced),
+      puzzleGamesCompleted: Value(puzzleGamesCompleted),
+      readingExercisesCompleted: Value(readingExercisesCompleted),
+      sortingGamesCompleted: Value(sortingGamesCompleted),
+      emotionsRecognized: Value(emotionsRecognized),
+      chatMessagesSent: Value(chatMessagesSent),
+      colorsSortedCorrectly: Value(colorsSortedCorrectly),
     );
   }
 
@@ -273,6 +451,20 @@ class UserProgressData extends DataClass
       lastPlayedAt: serializer.fromJson<DateTime?>(json['lastPlayedAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       isSynced: serializer.fromJson<bool>(json['isSynced']),
+      puzzleGamesCompleted: serializer.fromJson<int>(
+        json['puzzleGamesCompleted'],
+      ),
+      readingExercisesCompleted: serializer.fromJson<int>(
+        json['readingExercisesCompleted'],
+      ),
+      sortingGamesCompleted: serializer.fromJson<int>(
+        json['sortingGamesCompleted'],
+      ),
+      emotionsRecognized: serializer.fromJson<int>(json['emotionsRecognized']),
+      chatMessagesSent: serializer.fromJson<int>(json['chatMessagesSent']),
+      colorsSortedCorrectly: serializer.fromJson<int>(
+        json['colorsSortedCorrectly'],
+      ),
     );
   }
   @override
@@ -286,6 +478,14 @@ class UserProgressData extends DataClass
       'lastPlayedAt': serializer.toJson<DateTime?>(lastPlayedAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'isSynced': serializer.toJson<bool>(isSynced),
+      'puzzleGamesCompleted': serializer.toJson<int>(puzzleGamesCompleted),
+      'readingExercisesCompleted': serializer.toJson<int>(
+        readingExercisesCompleted,
+      ),
+      'sortingGamesCompleted': serializer.toJson<int>(sortingGamesCompleted),
+      'emotionsRecognized': serializer.toJson<int>(emotionsRecognized),
+      'chatMessagesSent': serializer.toJson<int>(chatMessagesSent),
+      'colorsSortedCorrectly': serializer.toJson<int>(colorsSortedCorrectly),
     };
   }
 
@@ -297,6 +497,12 @@ class UserProgressData extends DataClass
     Value<DateTime?> lastPlayedAt = const Value.absent(),
     DateTime? updatedAt,
     bool? isSynced,
+    int? puzzleGamesCompleted,
+    int? readingExercisesCompleted,
+    int? sortingGamesCompleted,
+    int? emotionsRecognized,
+    int? chatMessagesSent,
+    int? colorsSortedCorrectly,
   }) => UserProgressData(
     id: id ?? this.id,
     learningPoints: learningPoints ?? this.learningPoints,
@@ -305,6 +511,13 @@ class UserProgressData extends DataClass
     lastPlayedAt: lastPlayedAt.present ? lastPlayedAt.value : this.lastPlayedAt,
     updatedAt: updatedAt ?? this.updatedAt,
     isSynced: isSynced ?? this.isSynced,
+    puzzleGamesCompleted: puzzleGamesCompleted ?? this.puzzleGamesCompleted,
+    readingExercisesCompleted:
+        readingExercisesCompleted ?? this.readingExercisesCompleted,
+    sortingGamesCompleted: sortingGamesCompleted ?? this.sortingGamesCompleted,
+    emotionsRecognized: emotionsRecognized ?? this.emotionsRecognized,
+    chatMessagesSent: chatMessagesSent ?? this.chatMessagesSent,
+    colorsSortedCorrectly: colorsSortedCorrectly ?? this.colorsSortedCorrectly,
   );
   UserProgressData copyWithCompanion(UserProgressCompanion data) {
     return UserProgressData(
@@ -321,6 +534,24 @@ class UserProgressData extends DataClass
           : this.lastPlayedAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       isSynced: data.isSynced.present ? data.isSynced.value : this.isSynced,
+      puzzleGamesCompleted: data.puzzleGamesCompleted.present
+          ? data.puzzleGamesCompleted.value
+          : this.puzzleGamesCompleted,
+      readingExercisesCompleted: data.readingExercisesCompleted.present
+          ? data.readingExercisesCompleted.value
+          : this.readingExercisesCompleted,
+      sortingGamesCompleted: data.sortingGamesCompleted.present
+          ? data.sortingGamesCompleted.value
+          : this.sortingGamesCompleted,
+      emotionsRecognized: data.emotionsRecognized.present
+          ? data.emotionsRecognized.value
+          : this.emotionsRecognized,
+      chatMessagesSent: data.chatMessagesSent.present
+          ? data.chatMessagesSent.value
+          : this.chatMessagesSent,
+      colorsSortedCorrectly: data.colorsSortedCorrectly.present
+          ? data.colorsSortedCorrectly.value
+          : this.colorsSortedCorrectly,
     );
   }
 
@@ -333,7 +564,13 @@ class UserProgressData extends DataClass
           ..write('dayStreak: $dayStreak, ')
           ..write('lastPlayedAt: $lastPlayedAt, ')
           ..write('updatedAt: $updatedAt, ')
-          ..write('isSynced: $isSynced')
+          ..write('isSynced: $isSynced, ')
+          ..write('puzzleGamesCompleted: $puzzleGamesCompleted, ')
+          ..write('readingExercisesCompleted: $readingExercisesCompleted, ')
+          ..write('sortingGamesCompleted: $sortingGamesCompleted, ')
+          ..write('emotionsRecognized: $emotionsRecognized, ')
+          ..write('chatMessagesSent: $chatMessagesSent, ')
+          ..write('colorsSortedCorrectly: $colorsSortedCorrectly')
           ..write(')'))
         .toString();
   }
@@ -347,6 +584,12 @@ class UserProgressData extends DataClass
     lastPlayedAt,
     updatedAt,
     isSynced,
+    puzzleGamesCompleted,
+    readingExercisesCompleted,
+    sortingGamesCompleted,
+    emotionsRecognized,
+    chatMessagesSent,
+    colorsSortedCorrectly,
   );
   @override
   bool operator ==(Object other) =>
@@ -358,7 +601,13 @@ class UserProgressData extends DataClass
           other.dayStreak == this.dayStreak &&
           other.lastPlayedAt == this.lastPlayedAt &&
           other.updatedAt == this.updatedAt &&
-          other.isSynced == this.isSynced);
+          other.isSynced == this.isSynced &&
+          other.puzzleGamesCompleted == this.puzzleGamesCompleted &&
+          other.readingExercisesCompleted == this.readingExercisesCompleted &&
+          other.sortingGamesCompleted == this.sortingGamesCompleted &&
+          other.emotionsRecognized == this.emotionsRecognized &&
+          other.chatMessagesSent == this.chatMessagesSent &&
+          other.colorsSortedCorrectly == this.colorsSortedCorrectly);
 }
 
 class UserProgressCompanion extends UpdateCompanion<UserProgressData> {
@@ -369,6 +618,12 @@ class UserProgressCompanion extends UpdateCompanion<UserProgressData> {
   final Value<DateTime?> lastPlayedAt;
   final Value<DateTime> updatedAt;
   final Value<bool> isSynced;
+  final Value<int> puzzleGamesCompleted;
+  final Value<int> readingExercisesCompleted;
+  final Value<int> sortingGamesCompleted;
+  final Value<int> emotionsRecognized;
+  final Value<int> chatMessagesSent;
+  final Value<int> colorsSortedCorrectly;
   const UserProgressCompanion({
     this.id = const Value.absent(),
     this.learningPoints = const Value.absent(),
@@ -377,6 +632,12 @@ class UserProgressCompanion extends UpdateCompanion<UserProgressData> {
     this.lastPlayedAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.isSynced = const Value.absent(),
+    this.puzzleGamesCompleted = const Value.absent(),
+    this.readingExercisesCompleted = const Value.absent(),
+    this.sortingGamesCompleted = const Value.absent(),
+    this.emotionsRecognized = const Value.absent(),
+    this.chatMessagesSent = const Value.absent(),
+    this.colorsSortedCorrectly = const Value.absent(),
   });
   UserProgressCompanion.insert({
     this.id = const Value.absent(),
@@ -386,6 +647,12 @@ class UserProgressCompanion extends UpdateCompanion<UserProgressData> {
     this.lastPlayedAt = const Value.absent(),
     required DateTime updatedAt,
     this.isSynced = const Value.absent(),
+    this.puzzleGamesCompleted = const Value.absent(),
+    this.readingExercisesCompleted = const Value.absent(),
+    this.sortingGamesCompleted = const Value.absent(),
+    this.emotionsRecognized = const Value.absent(),
+    this.chatMessagesSent = const Value.absent(),
+    this.colorsSortedCorrectly = const Value.absent(),
   }) : updatedAt = Value(updatedAt);
   static Insertable<UserProgressData> custom({
     Expression<int>? id,
@@ -395,6 +662,12 @@ class UserProgressCompanion extends UpdateCompanion<UserProgressData> {
     Expression<DateTime>? lastPlayedAt,
     Expression<DateTime>? updatedAt,
     Expression<bool>? isSynced,
+    Expression<int>? puzzleGamesCompleted,
+    Expression<int>? readingExercisesCompleted,
+    Expression<int>? sortingGamesCompleted,
+    Expression<int>? emotionsRecognized,
+    Expression<int>? chatMessagesSent,
+    Expression<int>? colorsSortedCorrectly,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -404,6 +677,16 @@ class UserProgressCompanion extends UpdateCompanion<UserProgressData> {
       if (lastPlayedAt != null) 'last_played_at': lastPlayedAt,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (isSynced != null) 'is_synced': isSynced,
+      if (puzzleGamesCompleted != null)
+        'puzzle_games_completed': puzzleGamesCompleted,
+      if (readingExercisesCompleted != null)
+        'reading_exercises_completed': readingExercisesCompleted,
+      if (sortingGamesCompleted != null)
+        'sorting_games_completed': sortingGamesCompleted,
+      if (emotionsRecognized != null) 'emotions_recognized': emotionsRecognized,
+      if (chatMessagesSent != null) 'chat_messages_sent': chatMessagesSent,
+      if (colorsSortedCorrectly != null)
+        'colors_sorted_correctly': colorsSortedCorrectly,
     });
   }
 
@@ -415,6 +698,12 @@ class UserProgressCompanion extends UpdateCompanion<UserProgressData> {
     Value<DateTime?>? lastPlayedAt,
     Value<DateTime>? updatedAt,
     Value<bool>? isSynced,
+    Value<int>? puzzleGamesCompleted,
+    Value<int>? readingExercisesCompleted,
+    Value<int>? sortingGamesCompleted,
+    Value<int>? emotionsRecognized,
+    Value<int>? chatMessagesSent,
+    Value<int>? colorsSortedCorrectly,
   }) {
     return UserProgressCompanion(
       id: id ?? this.id,
@@ -424,6 +713,15 @@ class UserProgressCompanion extends UpdateCompanion<UserProgressData> {
       lastPlayedAt: lastPlayedAt ?? this.lastPlayedAt,
       updatedAt: updatedAt ?? this.updatedAt,
       isSynced: isSynced ?? this.isSynced,
+      puzzleGamesCompleted: puzzleGamesCompleted ?? this.puzzleGamesCompleted,
+      readingExercisesCompleted:
+          readingExercisesCompleted ?? this.readingExercisesCompleted,
+      sortingGamesCompleted:
+          sortingGamesCompleted ?? this.sortingGamesCompleted,
+      emotionsRecognized: emotionsRecognized ?? this.emotionsRecognized,
+      chatMessagesSent: chatMessagesSent ?? this.chatMessagesSent,
+      colorsSortedCorrectly:
+          colorsSortedCorrectly ?? this.colorsSortedCorrectly,
     );
   }
 
@@ -451,6 +749,30 @@ class UserProgressCompanion extends UpdateCompanion<UserProgressData> {
     if (isSynced.present) {
       map['is_synced'] = Variable<bool>(isSynced.value);
     }
+    if (puzzleGamesCompleted.present) {
+      map['puzzle_games_completed'] = Variable<int>(puzzleGamesCompleted.value);
+    }
+    if (readingExercisesCompleted.present) {
+      map['reading_exercises_completed'] = Variable<int>(
+        readingExercisesCompleted.value,
+      );
+    }
+    if (sortingGamesCompleted.present) {
+      map['sorting_games_completed'] = Variable<int>(
+        sortingGamesCompleted.value,
+      );
+    }
+    if (emotionsRecognized.present) {
+      map['emotions_recognized'] = Variable<int>(emotionsRecognized.value);
+    }
+    if (chatMessagesSent.present) {
+      map['chat_messages_sent'] = Variable<int>(chatMessagesSent.value);
+    }
+    if (colorsSortedCorrectly.present) {
+      map['colors_sorted_correctly'] = Variable<int>(
+        colorsSortedCorrectly.value,
+      );
+    }
     return map;
   }
 
@@ -463,7 +785,13 @@ class UserProgressCompanion extends UpdateCompanion<UserProgressData> {
           ..write('dayStreak: $dayStreak, ')
           ..write('lastPlayedAt: $lastPlayedAt, ')
           ..write('updatedAt: $updatedAt, ')
-          ..write('isSynced: $isSynced')
+          ..write('isSynced: $isSynced, ')
+          ..write('puzzleGamesCompleted: $puzzleGamesCompleted, ')
+          ..write('readingExercisesCompleted: $readingExercisesCompleted, ')
+          ..write('sortingGamesCompleted: $sortingGamesCompleted, ')
+          ..write('emotionsRecognized: $emotionsRecognized, ')
+          ..write('chatMessagesSent: $chatMessagesSent, ')
+          ..write('colorsSortedCorrectly: $colorsSortedCorrectly')
           ..write(')'))
         .toString();
   }
@@ -1749,6 +2077,807 @@ class UserAchievementsCompanion extends UpdateCompanion<UserAchievement> {
   }
 }
 
+class $GameSessionsTable extends GameSessions
+    with TableInfo<$GameSessionsTable, GameSession> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $GameSessionsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _gameTypeMeta = const VerificationMeta(
+    'gameType',
+  );
+  @override
+  late final GeneratedColumn<String> gameType = GeneratedColumn<String>(
+    'game_type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _levelIdMeta = const VerificationMeta(
+    'levelId',
+  );
+  @override
+  late final GeneratedColumn<String> levelId = GeneratedColumn<String>(
+    'level_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _difficultyMeta = const VerificationMeta(
+    'difficulty',
+  );
+  @override
+  late final GeneratedColumn<String> difficulty = GeneratedColumn<String>(
+    'difficulty',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _correctActionsMeta = const VerificationMeta(
+    'correctActions',
+  );
+  @override
+  late final GeneratedColumn<int> correctActions = GeneratedColumn<int>(
+    'correct_actions',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _totalActionsMeta = const VerificationMeta(
+    'totalActions',
+  );
+  @override
+  late final GeneratedColumn<int> totalActions = GeneratedColumn<int>(
+    'total_actions',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _accuracyPercentMeta = const VerificationMeta(
+    'accuracyPercent',
+  );
+  @override
+  late final GeneratedColumn<int> accuracyPercent = GeneratedColumn<int>(
+    'accuracy_percent',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _starsEarnedMeta = const VerificationMeta(
+    'starsEarned',
+  );
+  @override
+  late final GeneratedColumn<int> starsEarned = GeneratedColumn<int>(
+    'stars_earned',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _durationSecondsMeta = const VerificationMeta(
+    'durationSeconds',
+  );
+  @override
+  late final GeneratedColumn<int> durationSeconds = GeneratedColumn<int>(
+    'duration_seconds',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _sessionStartedAtMeta = const VerificationMeta(
+    'sessionStartedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> sessionStartedAt =
+      GeneratedColumn<DateTime>(
+        'session_started_at',
+        aliasedName,
+        false,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: true,
+      );
+  static const VerificationMeta _sessionEndedAtMeta = const VerificationMeta(
+    'sessionEndedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> sessionEndedAt =
+      GeneratedColumn<DateTime>(
+        'session_ended_at',
+        aliasedName,
+        false,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: true,
+      );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _isSyncedMeta = const VerificationMeta(
+    'isSynced',
+  );
+  @override
+  late final GeneratedColumn<bool> isSynced = GeneratedColumn<bool>(
+    'is_synced',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_synced" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    gameType,
+    levelId,
+    difficulty,
+    correctActions,
+    totalActions,
+    accuracyPercent,
+    starsEarned,
+    durationSeconds,
+    sessionStartedAt,
+    sessionEndedAt,
+    createdAt,
+    isSynced,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'game_sessions';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<GameSession> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('game_type')) {
+      context.handle(
+        _gameTypeMeta,
+        gameType.isAcceptableOrUnknown(data['game_type']!, _gameTypeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_gameTypeMeta);
+    }
+    if (data.containsKey('level_id')) {
+      context.handle(
+        _levelIdMeta,
+        levelId.isAcceptableOrUnknown(data['level_id']!, _levelIdMeta),
+      );
+    }
+    if (data.containsKey('difficulty')) {
+      context.handle(
+        _difficultyMeta,
+        difficulty.isAcceptableOrUnknown(data['difficulty']!, _difficultyMeta),
+      );
+    }
+    if (data.containsKey('correct_actions')) {
+      context.handle(
+        _correctActionsMeta,
+        correctActions.isAcceptableOrUnknown(
+          data['correct_actions']!,
+          _correctActionsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('total_actions')) {
+      context.handle(
+        _totalActionsMeta,
+        totalActions.isAcceptableOrUnknown(
+          data['total_actions']!,
+          _totalActionsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('accuracy_percent')) {
+      context.handle(
+        _accuracyPercentMeta,
+        accuracyPercent.isAcceptableOrUnknown(
+          data['accuracy_percent']!,
+          _accuracyPercentMeta,
+        ),
+      );
+    }
+    if (data.containsKey('stars_earned')) {
+      context.handle(
+        _starsEarnedMeta,
+        starsEarned.isAcceptableOrUnknown(
+          data['stars_earned']!,
+          _starsEarnedMeta,
+        ),
+      );
+    }
+    if (data.containsKey('duration_seconds')) {
+      context.handle(
+        _durationSecondsMeta,
+        durationSeconds.isAcceptableOrUnknown(
+          data['duration_seconds']!,
+          _durationSecondsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('session_started_at')) {
+      context.handle(
+        _sessionStartedAtMeta,
+        sessionStartedAt.isAcceptableOrUnknown(
+          data['session_started_at']!,
+          _sessionStartedAtMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_sessionStartedAtMeta);
+    }
+    if (data.containsKey('session_ended_at')) {
+      context.handle(
+        _sessionEndedAtMeta,
+        sessionEndedAt.isAcceptableOrUnknown(
+          data['session_ended_at']!,
+          _sessionEndedAtMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_sessionEndedAtMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('is_synced')) {
+      context.handle(
+        _isSyncedMeta,
+        isSynced.isAcceptableOrUnknown(data['is_synced']!, _isSyncedMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  GameSession map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return GameSession(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      gameType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}game_type'],
+      )!,
+      levelId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}level_id'],
+      ),
+      difficulty: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}difficulty'],
+      ),
+      correctActions: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}correct_actions'],
+      )!,
+      totalActions: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}total_actions'],
+      )!,
+      accuracyPercent: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}accuracy_percent'],
+      )!,
+      starsEarned: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}stars_earned'],
+      ),
+      durationSeconds: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}duration_seconds'],
+      )!,
+      sessionStartedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}session_started_at'],
+      )!,
+      sessionEndedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}session_ended_at'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      isSynced: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_synced'],
+      )!,
+    );
+  }
+
+  @override
+  $GameSessionsTable createAlias(String alias) {
+    return $GameSessionsTable(attachedDatabase, alias);
+  }
+}
+
+class GameSession extends DataClass implements Insertable<GameSession> {
+  final int id;
+
+  /// Game type: sorting, emotion_classify, emotion_mimic, minipuzzle, reaction, reading
+  final String gameType;
+
+  /// Level identifier (for sorting, puzzle games)
+  final String? levelId;
+
+  /// Difficulty: easy, medium, hard
+  final String? difficulty;
+
+  /// Number of correct actions/answers
+  final int correctActions;
+
+  /// Total actions/attempts
+  final int totalActions;
+
+  /// Accuracy percentage (0-100)
+  final int accuracyPercent;
+
+  /// Stars earned (for games with star system)
+  final int? starsEarned;
+
+  /// Duration in seconds
+  final int durationSeconds;
+
+  /// When the session started
+  final DateTime sessionStartedAt;
+
+  /// When the session ended
+  final DateTime sessionEndedAt;
+
+  /// Row creation timestamp
+  final DateTime createdAt;
+
+  /// Future-proof for cloud sync
+  final bool isSynced;
+  const GameSession({
+    required this.id,
+    required this.gameType,
+    this.levelId,
+    this.difficulty,
+    required this.correctActions,
+    required this.totalActions,
+    required this.accuracyPercent,
+    this.starsEarned,
+    required this.durationSeconds,
+    required this.sessionStartedAt,
+    required this.sessionEndedAt,
+    required this.createdAt,
+    required this.isSynced,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['game_type'] = Variable<String>(gameType);
+    if (!nullToAbsent || levelId != null) {
+      map['level_id'] = Variable<String>(levelId);
+    }
+    if (!nullToAbsent || difficulty != null) {
+      map['difficulty'] = Variable<String>(difficulty);
+    }
+    map['correct_actions'] = Variable<int>(correctActions);
+    map['total_actions'] = Variable<int>(totalActions);
+    map['accuracy_percent'] = Variable<int>(accuracyPercent);
+    if (!nullToAbsent || starsEarned != null) {
+      map['stars_earned'] = Variable<int>(starsEarned);
+    }
+    map['duration_seconds'] = Variable<int>(durationSeconds);
+    map['session_started_at'] = Variable<DateTime>(sessionStartedAt);
+    map['session_ended_at'] = Variable<DateTime>(sessionEndedAt);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['is_synced'] = Variable<bool>(isSynced);
+    return map;
+  }
+
+  GameSessionsCompanion toCompanion(bool nullToAbsent) {
+    return GameSessionsCompanion(
+      id: Value(id),
+      gameType: Value(gameType),
+      levelId: levelId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(levelId),
+      difficulty: difficulty == null && nullToAbsent
+          ? const Value.absent()
+          : Value(difficulty),
+      correctActions: Value(correctActions),
+      totalActions: Value(totalActions),
+      accuracyPercent: Value(accuracyPercent),
+      starsEarned: starsEarned == null && nullToAbsent
+          ? const Value.absent()
+          : Value(starsEarned),
+      durationSeconds: Value(durationSeconds),
+      sessionStartedAt: Value(sessionStartedAt),
+      sessionEndedAt: Value(sessionEndedAt),
+      createdAt: Value(createdAt),
+      isSynced: Value(isSynced),
+    );
+  }
+
+  factory GameSession.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return GameSession(
+      id: serializer.fromJson<int>(json['id']),
+      gameType: serializer.fromJson<String>(json['gameType']),
+      levelId: serializer.fromJson<String?>(json['levelId']),
+      difficulty: serializer.fromJson<String?>(json['difficulty']),
+      correctActions: serializer.fromJson<int>(json['correctActions']),
+      totalActions: serializer.fromJson<int>(json['totalActions']),
+      accuracyPercent: serializer.fromJson<int>(json['accuracyPercent']),
+      starsEarned: serializer.fromJson<int?>(json['starsEarned']),
+      durationSeconds: serializer.fromJson<int>(json['durationSeconds']),
+      sessionStartedAt: serializer.fromJson<DateTime>(json['sessionStartedAt']),
+      sessionEndedAt: serializer.fromJson<DateTime>(json['sessionEndedAt']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      isSynced: serializer.fromJson<bool>(json['isSynced']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'gameType': serializer.toJson<String>(gameType),
+      'levelId': serializer.toJson<String?>(levelId),
+      'difficulty': serializer.toJson<String?>(difficulty),
+      'correctActions': serializer.toJson<int>(correctActions),
+      'totalActions': serializer.toJson<int>(totalActions),
+      'accuracyPercent': serializer.toJson<int>(accuracyPercent),
+      'starsEarned': serializer.toJson<int?>(starsEarned),
+      'durationSeconds': serializer.toJson<int>(durationSeconds),
+      'sessionStartedAt': serializer.toJson<DateTime>(sessionStartedAt),
+      'sessionEndedAt': serializer.toJson<DateTime>(sessionEndedAt),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'isSynced': serializer.toJson<bool>(isSynced),
+    };
+  }
+
+  GameSession copyWith({
+    int? id,
+    String? gameType,
+    Value<String?> levelId = const Value.absent(),
+    Value<String?> difficulty = const Value.absent(),
+    int? correctActions,
+    int? totalActions,
+    int? accuracyPercent,
+    Value<int?> starsEarned = const Value.absent(),
+    int? durationSeconds,
+    DateTime? sessionStartedAt,
+    DateTime? sessionEndedAt,
+    DateTime? createdAt,
+    bool? isSynced,
+  }) => GameSession(
+    id: id ?? this.id,
+    gameType: gameType ?? this.gameType,
+    levelId: levelId.present ? levelId.value : this.levelId,
+    difficulty: difficulty.present ? difficulty.value : this.difficulty,
+    correctActions: correctActions ?? this.correctActions,
+    totalActions: totalActions ?? this.totalActions,
+    accuracyPercent: accuracyPercent ?? this.accuracyPercent,
+    starsEarned: starsEarned.present ? starsEarned.value : this.starsEarned,
+    durationSeconds: durationSeconds ?? this.durationSeconds,
+    sessionStartedAt: sessionStartedAt ?? this.sessionStartedAt,
+    sessionEndedAt: sessionEndedAt ?? this.sessionEndedAt,
+    createdAt: createdAt ?? this.createdAt,
+    isSynced: isSynced ?? this.isSynced,
+  );
+  GameSession copyWithCompanion(GameSessionsCompanion data) {
+    return GameSession(
+      id: data.id.present ? data.id.value : this.id,
+      gameType: data.gameType.present ? data.gameType.value : this.gameType,
+      levelId: data.levelId.present ? data.levelId.value : this.levelId,
+      difficulty: data.difficulty.present
+          ? data.difficulty.value
+          : this.difficulty,
+      correctActions: data.correctActions.present
+          ? data.correctActions.value
+          : this.correctActions,
+      totalActions: data.totalActions.present
+          ? data.totalActions.value
+          : this.totalActions,
+      accuracyPercent: data.accuracyPercent.present
+          ? data.accuracyPercent.value
+          : this.accuracyPercent,
+      starsEarned: data.starsEarned.present
+          ? data.starsEarned.value
+          : this.starsEarned,
+      durationSeconds: data.durationSeconds.present
+          ? data.durationSeconds.value
+          : this.durationSeconds,
+      sessionStartedAt: data.sessionStartedAt.present
+          ? data.sessionStartedAt.value
+          : this.sessionStartedAt,
+      sessionEndedAt: data.sessionEndedAt.present
+          ? data.sessionEndedAt.value
+          : this.sessionEndedAt,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      isSynced: data.isSynced.present ? data.isSynced.value : this.isSynced,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('GameSession(')
+          ..write('id: $id, ')
+          ..write('gameType: $gameType, ')
+          ..write('levelId: $levelId, ')
+          ..write('difficulty: $difficulty, ')
+          ..write('correctActions: $correctActions, ')
+          ..write('totalActions: $totalActions, ')
+          ..write('accuracyPercent: $accuracyPercent, ')
+          ..write('starsEarned: $starsEarned, ')
+          ..write('durationSeconds: $durationSeconds, ')
+          ..write('sessionStartedAt: $sessionStartedAt, ')
+          ..write('sessionEndedAt: $sessionEndedAt, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('isSynced: $isSynced')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    gameType,
+    levelId,
+    difficulty,
+    correctActions,
+    totalActions,
+    accuracyPercent,
+    starsEarned,
+    durationSeconds,
+    sessionStartedAt,
+    sessionEndedAt,
+    createdAt,
+    isSynced,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is GameSession &&
+          other.id == this.id &&
+          other.gameType == this.gameType &&
+          other.levelId == this.levelId &&
+          other.difficulty == this.difficulty &&
+          other.correctActions == this.correctActions &&
+          other.totalActions == this.totalActions &&
+          other.accuracyPercent == this.accuracyPercent &&
+          other.starsEarned == this.starsEarned &&
+          other.durationSeconds == this.durationSeconds &&
+          other.sessionStartedAt == this.sessionStartedAt &&
+          other.sessionEndedAt == this.sessionEndedAt &&
+          other.createdAt == this.createdAt &&
+          other.isSynced == this.isSynced);
+}
+
+class GameSessionsCompanion extends UpdateCompanion<GameSession> {
+  final Value<int> id;
+  final Value<String> gameType;
+  final Value<String?> levelId;
+  final Value<String?> difficulty;
+  final Value<int> correctActions;
+  final Value<int> totalActions;
+  final Value<int> accuracyPercent;
+  final Value<int?> starsEarned;
+  final Value<int> durationSeconds;
+  final Value<DateTime> sessionStartedAt;
+  final Value<DateTime> sessionEndedAt;
+  final Value<DateTime> createdAt;
+  final Value<bool> isSynced;
+  const GameSessionsCompanion({
+    this.id = const Value.absent(),
+    this.gameType = const Value.absent(),
+    this.levelId = const Value.absent(),
+    this.difficulty = const Value.absent(),
+    this.correctActions = const Value.absent(),
+    this.totalActions = const Value.absent(),
+    this.accuracyPercent = const Value.absent(),
+    this.starsEarned = const Value.absent(),
+    this.durationSeconds = const Value.absent(),
+    this.sessionStartedAt = const Value.absent(),
+    this.sessionEndedAt = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.isSynced = const Value.absent(),
+  });
+  GameSessionsCompanion.insert({
+    this.id = const Value.absent(),
+    required String gameType,
+    this.levelId = const Value.absent(),
+    this.difficulty = const Value.absent(),
+    this.correctActions = const Value.absent(),
+    this.totalActions = const Value.absent(),
+    this.accuracyPercent = const Value.absent(),
+    this.starsEarned = const Value.absent(),
+    this.durationSeconds = const Value.absent(),
+    required DateTime sessionStartedAt,
+    required DateTime sessionEndedAt,
+    required DateTime createdAt,
+    this.isSynced = const Value.absent(),
+  }) : gameType = Value(gameType),
+       sessionStartedAt = Value(sessionStartedAt),
+       sessionEndedAt = Value(sessionEndedAt),
+       createdAt = Value(createdAt);
+  static Insertable<GameSession> custom({
+    Expression<int>? id,
+    Expression<String>? gameType,
+    Expression<String>? levelId,
+    Expression<String>? difficulty,
+    Expression<int>? correctActions,
+    Expression<int>? totalActions,
+    Expression<int>? accuracyPercent,
+    Expression<int>? starsEarned,
+    Expression<int>? durationSeconds,
+    Expression<DateTime>? sessionStartedAt,
+    Expression<DateTime>? sessionEndedAt,
+    Expression<DateTime>? createdAt,
+    Expression<bool>? isSynced,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (gameType != null) 'game_type': gameType,
+      if (levelId != null) 'level_id': levelId,
+      if (difficulty != null) 'difficulty': difficulty,
+      if (correctActions != null) 'correct_actions': correctActions,
+      if (totalActions != null) 'total_actions': totalActions,
+      if (accuracyPercent != null) 'accuracy_percent': accuracyPercent,
+      if (starsEarned != null) 'stars_earned': starsEarned,
+      if (durationSeconds != null) 'duration_seconds': durationSeconds,
+      if (sessionStartedAt != null) 'session_started_at': sessionStartedAt,
+      if (sessionEndedAt != null) 'session_ended_at': sessionEndedAt,
+      if (createdAt != null) 'created_at': createdAt,
+      if (isSynced != null) 'is_synced': isSynced,
+    });
+  }
+
+  GameSessionsCompanion copyWith({
+    Value<int>? id,
+    Value<String>? gameType,
+    Value<String?>? levelId,
+    Value<String?>? difficulty,
+    Value<int>? correctActions,
+    Value<int>? totalActions,
+    Value<int>? accuracyPercent,
+    Value<int?>? starsEarned,
+    Value<int>? durationSeconds,
+    Value<DateTime>? sessionStartedAt,
+    Value<DateTime>? sessionEndedAt,
+    Value<DateTime>? createdAt,
+    Value<bool>? isSynced,
+  }) {
+    return GameSessionsCompanion(
+      id: id ?? this.id,
+      gameType: gameType ?? this.gameType,
+      levelId: levelId ?? this.levelId,
+      difficulty: difficulty ?? this.difficulty,
+      correctActions: correctActions ?? this.correctActions,
+      totalActions: totalActions ?? this.totalActions,
+      accuracyPercent: accuracyPercent ?? this.accuracyPercent,
+      starsEarned: starsEarned ?? this.starsEarned,
+      durationSeconds: durationSeconds ?? this.durationSeconds,
+      sessionStartedAt: sessionStartedAt ?? this.sessionStartedAt,
+      sessionEndedAt: sessionEndedAt ?? this.sessionEndedAt,
+      createdAt: createdAt ?? this.createdAt,
+      isSynced: isSynced ?? this.isSynced,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (gameType.present) {
+      map['game_type'] = Variable<String>(gameType.value);
+    }
+    if (levelId.present) {
+      map['level_id'] = Variable<String>(levelId.value);
+    }
+    if (difficulty.present) {
+      map['difficulty'] = Variable<String>(difficulty.value);
+    }
+    if (correctActions.present) {
+      map['correct_actions'] = Variable<int>(correctActions.value);
+    }
+    if (totalActions.present) {
+      map['total_actions'] = Variable<int>(totalActions.value);
+    }
+    if (accuracyPercent.present) {
+      map['accuracy_percent'] = Variable<int>(accuracyPercent.value);
+    }
+    if (starsEarned.present) {
+      map['stars_earned'] = Variable<int>(starsEarned.value);
+    }
+    if (durationSeconds.present) {
+      map['duration_seconds'] = Variable<int>(durationSeconds.value);
+    }
+    if (sessionStartedAt.present) {
+      map['session_started_at'] = Variable<DateTime>(sessionStartedAt.value);
+    }
+    if (sessionEndedAt.present) {
+      map['session_ended_at'] = Variable<DateTime>(sessionEndedAt.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (isSynced.present) {
+      map['is_synced'] = Variable<bool>(isSynced.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('GameSessionsCompanion(')
+          ..write('id: $id, ')
+          ..write('gameType: $gameType, ')
+          ..write('levelId: $levelId, ')
+          ..write('difficulty: $difficulty, ')
+          ..write('correctActions: $correctActions, ')
+          ..write('totalActions: $totalActions, ')
+          ..write('accuracyPercent: $accuracyPercent, ')
+          ..write('starsEarned: $starsEarned, ')
+          ..write('durationSeconds: $durationSeconds, ')
+          ..write('sessionStartedAt: $sessionStartedAt, ')
+          ..write('sessionEndedAt: $sessionEndedAt, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('isSynced: $isSynced')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -1758,6 +2887,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $UserAchievementsTable userAchievements = $UserAchievementsTable(
     this,
   );
+  late final $GameSessionsTable gameSessions = $GameSessionsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -1767,6 +2897,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     userRewards,
     achievements,
     userAchievements,
+    gameSessions,
   ];
 }
 
@@ -1779,6 +2910,12 @@ typedef $$UserProgressTableCreateCompanionBuilder =
       Value<DateTime?> lastPlayedAt,
       required DateTime updatedAt,
       Value<bool> isSynced,
+      Value<int> puzzleGamesCompleted,
+      Value<int> readingExercisesCompleted,
+      Value<int> sortingGamesCompleted,
+      Value<int> emotionsRecognized,
+      Value<int> chatMessagesSent,
+      Value<int> colorsSortedCorrectly,
     });
 typedef $$UserProgressTableUpdateCompanionBuilder =
     UserProgressCompanion Function({
@@ -1789,6 +2926,12 @@ typedef $$UserProgressTableUpdateCompanionBuilder =
       Value<DateTime?> lastPlayedAt,
       Value<DateTime> updatedAt,
       Value<bool> isSynced,
+      Value<int> puzzleGamesCompleted,
+      Value<int> readingExercisesCompleted,
+      Value<int> sortingGamesCompleted,
+      Value<int> emotionsRecognized,
+      Value<int> chatMessagesSent,
+      Value<int> colorsSortedCorrectly,
     });
 
 class $$UserProgressTableFilterComposer
@@ -1832,6 +2975,36 @@ class $$UserProgressTableFilterComposer
 
   ColumnFilters<bool> get isSynced => $composableBuilder(
     column: $table.isSynced,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get puzzleGamesCompleted => $composableBuilder(
+    column: $table.puzzleGamesCompleted,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get readingExercisesCompleted => $composableBuilder(
+    column: $table.readingExercisesCompleted,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get sortingGamesCompleted => $composableBuilder(
+    column: $table.sortingGamesCompleted,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get emotionsRecognized => $composableBuilder(
+    column: $table.emotionsRecognized,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get chatMessagesSent => $composableBuilder(
+    column: $table.chatMessagesSent,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get colorsSortedCorrectly => $composableBuilder(
+    column: $table.colorsSortedCorrectly,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -1879,6 +3052,36 @@ class $$UserProgressTableOrderingComposer
     column: $table.isSynced,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<int> get puzzleGamesCompleted => $composableBuilder(
+    column: $table.puzzleGamesCompleted,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get readingExercisesCompleted => $composableBuilder(
+    column: $table.readingExercisesCompleted,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get sortingGamesCompleted => $composableBuilder(
+    column: $table.sortingGamesCompleted,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get emotionsRecognized => $composableBuilder(
+    column: $table.emotionsRecognized,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get chatMessagesSent => $composableBuilder(
+    column: $table.chatMessagesSent,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get colorsSortedCorrectly => $composableBuilder(
+    column: $table.colorsSortedCorrectly,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$UserProgressTableAnnotationComposer
@@ -1916,6 +3119,36 @@ class $$UserProgressTableAnnotationComposer
 
   GeneratedColumn<bool> get isSynced =>
       $composableBuilder(column: $table.isSynced, builder: (column) => column);
+
+  GeneratedColumn<int> get puzzleGamesCompleted => $composableBuilder(
+    column: $table.puzzleGamesCompleted,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get readingExercisesCompleted => $composableBuilder(
+    column: $table.readingExercisesCompleted,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get sortingGamesCompleted => $composableBuilder(
+    column: $table.sortingGamesCompleted,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get emotionsRecognized => $composableBuilder(
+    column: $table.emotionsRecognized,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get chatMessagesSent => $composableBuilder(
+    column: $table.chatMessagesSent,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get colorsSortedCorrectly => $composableBuilder(
+    column: $table.colorsSortedCorrectly,
+    builder: (column) => column,
+  );
 }
 
 class $$UserProgressTableTableManager
@@ -1956,6 +3189,12 @@ class $$UserProgressTableTableManager
                 Value<DateTime?> lastPlayedAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<bool> isSynced = const Value.absent(),
+                Value<int> puzzleGamesCompleted = const Value.absent(),
+                Value<int> readingExercisesCompleted = const Value.absent(),
+                Value<int> sortingGamesCompleted = const Value.absent(),
+                Value<int> emotionsRecognized = const Value.absent(),
+                Value<int> chatMessagesSent = const Value.absent(),
+                Value<int> colorsSortedCorrectly = const Value.absent(),
               }) => UserProgressCompanion(
                 id: id,
                 learningPoints: learningPoints,
@@ -1964,6 +3203,12 @@ class $$UserProgressTableTableManager
                 lastPlayedAt: lastPlayedAt,
                 updatedAt: updatedAt,
                 isSynced: isSynced,
+                puzzleGamesCompleted: puzzleGamesCompleted,
+                readingExercisesCompleted: readingExercisesCompleted,
+                sortingGamesCompleted: sortingGamesCompleted,
+                emotionsRecognized: emotionsRecognized,
+                chatMessagesSent: chatMessagesSent,
+                colorsSortedCorrectly: colorsSortedCorrectly,
               ),
           createCompanionCallback:
               ({
@@ -1974,6 +3219,12 @@ class $$UserProgressTableTableManager
                 Value<DateTime?> lastPlayedAt = const Value.absent(),
                 required DateTime updatedAt,
                 Value<bool> isSynced = const Value.absent(),
+                Value<int> puzzleGamesCompleted = const Value.absent(),
+                Value<int> readingExercisesCompleted = const Value.absent(),
+                Value<int> sortingGamesCompleted = const Value.absent(),
+                Value<int> emotionsRecognized = const Value.absent(),
+                Value<int> chatMessagesSent = const Value.absent(),
+                Value<int> colorsSortedCorrectly = const Value.absent(),
               }) => UserProgressCompanion.insert(
                 id: id,
                 learningPoints: learningPoints,
@@ -1982,6 +3233,12 @@ class $$UserProgressTableTableManager
                 lastPlayedAt: lastPlayedAt,
                 updatedAt: updatedAt,
                 isSynced: isSynced,
+                puzzleGamesCompleted: puzzleGamesCompleted,
+                readingExercisesCompleted: readingExercisesCompleted,
+                sortingGamesCompleted: sortingGamesCompleted,
+                emotionsRecognized: emotionsRecognized,
+                chatMessagesSent: chatMessagesSent,
+                colorsSortedCorrectly: colorsSortedCorrectly,
               ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
@@ -2686,6 +3943,368 @@ typedef $$UserAchievementsTableProcessedTableManager =
       UserAchievement,
       PrefetchHooks Function()
     >;
+typedef $$GameSessionsTableCreateCompanionBuilder =
+    GameSessionsCompanion Function({
+      Value<int> id,
+      required String gameType,
+      Value<String?> levelId,
+      Value<String?> difficulty,
+      Value<int> correctActions,
+      Value<int> totalActions,
+      Value<int> accuracyPercent,
+      Value<int?> starsEarned,
+      Value<int> durationSeconds,
+      required DateTime sessionStartedAt,
+      required DateTime sessionEndedAt,
+      required DateTime createdAt,
+      Value<bool> isSynced,
+    });
+typedef $$GameSessionsTableUpdateCompanionBuilder =
+    GameSessionsCompanion Function({
+      Value<int> id,
+      Value<String> gameType,
+      Value<String?> levelId,
+      Value<String?> difficulty,
+      Value<int> correctActions,
+      Value<int> totalActions,
+      Value<int> accuracyPercent,
+      Value<int?> starsEarned,
+      Value<int> durationSeconds,
+      Value<DateTime> sessionStartedAt,
+      Value<DateTime> sessionEndedAt,
+      Value<DateTime> createdAt,
+      Value<bool> isSynced,
+    });
+
+class $$GameSessionsTableFilterComposer
+    extends Composer<_$AppDatabase, $GameSessionsTable> {
+  $$GameSessionsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get gameType => $composableBuilder(
+    column: $table.gameType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get levelId => $composableBuilder(
+    column: $table.levelId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get difficulty => $composableBuilder(
+    column: $table.difficulty,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get correctActions => $composableBuilder(
+    column: $table.correctActions,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get totalActions => $composableBuilder(
+    column: $table.totalActions,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get accuracyPercent => $composableBuilder(
+    column: $table.accuracyPercent,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get starsEarned => $composableBuilder(
+    column: $table.starsEarned,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get durationSeconds => $composableBuilder(
+    column: $table.durationSeconds,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get sessionStartedAt => $composableBuilder(
+    column: $table.sessionStartedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get sessionEndedAt => $composableBuilder(
+    column: $table.sessionEndedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isSynced => $composableBuilder(
+    column: $table.isSynced,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$GameSessionsTableOrderingComposer
+    extends Composer<_$AppDatabase, $GameSessionsTable> {
+  $$GameSessionsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get gameType => $composableBuilder(
+    column: $table.gameType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get levelId => $composableBuilder(
+    column: $table.levelId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get difficulty => $composableBuilder(
+    column: $table.difficulty,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get correctActions => $composableBuilder(
+    column: $table.correctActions,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get totalActions => $composableBuilder(
+    column: $table.totalActions,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get accuracyPercent => $composableBuilder(
+    column: $table.accuracyPercent,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get starsEarned => $composableBuilder(
+    column: $table.starsEarned,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get durationSeconds => $composableBuilder(
+    column: $table.durationSeconds,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get sessionStartedAt => $composableBuilder(
+    column: $table.sessionStartedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get sessionEndedAt => $composableBuilder(
+    column: $table.sessionEndedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isSynced => $composableBuilder(
+    column: $table.isSynced,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$GameSessionsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $GameSessionsTable> {
+  $$GameSessionsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get gameType =>
+      $composableBuilder(column: $table.gameType, builder: (column) => column);
+
+  GeneratedColumn<String> get levelId =>
+      $composableBuilder(column: $table.levelId, builder: (column) => column);
+
+  GeneratedColumn<String> get difficulty => $composableBuilder(
+    column: $table.difficulty,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get correctActions => $composableBuilder(
+    column: $table.correctActions,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get totalActions => $composableBuilder(
+    column: $table.totalActions,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get accuracyPercent => $composableBuilder(
+    column: $table.accuracyPercent,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get starsEarned => $composableBuilder(
+    column: $table.starsEarned,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get durationSeconds => $composableBuilder(
+    column: $table.durationSeconds,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get sessionStartedAt => $composableBuilder(
+    column: $table.sessionStartedAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get sessionEndedAt => $composableBuilder(
+    column: $table.sessionEndedAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<bool> get isSynced =>
+      $composableBuilder(column: $table.isSynced, builder: (column) => column);
+}
+
+class $$GameSessionsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $GameSessionsTable,
+          GameSession,
+          $$GameSessionsTableFilterComposer,
+          $$GameSessionsTableOrderingComposer,
+          $$GameSessionsTableAnnotationComposer,
+          $$GameSessionsTableCreateCompanionBuilder,
+          $$GameSessionsTableUpdateCompanionBuilder,
+          (
+            GameSession,
+            BaseReferences<_$AppDatabase, $GameSessionsTable, GameSession>,
+          ),
+          GameSession,
+          PrefetchHooks Function()
+        > {
+  $$GameSessionsTableTableManager(_$AppDatabase db, $GameSessionsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$GameSessionsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$GameSessionsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$GameSessionsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> gameType = const Value.absent(),
+                Value<String?> levelId = const Value.absent(),
+                Value<String?> difficulty = const Value.absent(),
+                Value<int> correctActions = const Value.absent(),
+                Value<int> totalActions = const Value.absent(),
+                Value<int> accuracyPercent = const Value.absent(),
+                Value<int?> starsEarned = const Value.absent(),
+                Value<int> durationSeconds = const Value.absent(),
+                Value<DateTime> sessionStartedAt = const Value.absent(),
+                Value<DateTime> sessionEndedAt = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<bool> isSynced = const Value.absent(),
+              }) => GameSessionsCompanion(
+                id: id,
+                gameType: gameType,
+                levelId: levelId,
+                difficulty: difficulty,
+                correctActions: correctActions,
+                totalActions: totalActions,
+                accuracyPercent: accuracyPercent,
+                starsEarned: starsEarned,
+                durationSeconds: durationSeconds,
+                sessionStartedAt: sessionStartedAt,
+                sessionEndedAt: sessionEndedAt,
+                createdAt: createdAt,
+                isSynced: isSynced,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String gameType,
+                Value<String?> levelId = const Value.absent(),
+                Value<String?> difficulty = const Value.absent(),
+                Value<int> correctActions = const Value.absent(),
+                Value<int> totalActions = const Value.absent(),
+                Value<int> accuracyPercent = const Value.absent(),
+                Value<int?> starsEarned = const Value.absent(),
+                Value<int> durationSeconds = const Value.absent(),
+                required DateTime sessionStartedAt,
+                required DateTime sessionEndedAt,
+                required DateTime createdAt,
+                Value<bool> isSynced = const Value.absent(),
+              }) => GameSessionsCompanion.insert(
+                id: id,
+                gameType: gameType,
+                levelId: levelId,
+                difficulty: difficulty,
+                correctActions: correctActions,
+                totalActions: totalActions,
+                accuracyPercent: accuracyPercent,
+                starsEarned: starsEarned,
+                durationSeconds: durationSeconds,
+                sessionStartedAt: sessionStartedAt,
+                sessionEndedAt: sessionEndedAt,
+                createdAt: createdAt,
+                isSynced: isSynced,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$GameSessionsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $GameSessionsTable,
+      GameSession,
+      $$GameSessionsTableFilterComposer,
+      $$GameSessionsTableOrderingComposer,
+      $$GameSessionsTableAnnotationComposer,
+      $$GameSessionsTableCreateCompanionBuilder,
+      $$GameSessionsTableUpdateCompanionBuilder,
+      (
+        GameSession,
+        BaseReferences<_$AppDatabase, $GameSessionsTable, GameSession>,
+      ),
+      GameSession,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -2698,4 +4317,6 @@ class $AppDatabaseManager {
       $$AchievementsTableTableManager(_db, _db.achievements);
   $$UserAchievementsTableTableManager get userAchievements =>
       $$UserAchievementsTableTableManager(_db, _db.userAchievements);
+  $$GameSessionsTableTableManager get gameSessions =>
+      $$GameSessionsTableTableManager(_db, _db.gameSessions);
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/audy_theme.dart';
 import '../../core/audy_ui.dart';
+import '../../data/models/game_session_model.dart';
 import '../../services/sound_service.dart';
 import '../../state/audy_controller.dart';
 import 'sorting_game_models.dart';
@@ -371,6 +372,22 @@ class _SortGameScreenState extends State<SortGameScreen> {
 
   Widget _buildResultScreen() {
     final sessionData = _engine.getSessionData();
+
+    // Record the session to analytics database
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final controller = AudyScope.of(context);
+      final gameSession = GameSessionData.fromTimes(
+        gameType: 'sorting',
+        levelId: sessionData.levelId,
+        difficulty: sessionData.difficulty,
+        correctActions: sessionData.correctActions,
+        totalActions: sessionData.totalActions,
+        starsEarned: sessionData.totalStars,
+        sessionStartedAt: sessionData.sessionStartedAt,
+        sessionEndedAt: sessionData.sessionEndedAt,
+      );
+      controller.recordGameSession(gameSession);
+    });
 
     return SortGameResultScreen(
       sessionData: sessionData,

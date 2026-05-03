@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../core/app_routes.dart';
 import '../core/audy_theme.dart';
 import '../core/audy_ui.dart';
+import '../data/models/progress_model.dart';
 import '../services/sound_service.dart';
 import '../state/audy_controller.dart';
 import '../widgets/gentle_animations.dart';
@@ -510,10 +511,23 @@ class _ParentDashboardTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final report = controller.weeklyReport;
     final skills = controller.skillPercentages.entries.toList();
 
-    return Column(
+    return FutureBuilder<WeeklyReportData>(
+      future: controller.getWeeklyReport(),
+      builder: (context, snapshot) {
+        final report = snapshot.data ?? WeeklyReportData(
+          gamesPlayed: controller.gamesPlayed,
+          pointsEarned: controller.learningPoints,
+          currentStreak: controller.dayStreak,
+          achievementsUnlocked: controller.unlockedAchievementCount,
+          weekStart: DateTime.now().subtract(const Duration(days: 7)),
+          weekEnd: DateTime.now(),
+          skillProgress: controller.skillPercentages,
+          totalPlayTimeMinutes: controller.gamesPlayed * 5,
+        );
+
+        return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Progress Tracking Section
@@ -659,6 +673,8 @@ class _ParentDashboardTab extends StatelessWidget {
           ),
         ),
       ],
+    );
+      },
     );
   }
 }

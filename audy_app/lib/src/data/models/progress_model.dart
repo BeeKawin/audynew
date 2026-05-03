@@ -5,11 +5,25 @@ class ProgressData {
   final int dayStreak;
   final DateTime? lastPlayedAt;
 
+  // Game-specific counters for achievement tracking
+  final int puzzleGamesCompleted;
+  final int readingExercisesCompleted;
+  final int sortingGamesCompleted;
+  final int emotionsRecognized;
+  final int chatMessagesSent;
+  final int colorsSortedCorrectly;
+
   const ProgressData({
     required this.learningPoints,
     required this.gamesPlayed,
     required this.dayStreak,
     this.lastPlayedAt,
+    this.puzzleGamesCompleted = 0,
+    this.readingExercisesCompleted = 0,
+    this.sortingGamesCompleted = 0,
+    this.emotionsRecognized = 0,
+    this.chatMessagesSent = 0,
+    this.colorsSortedCorrectly = 0,
   });
 }
 

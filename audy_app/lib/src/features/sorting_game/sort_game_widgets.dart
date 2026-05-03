@@ -125,10 +125,17 @@ class _SortItemCardState extends State<SortItemCard>
                         color: cardColor.withValues(alpha: 0.2),
                         shape: BoxShape.circle,
                       ),
-                      child: Icon(
+                      padding: EdgeInsets.all(finalIconSize * 0.12),
+                      child: Image.asset(
                         widget.item.icon,
-                        size: finalIconSize * 0.55,
-                        color: cardColor,
+                        width: finalIconSize * 0.76,
+                        height: finalIconSize * 0.76,
+                        fit: BoxFit.contain,
+                        errorBuilder: (context, error, stackTrace) => Icon(
+                          Icons.help_outline_rounded,
+                          size: finalIconSize * 0.55,
+                          color: cardColor,
+                        ),
                       ),
                     ),
                   ),

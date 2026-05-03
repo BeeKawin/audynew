@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 
 import '../core/app_strings.dart';
 import '../data/models/progress_model.dart';
+import '../data/models/game_session_model.dart';
 import '../data/repositories/storage_repository.dart';
 import '../features/social_chat/chat_service.dart';
 import '../services/auth_service.dart';
@@ -207,16 +208,35 @@ class AudyController extends ChangeNotifier {
   UserProfile? get currentUser => _currentUser;
   bool get isLoggedIn => _currentUser != null;
 
+  // Initialization state for splash screen
+  bool _isInitialized = false;
+  bool get isInitialized => _isInitialized;
+
   AudyController({this.storage}) {
     _seedState();
-    _loadFromStorage();
     _initThaiChat();
-    _initAuth();
+  }
+
+  /// Initialize the controller - load storage and check auth
+  /// Call this during app startup before showing any UI
+  Future<void> init() async {
+    if (_isInitialized) return;
+
+    // Load local progress first
+    await _loadFromStorage();
+
+    // Check for existing Supabase session
+    await _initAuth();
+
+    _isInitialized = true;
+    notifyListeners();
   }
 
   /// Initialize auth state from current Supabase session
-  void _initAuth() {
-    _loadCurrentUser();
+  Future<void> _initAuth() async {
+    // Check for existing session first
+    await _loadCurrentUser();
+
     // Listen for auth state changes
     _authService.authStateStream.listen((state) async {
       if (state.event == AuthChangeEvent.signedOut) {
@@ -880,7 +900,30 @@ class AudyController extends ChangeNotifier {
     };
   }
 
-  /// Emotion recognition progress history (simulated weekly data)
+  /// Get real skill trends from database for the past N days
+  /// Returns a map of game type to list of daily accuracy values
+  Future<Map<String, List<double>>> getRealSkillTrends({int daysBack = 7}) async {
+    if (storage == null) {
+      // Return simulated data if no storage
+      return {
+        'emotion_classify': emotionProgressHistory,
+        'minipuzzle': puzzleProgressHistory,
+      };
+    }
+
+    try {
+      return await storage!.getSkillTrends(daysBack: daysBack);
+    } catch (e) {
+      debugPrint('Failed to get skill trends: $e');
+      // Fallback to simulated data
+      return {
+        'emotion_classify': emotionProgressHistory,
+        'minipuzzle': puzzleProgressHistory,
+      };
+    }
+  }
+
+  /// Emotion recognition progress history (simulated fallback data)
   /// Returns list of accuracy values for the past 7 sessions/weeks
   List<double> get emotionProgressHistory {
     if (classifyScore == 0) return [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6];
@@ -897,7 +940,7 @@ class AudyController extends ChangeNotifier {
     ];
   }
 
-  /// Puzzle progress history (simulated weekly data)
+  /// Puzzle progress history (simulated fallback data)
   List<double> get puzzleProgressHistory {
     if (puzzleGamesCompleted == 0) {
       return [0.0, 0.1, 0.15, 0.25, 0.35, 0.4, 0.45];
@@ -914,10 +957,22 @@ class AudyController extends ChangeNotifier {
     ];
   }
 
-  /// Generate weekly report data
-  WeeklyReportData get weeklyReport {
+  /// Generate weekly report data using real database data
+  Future<WeeklyReportData> getWeeklyReport() async {
     final now = DateTime.now();
     final weekStart = now.subtract(const Duration(days: 7));
+    
+    int totalPlayTimeMinutes = gamesPlayed * 5; // Fallback estimate
+    
+    if (storage != null) {
+      try {
+        final totalSeconds = await storage!.getTotalPlayTimeSeconds(daysBack: 7);
+        totalPlayTimeMinutes = (totalSeconds / 60).round();
+      } catch (e) {
+        debugPrint('Failed to get real play time: $e');
+      }
+    }
+    
     return WeeklyReportData(
       gamesPlayed: gamesPlayed,
       pointsEarned: learningPoints,
@@ -926,7 +981,7 @@ class AudyController extends ChangeNotifier {
       weekStart: weekStart,
       weekEnd: now,
       skillProgress: skillPercentages,
-      totalPlayTimeMinutes: gamesPlayed * 5, // Estimate: 5 min per game
+      totalPlayTimeMinutes: totalPlayTimeMinutes,
     );
   }
 
@@ -985,22 +1040,26 @@ class AudyController extends ChangeNotifier {
   // ==================== STORAGE INTEGRATION ====================
 
   /// Load data from local storage
-  /// NOTE: Learning points are reset to 0 for each login session
+  /// Loads all progress including learning points and game counters
   Future<void> _loadFromStorage() async {
     if (storage == null) return;
 
     try {
-      // Load progress (but reset learning points to 0 for new session)
+      // Load progress (keep learning points across sessions)
       final progress = await storage!.getProgress();
       if (progress != null) {
-        // RESET: Learning points always start at 0 for each session
-        learningPoints = 0;
+        learningPoints = progress.learningPoints;
         gamesPlayed = progress.gamesPlayed;
         dayStreak = progress.dayStreak;
-        _currentLevel = 0;
+        _currentLevel = _getLevelFromPoints(learningPoints);
 
-        // Save the reset points to storage
-        await _saveProgress();
+        // Load game-specific counters for achievements
+        puzzleGamesCompleted = progress.puzzleGamesCompleted;
+        readingExercisesCompleted = progress.readingExercisesCompleted;
+        sortingGamesCompleted = progress.sortingGamesCompleted;
+        emotionsRecognized = progress.emotionsRecognized;
+        chatMessagesSent = progress.chatMessagesSent;
+        colorsSortedCorrectly = progress.colorsSortedCorrectly;
 
         // Update streak based on last play date
         await _updateDayStreak();
@@ -1052,10 +1111,30 @@ class AudyController extends ChangeNotifier {
           gamesPlayed: gamesPlayed,
           dayStreak: dayStreak,
           lastPlayedAt: DateTime.now(),
+          puzzleGamesCompleted: puzzleGamesCompleted,
+          readingExercisesCompleted: readingExercisesCompleted,
+          sortingGamesCompleted: sortingGamesCompleted,
+          emotionsRecognized: emotionsRecognized,
+          chatMessagesSent: chatMessagesSent,
+          colorsSortedCorrectly: colorsSortedCorrectly,
         ),
       );
     } catch (e) {
       debugPrint('Storage save error: $e');
+    }
+  }
+
+  /// Record a completed game session to the database
+  Future<void> recordGameSession(GameSessionData session) async {
+    if (storage == null) return;
+
+    try {
+      await storage!.saveGameSession(session);
+      gamesPlayed++;
+      await _saveProgress();
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Failed to record game session: $e');
     }
   }
 
@@ -1146,7 +1225,7 @@ class AudyController extends ChangeNotifier {
   // ==================== NEW ACHIEVEMENT TRACKING METHODS ====================
 
   /// Track puzzle game completion
-  void trackPuzzleCompleted() {
+  Future<void> trackPuzzleCompleted() async {
     puzzleGamesCompleted++;
     if (puzzleGamesCompleted >= 1) {
       _unlockAchievement('puzzle_starter');
@@ -1154,11 +1233,12 @@ class AudyController extends ChangeNotifier {
     updateQuestProgress('game');
     _updateRewardProgress(RewardCondition.miniPuzzle);
     _checkAchievements();
+    await _saveProgress();
     notifyListeners();
   }
 
   /// Track reading exercise completion
-  void trackReadingCompleted() {
+  Future<void> trackReadingCompleted() async {
     readingExercisesCompleted++;
     if (readingExercisesCompleted >= 5) {
       _unlockAchievement('reading_buddy');
@@ -1166,11 +1246,12 @@ class AudyController extends ChangeNotifier {
     updateQuestProgress('learn');
     _updateRewardProgress(RewardCondition.reading);
     _checkAchievements();
+    await _saveProgress();
     notifyListeners();
   }
 
   /// Track chat message sent
-  void trackMessageSent() {
+  Future<void> trackMessageSent() async {
     chatMessagesSent++;
     if (chatMessagesSent >= 20) {
       _unlockAchievement('social_star');
@@ -1182,11 +1263,12 @@ class AudyController extends ChangeNotifier {
     updateQuestProgress('chat');
     _updateRewardProgress(RewardCondition.socialChat);
     _checkAchievements();
+    await _saveProgress();
     notifyListeners();
   }
 
   /// Track sorting game completion
-  void trackSortingCompleted() {
+  Future<void> trackSortingCompleted() async {
     sortingGamesCompleted++;
     if (sortingGamesCompleted >= 10) {
       _unlockAchievement('sorting_champion');
@@ -1195,6 +1277,7 @@ class AudyController extends ChangeNotifier {
     _trackGameInSession();
     _updateRewardProgress(RewardCondition.sortingGame);
     _checkAchievements();
+    await _saveProgress();
     notifyListeners();
   }
 
@@ -1208,24 +1291,26 @@ class AudyController extends ChangeNotifier {
   }
 
   /// Track color sorted correctly
-  void trackColorSorted() {
+  Future<void> trackColorSorted() async {
     colorsSortedCorrectly++;
     if (colorsSortedCorrectly >= 50) {
       _unlockAchievement('color_pro');
     }
     updateQuestProgress('game');
     _checkAchievements();
+    await _saveProgress();
     notifyListeners();
   }
 
   /// Track emotion recognized correctly
-  void trackEmotionRecognized() {
+  Future<void> trackEmotionRecognized() async {
     emotionsRecognized++;
     if (emotionsRecognized >= 5) {
       _unlockAchievement('emotion_explorer');
     }
     updateQuestProgress('game');
     _checkAchievements();
+    await _saveProgress();
     notifyListeners();
   }
 

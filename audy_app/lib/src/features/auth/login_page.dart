@@ -4,6 +4,7 @@ import '../../core/audy_theme.dart';
 import '../../core/audy_ui.dart';
 import '../../services/auth_service.dart';
 import '../../services/sound_service.dart';
+import '../../state/audy_controller.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -475,6 +476,12 @@ class _LoginPageState extends State<LoginPage> {
       } else {
         // Sign in
         await _authService.signIn(email: email, password: password);
+
+        // Get user profile and set in controller
+        final profile = await _authService.getCurrentProfile();
+        if (profile != null && mounted) {
+          AudyScope.of(context).setUser(profile);
+        }
 
         // Navigate to dashboard
         if (mounted) {

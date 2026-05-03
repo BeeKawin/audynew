@@ -2,8 +2,10 @@ import 'package:drift/drift.dart';
 
 import '../database/database.dart';
 import '../models/progress_model.dart';
+import '../models/game_session_model.dart';
 
 export '../models/progress_model.dart';
+export '../models/game_session_model.dart';
 
 /// Local data source for offline-first architecture
 /// All operations are synchronous with local SQLite (Drift)
@@ -24,6 +26,12 @@ class LocalDataSource {
       gamesPlayed: row.gamesPlayed,
       dayStreak: row.dayStreak,
       lastPlayedAt: row.lastPlayedAt,
+      puzzleGamesCompleted: row.puzzleGamesCompleted,
+      readingExercisesCompleted: row.readingExercisesCompleted,
+      sortingGamesCompleted: row.sortingGamesCompleted,
+      emotionsRecognized: row.emotionsRecognized,
+      chatMessagesSent: row.chatMessagesSent,
+      colorsSortedCorrectly: row.colorsSortedCorrectly,
     );
   }
 
@@ -40,6 +48,12 @@ class LocalDataSource {
                 : const Value.absent(),
             updatedAt: DateTime.now(),
             isSynced: const Value(false),
+            puzzleGamesCompleted: Value(progress.puzzleGamesCompleted),
+            readingExercisesCompleted: Value(progress.readingExercisesCompleted),
+            sortingGamesCompleted: Value(progress.sortingGamesCompleted),
+            emotionsRecognized: Value(progress.emotionsRecognized),
+            chatMessagesSent: Value(progress.chatMessagesSent),
+            colorsSortedCorrectly: Value(progress.colorsSortedCorrectly),
           ),
         );
   }
@@ -55,6 +69,12 @@ class LocalDataSource {
             lastPlayedAt: Value(DateTime.now()),
             updatedAt: DateTime.now(),
             isSynced: const Value(false),
+            puzzleGamesCompleted: const Value(0),
+            readingExercisesCompleted: const Value(0),
+            sortingGamesCompleted: const Value(0),
+            emotionsRecognized: const Value(0),
+            chatMessagesSent: const Value(0),
+            colorsSortedCorrectly: const Value(0),
           ),
         );
   }
@@ -211,6 +231,12 @@ class LocalDataSource {
               lastPlayedAt: const Value.absent(),
               updatedAt: DateTime.now(),
               isSynced: const Value(false),
+              puzzleGamesCompleted: const Value(0),
+              readingExercisesCompleted: const Value(0),
+              sortingGamesCompleted: const Value(0),
+              emotionsRecognized: const Value(0),
+              chatMessagesSent: const Value(0),
+              colorsSortedCorrectly: const Value(0),
             ),
           );
     }
@@ -298,6 +324,139 @@ class LocalDataSource {
             ),
           );
     }
+  }
+
+  // ==================== GAME SESSIONS ====================
+
+  /// Save a game session record
+  Future<int> saveGameSession(GameSessionData session) async {
+    return await db.into(db.gameSessions).insert(
+      GameSessionsCompanion.insert(
+        gameType: session.gameType,
+        levelId: session.levelId != null ? Value(session.levelId!) : const Value.absent(),
+        difficulty: session.difficulty != null ? Value(session.difficulty!) : const Value.absent(),
+        correctActions: Value(session.correctActions),
+        totalActions: Value(session.totalActions),
+        accuracyPercent: Value(session.accuracyPercent),
+        starsEarned: session.starsEarned != null ? Value(session.starsEarned!) : const Value.absent(),
+        durationSeconds: Value(session.durationSeconds),
+        sessionStartedAt: session.sessionStartedAt,
+        sessionEndedAt: session.sessionEndedAt,
+        createdAt: DateTime.now(),
+        isSynced: const Value(false),
+      ),
+    );
+  }
+
+  /// Get game sessions with optional date filter
+  Future<List<GameSessionData>> getGameSessions({int? daysBack}) async {
+    var query = db.select(db.gameSessions);
+    
+    if (daysBack != null) {
+      final cutoffDate = DateTime.now().subtract(Duration(days: daysBack));
+      query = query..where((s) => s.sessionStartedAt.isBiggerOrEqualValue(cutoffDate));
+    }
+    
+    final results = await query.get();
+    return results.map((row) => GameSessionData(
+      id: row.id,
+      gameType: row.gameType,
+      levelId: row.levelId,
+      difficulty: row.difficulty,
+      correctActions: row.correctActions,
+      totalActions: row.totalActions,
+      accuracyPercent: row.accuracyPercent,
+      starsEarned: row.starsEarned,
+      durationSeconds: row.durationSeconds,
+      sessionStartedAt: row.sessionStartedAt,
+      sessionEndedAt: row.sessionEndedAt,
+      createdAt: row.createdAt,
+      isSynced: row.isSynced,
+    )).toList();
+  }
+
+  /// Get total play time in seconds with optional date filter
+  Future<int> getTotalPlayTimeSeconds({int? daysBack}) async {
+    var query = db.select(db.gameSessions);
+    
+    if (daysBack != null) {
+      final cutoffDate = DateTime.now().subtract(Duration(days: daysBack));
+      query = query..where((s) => s.sessionStartedAt.isBiggerOrEqualValue(cutoffDate));
+    }
+    
+    final sessions = await query.get();
+    return sessions.fold<int>(0, (sum, s) => sum + s.durationSeconds);
+  }
+
+  /// Get play time breakdown by game type
+  Future<Map<String, int>> getPlayTimeByGameType({int? daysBack}) async {
+    var query = db.select(db.gameSessions);
+    
+    if (daysBack != null) {
+      final cutoffDate = DateTime.now().subtract(Duration(days: daysBack));
+      query = query..where((s) => s.sessionStartedAt.isBiggerOrEqualValue(cutoffDate));
+    }
+    
+    final sessions = await query.get();
+    final Map<String, int> result = {};
+    
+    for (final session in sessions) {
+      result[session.gameType] = (result[session.gameType] ?? 0) + session.durationSeconds;
+    }
+    
+    return result;
+  }
+
+  /// Get average accuracy per game type
+  Future<Map<String, double>> getSkillAverages({int daysBack = 30}) async {
+    final cutoffDate = DateTime.now().subtract(Duration(days: daysBack));
+    final sessions = await (db.select(db.gameSessions)
+      ..where((s) => s.sessionStartedAt.isBiggerOrEqualValue(cutoffDate)))
+      .get();
+    
+    final Map<String, List<int>> accuracyByType = {};
+    
+    for (final session in sessions) {
+      accuracyByType.putIfAbsent(session.gameType, () => []).add(session.accuracyPercent);
+    }
+    
+    return accuracyByType.map((type, accuracies) {
+      final avg = accuracies.reduce((a, b) => a + b) / accuracies.length;
+      return MapEntry(type, avg / 100.0); // Convert to 0.0-1.0 range
+    });
+  }
+
+  /// Get skill trends over time (daily averages for the past N days)
+  Future<Map<String, List<double>>> getSkillTrends({int daysBack = 7}) async {
+    final results = <String, List<double>>{};
+    final now = DateTime.now();
+    
+    for (int i = 0; i < daysBack; i++) {
+      final date = now.subtract(Duration(days: i));
+      final dayStart = DateTime(date.year, date.month, date.day);
+      final dayEnd = dayStart.add(const Duration(days: 1));
+      
+      final sessions = await (db.select(db.gameSessions)
+        ..where((s) => s.sessionStartedAt.isBiggerOrEqualValue(dayStart))
+        ..where((s) => s.sessionStartedAt.isSmallerThanValue(dayEnd)))
+        .get();
+      
+      // Group by game type and calculate daily average
+      final Map<String, List<int>> dailyAccuracies = {};
+      for (final session in sessions) {
+        dailyAccuracies.putIfAbsent(session.gameType, () => []).add(session.accuracyPercent);
+      }
+      
+      dailyAccuracies.forEach((type, accuracies) {
+        final avg = accuracies.reduce((a, b) => a + b) / accuracies.length / 100.0;
+        results.putIfAbsent(type, () => []).add(avg);
+      });
+    }
+    
+    // Reverse lists so oldest is first
+    results.forEach((key, value) => value.reversed.toList());
+    
+    return results;
   }
 }
 
