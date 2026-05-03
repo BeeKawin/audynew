@@ -109,14 +109,29 @@ class _PointCelebrationDialogState extends State<PointCelebrationDialog>
                   final wiggleAngle =
                       sin(_sparkleController.value * 2 * 3.14159) *
                       0.1745; // ±10 degrees in radians
-                  return Transform.rotate(
-                    angle: wiggleAngle,
-                    child: Image.asset(
-                      'assets/mascot/Heart.png',
-                      width: 200,
-                      height: 200,
-                    ),
-                  );
+              return Transform.rotate(
+                  angle: wiggleAngle,
+                  child: Image.asset(
+                    'assets/mascot/Heart.png',
+                    width: 200,
+                    height: 200,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        width: 200,
+                        height: 200,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFFF2A8),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.celebration_rounded,
+                          size: 100,
+                          color: Color(0xFFF5C532),
+                        ),
+                      );
+                    },
+                  ),
+                );
                 },
               ),
             ),

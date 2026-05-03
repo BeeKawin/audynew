@@ -41,40 +41,33 @@ class _MiniPuzzleResultScreenState extends State<MiniPuzzleResultScreen> {
     super.initState();
 
     // Calculate all values SYNCHRONOUSLY before widget builds
-    final controller = widget.controller;
+    // Points have NOT been added yet — we show pre-calculated values in the dialog
+    // and add points AFTER the dialog to avoid notifyListeners disrupting it
     _pointsEarned = widget.sessionData.pointsEarned;
-
-    // Track puzzle completion (may add quest rewards)
-    controller.trackPuzzleCompleted();
-
-    // Get points and calculate values immediately (sync)
-    _initialPoints = controller.learningPoints;
+    _initialPoints = widget.controller.learningPoints;
     _newPoints = _initialPoints + _pointsEarned;
     final oldLevel = _getLevelFromPoints(_initialPoints);
     _newLevel = _getLevelFromPoints(_newPoints);
     _isLevelUp = _newLevel > oldLevel;
 
+    // Play game complete sound
+    SoundService.instance.playGameComplete();
+
     // Show celebration dialog after first frame
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _showCelebrationIfNeeded();
+      if (mounted) {
+        _showCelebrationIfNeeded();
+      }
     });
   }
 
   Future<void> _showCelebrationIfNeeded() async {
     if (_hasShownCelebration || !mounted || _pointsEarned == 0) return;
 
-    // Add points first
-    await widget.controller.addPoints(_pointsEarned);
-
-    if (!mounted) return;
-
     setState(() => _hasShownCelebration = true);
 
-    // Store context before async gap
-    final currentContext = context;
     await showDialog(
-      // ignore: use_build_context_synchronously
-      context: currentContext,
+      context: context,
       barrierDismissible: false,
       builder: (dialogContext) => PointCelebrationDialog(
         points: _pointsEarned,
@@ -89,6 +82,12 @@ class _MiniPuzzleResultScreenState extends State<MiniPuzzleResultScreen> {
         },
       ),
     );
+
+    // Add points and track completion AFTER dialog to avoid notifyListeners disrupting it
+    if (mounted) {
+      await widget.controller.addPoints(_pointsEarned);
+      widget.controller.trackPuzzleCompleted();
+    }
   }
 
   int _getLevelFromPoints(int points) {

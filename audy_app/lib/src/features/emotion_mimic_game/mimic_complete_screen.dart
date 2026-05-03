@@ -46,8 +46,6 @@ class _MimicCompleteScreenState extends State<MimicCompleteScreen> {
   @override
   void initState() {
     super.initState();
-    // Track quest completion for mimic game
-    widget.controller.trackMimicGameCompleted(durationSeconds: 0);
     // Play game complete sound
     SoundService.instance.playGameComplete();
     // Show celebration after first frame is built
@@ -61,7 +59,7 @@ class _MimicCompleteScreenState extends State<MimicCompleteScreen> {
   Future<void> _showCelebrationIfNeeded() async {
     if (_hasShownCelebration || !mounted) return;
 
-    // Calculate points earned during this game (5 points per correct answer)
+    // Points were already added during gameplay via MimicResultScreen._handleContinue()
     final pointsEarned = widget.controller.mimicScore * 5;
 
     if (pointsEarned > 0) {
@@ -88,8 +86,15 @@ class _MimicCompleteScreenState extends State<MimicCompleteScreen> {
           },
         ),
       );
+
+      // Track quest completion AFTER dialog to avoid notifyListeners disrupting the celebration
+      if (mounted) {
+        widget.controller.trackMimicGameCompleted(durationSeconds: 0);
+      }
     } else {
       setState(() => _hasShownCelebration = true);
+      // Track quest completion even when no points earned
+      widget.controller.trackMimicGameCompleted(durationSeconds: 0);
     }
   }
 

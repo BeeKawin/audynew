@@ -206,12 +206,14 @@ class _EmotionClassifyScreenState extends State<EmotionClassifyScreen> {
 
     Future.delayed(const Duration(milliseconds: 1500), () {
       if (mounted) {
-        controller.advanceClassifyRound();
+        // Clear error state BEFORE advancing to prevent red card from showing
+        // during the transition to completion screen
         setState(() {
           _selectedAnswer = null;
           _showingFeedback = false;
           _isCorrect = false;
         });
+        controller.advanceClassifyRound();
       }
     });
   }

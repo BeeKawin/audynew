@@ -48,8 +48,6 @@ class _EmotionClassifyCompleteScreenState
   @override
   void initState() {
     super.initState();
-    // Track quest completion for classify game
-    widget.controller.trackClassifyGameCompleted(durationSeconds: 0);
     // Play game complete sound
     SoundService.instance.playGameComplete();
     // Show celebration after first frame is built
@@ -63,6 +61,7 @@ class _EmotionClassifyCompleteScreenState
   Future<void> _showCelebrationIfNeeded() async {
     if (_hasShownCelebration || !mounted) return;
 
+    // Points were already added during gameplay via submitClassifyAnswer()
     final pointsEarned = widget.controller.classifyScore * 5;
 
     if (pointsEarned > 0) {
@@ -89,8 +88,15 @@ class _EmotionClassifyCompleteScreenState
           },
         ),
       );
+
+      // Track quest completion AFTER dialog to avoid notifyListeners disrupting the celebration
+      if (mounted) {
+        widget.controller.trackClassifyGameCompleted(durationSeconds: 0);
+      }
     } else {
       setState(() => _hasShownCelebration = true);
+      // Track quest completion even when no points earned
+      widget.controller.trackClassifyGameCompleted(durationSeconds: 0);
     }
   }
 

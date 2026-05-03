@@ -1,8 +1,10 @@
 import 'dart:io';
+import 'dart:ui' as ui;
 
 import 'package:camera/camera.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
 
 import '../../core/audy_theme.dart';
 import '../../core/audy_ui.dart';
@@ -54,7 +56,7 @@ class _SelfieCaptureScreenState extends State<SelfieCaptureScreen> {
 
       _cameraController = CameraController(
         selectedCamera,
-        ResolutionPreset.medium,
+        ResolutionPreset.low,
         enableAudio: false,
       );
 
@@ -84,24 +86,25 @@ class _SelfieCaptureScreenState extends State<SelfieCaptureScreen> {
       return;
     }
 
-    // Play camera shutter sound
     SoundService.instance.playCameraShutter();
 
     setState(() => _isProcessing = true);
 
     try {
       final image = await _cameraController!.takePicture();
-      final file = File(image.path);
+      final rawFile = File(image.path);
+
+      final compressedFile = await _compressImage(rawFile);
 
       if (mounted) {
-        final result = await EmotionService.detectEmotion(file);
+        final result = await EmotionService.detectEmotion(compressedFile);
 
         if (mounted) {
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
               builder: (_) => MimicResultScreen(
-                capturedImage: file,
+                capturedImage: compressedFile,
                 expectedEmotion: widget.targetEmotion,
                 detectedEmotion: result.detectedEmotion,
                 confidence: result.confidence,
@@ -124,6 +127,37 @@ class _SelfieCaptureScreenState extends State<SelfieCaptureScreen> {
           const SnackBar(content: Text('Could not take photo. Try again.')),
         );
       }
+    }
+  }
+
+  Future<File> _compressImage(File imageFile) async {
+    try {
+      final bytes = await imageFile.readAsBytes();
+      final codec = await ui.instantiateImageCodec(
+        bytes,
+        targetWidth: 480,
+      );
+      final frame = await codec.getNextFrame();
+      final resizedImage = frame.image;
+
+      final byteData = await resizedImage.toByteData(
+        format: ui.ImageByteFormat.png,
+      );
+
+      if (byteData == null) return imageFile;
+
+      final tempDir = await getTemporaryDirectory();
+      final compressedFile = File(
+        '${tempDir.path}/compressed_emotion_${DateTime.now().millisecondsSinceEpoch}.png',
+      );
+      await compressedFile.writeAsBytes(byteData.buffer.asUint8List());
+
+      codec.dispose();
+      resizedImage.dispose();
+
+      return compressedFile;
+    } catch (_) {
+      return imageFile;
     }
   }
 
