@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/app_routes.dart';
 import '../../core/audy_theme.dart';
 import '../../core/audy_ui.dart';
 import '../../services/sound_service.dart';
@@ -89,12 +90,12 @@ class _MimicCompleteScreenState extends State<MimicCompleteScreen> {
 
       // Track quest completion AFTER dialog to avoid notifyListeners disrupting the celebration
       if (mounted) {
-        widget.controller.trackMimicGameCompleted(durationSeconds: 0);
+        await widget.controller.trackMimicGameCompleted(durationSeconds: 0);
       }
     } else {
       setState(() => _hasShownCelebration = true);
       // Track quest completion even when no points earned
-      widget.controller.trackMimicGameCompleted(durationSeconds: 0);
+      await widget.controller.trackMimicGameCompleted(durationSeconds: 0);
     }
   }
 
@@ -110,7 +111,8 @@ class _MimicCompleteScreenState extends State<MimicCompleteScreen> {
                 InkWell(
                   onTap: () {
                     SoundService.instance.playTap();
-                    Navigator.pop(context);
+                    widget.controller.resetMimicGame();
+                    AppRoutes.navigateAfterGameCompletion(context, widget.controller);
                   },
                   borderRadius: BorderRadius.circular(AudySpacing.radiusMedium),
                   child: SizedBox(
@@ -212,7 +214,7 @@ class _MimicCompleteScreenState extends State<MimicCompleteScreen> {
                     onPressed: () {
                       SoundService.instance.playTap();
                       widget.controller.resetMimicGame();
-                      Navigator.pop(context);
+                      AppRoutes.navigateAfterGameCompletion(context, widget.controller);
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AudyColors.mintGreen,

@@ -25,6 +25,7 @@ dependencies:
   http_parser: ^4.0.2  # For multipart form data in emotion API
   avatar_glow: ^3.0.1
   supabase_flutter: ^2.12.4
+  flutter_soloud: ^4.0.4
 
 
 dev_dependencies:

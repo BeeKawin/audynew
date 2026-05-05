@@ -31,52 +31,179 @@ class LocalDataSource {
       sortingGamesCompleted: row.sortingGamesCompleted,
       emotionsRecognized: row.emotionsRecognized,
       chatMessagesSent: row.chatMessagesSent,
-      colorsSortedCorrectly: row.colorsSortedCorrectly,
+      sortGameUnlockedLevel: row.sortGameUnlockedLevel,
+      gamesInCurrentSession: row.gamesInCurrentSession,
     );
   }
 
   Future<void> saveProgress(ProgressData progress) async {
-    await db
-        .into(db.userProgress)
-        .insertOnConflictUpdate(
-          UserProgressCompanion.insert(
-            learningPoints: Value(progress.learningPoints),
-            gamesPlayed: Value(progress.gamesPlayed),
-            dayStreak: Value(progress.dayStreak),
-            lastPlayedAt: progress.lastPlayedAt != null
-                ? Value(progress.lastPlayedAt!)
-                : const Value.absent(),
-            updatedAt: DateTime.now(),
-            isSynced: const Value(false),
-            puzzleGamesCompleted: Value(progress.puzzleGamesCompleted),
-            readingExercisesCompleted: Value(progress.readingExercisesCompleted),
-            sortingGamesCompleted: Value(progress.sortingGamesCompleted),
-            emotionsRecognized: Value(progress.emotionsRecognized),
-            chatMessagesSent: Value(progress.chatMessagesSent),
-            colorsSortedCorrectly: Value(progress.colorsSortedCorrectly),
-          ),
-        );
+    final existing = await db.select(db.userProgress).get();
+
+    if (existing.isEmpty) {
+      // Insert new row if none exists
+      await db
+          .into(db.userProgress)
+          .insert(
+            UserProgressCompanion.insert(
+              learningPoints: Value(progress.learningPoints),
+              gamesPlayed: Value(progress.gamesPlayed),
+              dayStreak: Value(progress.dayStreak),
+              lastPlayedAt: progress.lastPlayedAt != null
+                  ? Value(progress.lastPlayedAt!)
+                  : const Value.absent(),
+              updatedAt: DateTime.now(),
+              isSynced: const Value(false),
+              puzzleGamesCompleted: Value(progress.puzzleGamesCompleted),
+              readingExercisesCompleted: Value(
+                progress.readingExercisesCompleted,
+              ),
+              sortingGamesCompleted: Value(progress.sortingGamesCompleted),
+              emotionsRecognized: Value(progress.emotionsRecognized),
+              chatMessagesSent: Value(progress.chatMessagesSent),
+              sortGameUnlockedLevel: Value(progress.sortGameUnlockedLevel),
+              gamesInCurrentSession: Value(progress.gamesInCurrentSession),
+            ),
+          );
+    } else {
+      // Update the existing row by id
+      await (db.update(
+        db.userProgress,
+      )..where((t) => t.id.equals(existing.first.id))).write(
+        UserProgressCompanion(
+          learningPoints: Value(progress.learningPoints),
+          gamesPlayed: Value(progress.gamesPlayed),
+          dayStreak: Value(progress.dayStreak),
+          lastPlayedAt: progress.lastPlayedAt != null
+              ? Value(progress.lastPlayedAt!)
+              : const Value.absent(),
+          updatedAt: Value(DateTime.now()),
+          isSynced: const Value(false),
+          puzzleGamesCompleted: Value(progress.puzzleGamesCompleted),
+          readingExercisesCompleted: Value(progress.readingExercisesCompleted),
+          sortingGamesCompleted: Value(progress.sortingGamesCompleted),
+          emotionsRecognized: Value(progress.emotionsRecognized),
+          chatMessagesSent: Value(progress.chatMessagesSent),
+          sortGameUnlockedLevel: Value(progress.sortGameUnlockedLevel),
+          gamesInCurrentSession: Value(progress.gamesInCurrentSession),
+        ),
+      );
+    }
   }
 
   Future<void> resetProgress() async {
-    await db
-        .into(db.userProgress)
-        .insertOnConflictUpdate(
-          UserProgressCompanion.insert(
-            learningPoints: const Value(0),
-            gamesPlayed: const Value(0),
-            dayStreak: const Value(1),
-            lastPlayedAt: Value(DateTime.now()),
-            updatedAt: DateTime.now(),
-            isSynced: const Value(false),
-            puzzleGamesCompleted: const Value(0),
-            readingExercisesCompleted: const Value(0),
-            sortingGamesCompleted: const Value(0),
-            emotionsRecognized: const Value(0),
-            chatMessagesSent: const Value(0),
-            colorsSortedCorrectly: const Value(0),
-          ),
-        );
+    final existing = await db.select(db.userProgress).get();
+
+    if (existing.isEmpty) {
+      // Insert new row if none exists
+      await db
+          .into(db.userProgress)
+          .insert(
+            UserProgressCompanion.insert(
+              learningPoints: const Value(0),
+              gamesPlayed: const Value(0),
+              dayStreak: const Value(1),
+              lastPlayedAt: Value(DateTime.now()),
+              updatedAt: DateTime.now(),
+              isSynced: const Value(false),
+              puzzleGamesCompleted: const Value(0),
+              readingExercisesCompleted: const Value(0),
+              sortingGamesCompleted: const Value(0),
+              emotionsRecognized: const Value(0),
+              chatMessagesSent: const Value(0),
+              sortGameUnlockedLevel: const Value(0),
+              gamesInCurrentSession: const Value(0),
+            ),
+          );
+    } else {
+      // Update the existing row by id with reset values
+      await (db.update(
+        db.userProgress,
+      )..where((t) => t.id.equals(existing.first.id))).write(
+        UserProgressCompanion(
+          learningPoints: const Value(0),
+          gamesPlayed: const Value(0),
+          dayStreak: const Value(1),
+          lastPlayedAt: Value(DateTime.now()),
+          updatedAt: Value(DateTime.now()),
+          isSynced: const Value(false),
+          puzzleGamesCompleted: const Value(0),
+          readingExercisesCompleted: const Value(0),
+          sortingGamesCompleted: const Value(0),
+          emotionsRecognized: const Value(0),
+          chatMessagesSent: const Value(0),
+          sortGameUnlockedLevel: const Value(0),
+          gamesInCurrentSession: const Value(0),
+        ),
+      );
+    }
+  }
+
+  // ==================== USER PREFERENCES ====================
+
+  Future<UserPreferences?> getUserPreferences() async {
+    final results = await db.select(db.userPreferences).get();
+    if (results.isEmpty) return null;
+
+    final row = results.first;
+    return UserPreferences(
+      communicationLevel: row.communicationLevel,
+      sensorySensitivity: row.sensorySensitivity,
+      learningPace: row.learningPace,
+      favoriteInterests: row.favoriteInterests,
+    );
+  }
+
+  Future<void> saveUserPreferences(UserPreferences preferences) async {
+    final existing = await db.select(db.userPreferences).get();
+
+    if (existing.isEmpty) {
+      // Insert new row if none exists
+      await db
+          .into(db.userPreferences)
+          .insert(
+            UserPreferencesCompanion.insert(
+              communicationLevel: Value(preferences.communicationLevel),
+              sensorySensitivity: Value(preferences.sensorySensitivity),
+              learningPace: Value(preferences.learningPace),
+              favoriteInterests: Value(preferences.favoriteInterests),
+              updatedAt: DateTime.now(),
+              isSynced: const Value(false),
+            ),
+          );
+    } else {
+      // Update the existing row by id
+      await (db.update(
+        db.userPreferences,
+      )..where((t) => t.id.equals(existing.first.id))).write(
+        UserPreferencesCompanion(
+          communicationLevel: Value(preferences.communicationLevel),
+          sensorySensitivity: Value(preferences.sensorySensitivity),
+          learningPace: Value(preferences.learningPace),
+          favoriteInterests: Value(preferences.favoriteInterests),
+          updatedAt: Value(DateTime.now()),
+          isSynced: const Value(false),
+        ),
+      );
+    }
+  }
+
+  Future<void> seedDefaultPreferences() async {
+    // Initialize default preferences if empty
+    final prefs = await db.select(db.userPreferences).get();
+    if (prefs.isEmpty) {
+      await db
+          .into(db.userPreferences)
+          .insert(
+            UserPreferencesCompanion.insert(
+              communicationLevel: const Value(3), // Full sentences (default)
+              sensorySensitivity: const Value(1), // Medium (default)
+              learningPace: const Value(1), // Standard (default)
+              favoriteInterests: const Value(''),
+              updatedAt: DateTime.now(),
+              isSynced: const Value(false),
+            ),
+          );
+    }
   }
 
   // ==================== USER REWARDS ====================
@@ -104,7 +231,11 @@ class LocalDataSource {
     return all.where((r) => !r.isCompleted).toList();
   }
 
-  Future<int> addReward(String prize, String conditionType, int targetCount) async {
+  Future<int> addReward(
+    String prize,
+    String conditionType,
+    int targetCount,
+  ) async {
     final id = await db
         .into(db.userRewards)
         .insert(
@@ -236,10 +367,13 @@ class LocalDataSource {
               sortingGamesCompleted: const Value(0),
               emotionsRecognized: const Value(0),
               chatMessagesSent: const Value(0),
-              colorsSortedCorrectly: const Value(0),
+              sortGameUnlockedLevel: const Value(0),
             ),
           );
     }
+
+    // Initialize user preferences if empty
+    await seedDefaultPreferences();
   }
 
   Future<void> _seedAchievements() async {
@@ -258,11 +392,6 @@ class LocalDataSource {
         key: 'quick_reflexes',
         title: 'Quick Reflexes',
         desc: 'Average under 300ms',
-      ),
-      (
-        key: 'color_master',
-        title: 'Color Master',
-        desc: 'Perfect color sorting',
       ),
       (
         key: 'social_butterfly',
@@ -300,7 +429,6 @@ class LocalDataSource {
         desc: 'Play for 3 days in a row',
       ),
       (key: 'social_star', title: 'Social Star', desc: 'Send 20 chat messages'),
-      (key: 'color_pro', title: 'Color Pro', desc: 'Sort 50 colors correctly'),
       (
         key: 'fast_learner',
         title: 'Fast Learner',
@@ -330,60 +458,74 @@ class LocalDataSource {
 
   /// Save a game session record
   Future<int> saveGameSession(GameSessionData session) async {
-    return await db.into(db.gameSessions).insert(
-      GameSessionsCompanion.insert(
-        gameType: session.gameType,
-        levelId: session.levelId != null ? Value(session.levelId!) : const Value.absent(),
-        difficulty: session.difficulty != null ? Value(session.difficulty!) : const Value.absent(),
-        correctActions: Value(session.correctActions),
-        totalActions: Value(session.totalActions),
-        accuracyPercent: Value(session.accuracyPercent),
-        starsEarned: session.starsEarned != null ? Value(session.starsEarned!) : const Value.absent(),
-        durationSeconds: Value(session.durationSeconds),
-        sessionStartedAt: session.sessionStartedAt,
-        sessionEndedAt: session.sessionEndedAt,
-        createdAt: DateTime.now(),
-        isSynced: const Value(false),
-      ),
-    );
+    return await db
+        .into(db.gameSessions)
+        .insert(
+          GameSessionsCompanion.insert(
+            gameType: session.gameType,
+            levelId: session.levelId != null
+                ? Value(session.levelId!)
+                : const Value.absent(),
+            difficulty: session.difficulty != null
+                ? Value(session.difficulty!)
+                : const Value.absent(),
+            correctActions: Value(session.correctActions),
+            totalActions: Value(session.totalActions),
+            accuracyPercent: Value(session.accuracyPercent),
+            starsEarned: session.starsEarned != null
+                ? Value(session.starsEarned!)
+                : const Value.absent(),
+            durationSeconds: Value(session.durationSeconds),
+            sessionStartedAt: session.sessionStartedAt,
+            sessionEndedAt: session.sessionEndedAt,
+            createdAt: DateTime.now(),
+            isSynced: const Value(false),
+          ),
+        );
   }
 
   /// Get game sessions with optional date filter
   Future<List<GameSessionData>> getGameSessions({int? daysBack}) async {
     var query = db.select(db.gameSessions);
-    
+
     if (daysBack != null) {
       final cutoffDate = DateTime.now().subtract(Duration(days: daysBack));
-      query = query..where((s) => s.sessionStartedAt.isBiggerOrEqualValue(cutoffDate));
+      query = query
+        ..where((s) => s.sessionStartedAt.isBiggerOrEqualValue(cutoffDate));
     }
-    
+
     final results = await query.get();
-    return results.map((row) => GameSessionData(
-      id: row.id,
-      gameType: row.gameType,
-      levelId: row.levelId,
-      difficulty: row.difficulty,
-      correctActions: row.correctActions,
-      totalActions: row.totalActions,
-      accuracyPercent: row.accuracyPercent,
-      starsEarned: row.starsEarned,
-      durationSeconds: row.durationSeconds,
-      sessionStartedAt: row.sessionStartedAt,
-      sessionEndedAt: row.sessionEndedAt,
-      createdAt: row.createdAt,
-      isSynced: row.isSynced,
-    )).toList();
+    return results
+        .map(
+          (row) => GameSessionData(
+            id: row.id,
+            gameType: row.gameType,
+            levelId: row.levelId,
+            difficulty: row.difficulty,
+            correctActions: row.correctActions,
+            totalActions: row.totalActions,
+            accuracyPercent: row.accuracyPercent,
+            starsEarned: row.starsEarned,
+            durationSeconds: row.durationSeconds,
+            sessionStartedAt: row.sessionStartedAt,
+            sessionEndedAt: row.sessionEndedAt,
+            createdAt: row.createdAt,
+            isSynced: row.isSynced,
+          ),
+        )
+        .toList();
   }
 
   /// Get total play time in seconds with optional date filter
   Future<int> getTotalPlayTimeSeconds({int? daysBack}) async {
     var query = db.select(db.gameSessions);
-    
+
     if (daysBack != null) {
       final cutoffDate = DateTime.now().subtract(Duration(days: daysBack));
-      query = query..where((s) => s.sessionStartedAt.isBiggerOrEqualValue(cutoffDate));
+      query = query
+        ..where((s) => s.sessionStartedAt.isBiggerOrEqualValue(cutoffDate));
     }
-    
+
     final sessions = await query.get();
     return sessions.fold<int>(0, (sum, s) => sum + s.durationSeconds);
   }
@@ -391,35 +533,39 @@ class LocalDataSource {
   /// Get play time breakdown by game type
   Future<Map<String, int>> getPlayTimeByGameType({int? daysBack}) async {
     var query = db.select(db.gameSessions);
-    
+
     if (daysBack != null) {
       final cutoffDate = DateTime.now().subtract(Duration(days: daysBack));
-      query = query..where((s) => s.sessionStartedAt.isBiggerOrEqualValue(cutoffDate));
+      query = query
+        ..where((s) => s.sessionStartedAt.isBiggerOrEqualValue(cutoffDate));
     }
-    
+
     final sessions = await query.get();
     final Map<String, int> result = {};
-    
+
     for (final session in sessions) {
-      result[session.gameType] = (result[session.gameType] ?? 0) + session.durationSeconds;
+      result[session.gameType] =
+          (result[session.gameType] ?? 0) + session.durationSeconds;
     }
-    
+
     return result;
   }
 
   /// Get average accuracy per game type
   Future<Map<String, double>> getSkillAverages({int daysBack = 30}) async {
     final cutoffDate = DateTime.now().subtract(Duration(days: daysBack));
-    final sessions = await (db.select(db.gameSessions)
-      ..where((s) => s.sessionStartedAt.isBiggerOrEqualValue(cutoffDate)))
-      .get();
-    
+    final sessions = await (db.select(
+      db.gameSessions,
+    )..where((s) => s.sessionStartedAt.isBiggerOrEqualValue(cutoffDate))).get();
+
     final Map<String, List<int>> accuracyByType = {};
-    
+
     for (final session in sessions) {
-      accuracyByType.putIfAbsent(session.gameType, () => []).add(session.accuracyPercent);
+      accuracyByType
+          .putIfAbsent(session.gameType, () => [])
+          .add(session.accuracyPercent);
     }
-    
+
     return accuracyByType.map((type, accuracies) {
       final avg = accuracies.reduce((a, b) => a + b) / accuracies.length;
       return MapEntry(type, avg / 100.0); // Convert to 0.0-1.0 range
@@ -430,32 +576,38 @@ class LocalDataSource {
   Future<Map<String, List<double>>> getSkillTrends({int daysBack = 7}) async {
     final results = <String, List<double>>{};
     final now = DateTime.now();
-    
+
     for (int i = 0; i < daysBack; i++) {
       final date = now.subtract(Duration(days: i));
       final dayStart = DateTime(date.year, date.month, date.day);
       final dayEnd = dayStart.add(const Duration(days: 1));
-      
-      final sessions = await (db.select(db.gameSessions)
-        ..where((s) => s.sessionStartedAt.isBiggerOrEqualValue(dayStart))
-        ..where((s) => s.sessionStartedAt.isSmallerThanValue(dayEnd)))
-        .get();
-      
+
+      final sessions =
+          await (db.select(db.gameSessions)
+                ..where(
+                  (s) => s.sessionStartedAt.isBiggerOrEqualValue(dayStart),
+                )
+                ..where((s) => s.sessionStartedAt.isSmallerThanValue(dayEnd)))
+              .get();
+
       // Group by game type and calculate daily average
       final Map<String, List<int>> dailyAccuracies = {};
       for (final session in sessions) {
-        dailyAccuracies.putIfAbsent(session.gameType, () => []).add(session.accuracyPercent);
+        dailyAccuracies
+            .putIfAbsent(session.gameType, () => [])
+            .add(session.accuracyPercent);
       }
-      
+
       dailyAccuracies.forEach((type, accuracies) {
-        final avg = accuracies.reduce((a, b) => a + b) / accuracies.length / 100.0;
+        final avg =
+            accuracies.reduce((a, b) => a + b) / accuracies.length / 100.0;
         results.putIfAbsent(type, () => []).add(avg);
       });
     }
-    
+
     // Reverse lists so oldest is first
     results.forEach((key, value) => value.reversed.toList());
-    
+
     return results;
   }
 }

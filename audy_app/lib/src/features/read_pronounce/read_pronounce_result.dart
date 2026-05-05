@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/app_routes.dart';
 import '../../services/sound_service.dart';
 import '../../state/audy_controller.dart';
 import '../../widgets/point_celebration_dialog.dart';
@@ -153,7 +154,7 @@ class _ReadPronounceResultScreenState extends State<ReadPronounceResultScreen> {
                       Navigator.pop(context);
                     },
                     onDone: () {
-                      Navigator.of(context).popUntil((route) => route.isFirst);
+                      AppRoutes.navigateAfterGameCompletion(context, widget.controller);
                     },
                   ),
                 ],

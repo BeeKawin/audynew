@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/app_routes.dart';
 import '../../core/audy_theme.dart';
 import '../../core/audy_ui.dart';
 import '../../services/sound_service.dart';
@@ -91,12 +92,12 @@ class _EmotionClassifyCompleteScreenState
 
       // Track quest completion AFTER dialog to avoid notifyListeners disrupting the celebration
       if (mounted) {
-        widget.controller.trackClassifyGameCompleted(durationSeconds: 0);
+        await widget.controller.trackClassifyGameCompleted(durationSeconds: 0);
       }
     } else {
       setState(() => _hasShownCelebration = true);
       // Track quest completion even when no points earned
-      widget.controller.trackClassifyGameCompleted(durationSeconds: 0);
+      await widget.controller.trackClassifyGameCompleted(durationSeconds: 0);
     }
   }
 
@@ -112,7 +113,8 @@ class _EmotionClassifyCompleteScreenState
                 InkWell(
                   onTap: () {
                     SoundService.instance.playTap();
-                    Navigator.pop(context);
+                    widget.controller.resetClassifyGame();
+                    AppRoutes.navigateAfterGameCompletion(context, widget.controller);
                   },
                   borderRadius: BorderRadius.circular(AudySpacing.radiusMedium),
                   child: SizedBox(
@@ -214,7 +216,7 @@ class _EmotionClassifyCompleteScreenState
                     onPressed: () {
                       SoundService.instance.playTap();
                       widget.controller.resetClassifyGame();
-                      Navigator.pop(context);
+                      AppRoutes.navigateAfterGameCompletion(context, widget.controller);
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AudyColors.mintGreen,

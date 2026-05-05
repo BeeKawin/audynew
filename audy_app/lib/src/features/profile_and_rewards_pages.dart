@@ -324,6 +324,16 @@ class _ProfilePageState extends State<ProfilePage> {
                     setState(() => selectedTab = 2);
                   },
                 ),
+                _RewardTabChip(
+                  label: 'Settings',
+                  icon: Icons.settings_outlined,
+                  selected: selectedTab == 3,
+                  color: const Color(0xFFF8C7DF),
+                  onTap: () {
+                    SoundService.instance.playTap();
+                    setState(() => selectedTab = 3);
+                  },
+                ),
               ],
             ),
             SizedBox(height: adaptive.space(22)),
@@ -335,6 +345,8 @@ class _ProfilePageState extends State<ProfilePage> {
               _ParentDashboardTab(adaptive: adaptive, controller: controller),
             if (selectedTab == 2)
               _InstitutionPanelTab(adaptive: adaptive, controller: controller),
+            if (selectedTab == 3)
+              _SettingsTabContent(adaptive: adaptive, controller: controller),
           ],
         );
       },
@@ -996,6 +1008,232 @@ class _InstitutionPanelTab extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+class _SettingsTabContent extends StatelessWidget {
+  const _SettingsTabContent({
+    required this.adaptive,
+    required this.controller,
+  });
+
+  final AudyAdaptive adaptive;
+  final AudyController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Preferences Card
+        Text(
+          'Your Preferences',
+          style: TextStyle(
+            fontSize: adaptive.space(20),
+            fontWeight: FontWeight.w800,
+            color: const Color(0xFF243A5A),
+          ),
+        ),
+        SizedBox(height: adaptive.space(16)),
+        AudyPanel(
+          adaptive: adaptive,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Communication Level Display
+              _buildPreferenceRow(
+                'Communication',
+                _getCommunicationLabel(controller.userPreferences.communicationLevel),
+                Icons.chat_bubble_outline,
+                const Color(0xFFE7D8FA),
+              ),
+              const Divider(height: 24),
+              // Sensory Sensitivity Display
+              _buildPreferenceRow(
+                'Sensory Sensitivity',
+                _getSensitivityLabel(controller.userPreferences.sensorySensitivity),
+                Icons.hearing_outlined,
+                const Color(0xFFF8C7DF),
+              ),
+              const Divider(height: 24),
+              // Learning Pace Display
+              _buildPreferenceRow(
+                'Learning Pace',
+                _getPaceLabel(controller.userPreferences.learningPace),
+                Icons.timer_outlined,
+                const Color(0xFFC9E8C1),
+              ),
+              const Divider(height: 24),
+              // Favorite Interests Display
+              _buildInterestsRow(
+                'Favorite Interests',
+                controller.userPreferences.interestsList,
+                Icons.favorite_outline,
+                const Color(0xFFFFF2A8),
+              ),
+            ],
+          ),
+        ),
+        SizedBox(height: adaptive.space(24)),
+        // Edit Button
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton.icon(
+            onPressed: () {
+              SoundService.instance.playTap();
+              Navigator.pushNamed(context, AppRoutes.preferences);
+            },
+            icon: Icon(Icons.edit_outlined, size: adaptive.space(24)),
+            label: Text(
+              'Edit Preferences',
+              style: TextStyle(
+                fontSize: adaptive.space(16),
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFBDD8F2),
+              foregroundColor: const Color(0xFF243A5A),
+              padding: EdgeInsets.symmetric(
+                horizontal: adaptive.space(24),
+                vertical: adaptive.space(16),
+              ),
+              minimumSize: const Size(48, 56),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(999),
+              ),
+              elevation: 4,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  String _getCommunicationLabel(int level) {
+    const labels = ['Non-verbal', 'Single words', 'Short phrases', 'Full sentences'];
+    return labels[level.clamp(0, 3)];
+  }
+
+  String _getSensitivityLabel(int level) {
+    const labels = ['Low', 'Medium', 'High'];
+    return labels[level.clamp(0, 2)];
+  }
+
+  String _getPaceLabel(int level) {
+    const labels = ['Slower', 'Standard', 'Faster'];
+    return labels[level.clamp(0, 2)];
+  }
+
+  Widget _buildPreferenceRow(String label, String value, IconData icon, Color color) {
+    return Row(
+      children: [
+        Container(
+          width: adaptive.space(44),
+          height: adaptive.space(44),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.3),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(icon, size: adaptive.space(22), color: const Color(0xFF243A5A)),
+        ),
+        SizedBox(width: adaptive.space(12)),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: adaptive.space(14),
+                  color: const Color(0xFF60758F),
+                ),
+              ),
+              SizedBox(height: adaptive.space(2)),
+              Text(
+                value,
+                style: TextStyle(
+                  fontSize: adaptive.space(16),
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF243A5A),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildInterestsRow(String label, List<String> interests, IconData icon, Color color) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: adaptive.space(44),
+          height: adaptive.space(44),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.3),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(icon, size: adaptive.space(22), color: const Color(0xFF243A5A)),
+        ),
+        SizedBox(width: adaptive.space(12)),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: adaptive.space(14),
+                  color: const Color(0xFF60758F),
+                ),
+              ),
+              SizedBox(height: adaptive.space(4)),
+              if (interests.isEmpty)
+                Text(
+                  'None selected',
+                  style: TextStyle(
+                    fontSize: adaptive.space(14),
+                    color: const Color(0xFF60758F).withValues(alpha: 0.6),
+                  ),
+                )
+              else
+                Wrap(
+                  spacing: adaptive.space(6),
+                  runSpacing: adaptive.space(6),
+                  children: interests.map((interest) {
+                    return Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: adaptive.space(10),
+                        vertical: adaptive.space(4),
+                      ),
+                      decoration: BoxDecoration(
+                        color: color.withValues(alpha: 0.4),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Text(
+                        _capitalizeFirst(interest),
+                        style: TextStyle(
+                          fontSize: adaptive.space(12),
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFF243A5A),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  String _capitalizeFirst(String text) {
+    if (text.isEmpty) return text;
+    return text[0].toUpperCase() + text.substring(1);
   }
 }
 

@@ -9,6 +9,7 @@ import 'src/features/dashboard_page.dart';
 import 'src/features/emotion_classify_game/emotion_classify_game.dart';
 import 'src/features/emotion_mimic_game/emotion_mimic_game.dart';
 import 'src/features/feature_pages.dart';
+import 'src/features/meltdown/meltdown_screen.dart';
 import 'src/features/minipuzzle_game/minipuzzle_game.dart';
 import 'src/features/minipuzzle_game/minipuzzle_level_select.dart';
 import 'src/features/minipuzzle_game/minipuzzle_game_screen.dart';
@@ -25,6 +26,7 @@ import 'src/services/sound_service.dart';
 import 'src/state/audy_controller.dart';
 import 'src/widgets/achievement_toast.dart';
 import 'src/features/social_chat/social_chat_page.dart';
+import 'src/features/settings/preferences_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -261,10 +263,30 @@ class _AudyAppState extends State<AudyApp> {
           AppRoutes.social: (_) => const SocialPracticePage(),
           AppRoutes.rewards: (_) => _HomeShell(currentIndex: 2),
           AppRoutes.profile: (_) => _HomeShell(currentIndex: 3),
+          AppRoutes.preferences: (_) => const PreferencesPage(isOnboarding: true),
+          AppRoutes.meltdown: (_) => const MeltdownScreen(),
         },
         onGenerateRoute: (settings) {
           debugPrint('onGenerateRoute: ${settings.name}');
           switch (settings.name) {
+            case AppRoutes.meltdown:
+              // Slow, calm transition for meltdown screen (2-second cross-fade)
+              return PageRouteBuilder(
+                pageBuilder: (context, animation, secondaryAnimation) =>
+                    const MeltdownScreen(),
+                transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                  return FadeTransition(
+                    opacity: animation.drive(
+                      CurveTween(
+                        curve: const Interval(0.0, 1.0, curve: Curves.easeInOut),
+                      ),
+                    ),
+                    child: child,
+                  );
+                },
+                transitionDuration: const Duration(seconds: 2),
+                reverseTransitionDuration: const Duration(seconds: 1),
+              );
             case AppRoutes.miniPuzzleLevel:
               final gameType = settings.arguments as MiniPuzzleType;
               return MaterialPageRoute(

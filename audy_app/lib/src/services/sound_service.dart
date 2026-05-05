@@ -1,4 +1,4 @@
-import 'package:audioplayers/audioplayers.dart';
+import 'package:flutter_soloud/flutter_soloud.dart';
 import 'package:flutter/foundation.dart';
 
 import '../core/app_sounds.dart';
@@ -11,37 +11,75 @@ class SoundService {
   static final SoundService _instance = SoundService._internal();
   static SoundService get instance => _instance;
 
-  final AudioPlayer _bgmPlayer = AudioPlayer();
+  final SoLoud _soloud = SoLoud.instance;
   bool _enabled = true;
   bool _initialized = false;
   static const double _bgmVolume = 0.3;
+  static const double _sfxVolume = 1.0;
+
+  /// Preloaded audio sources keyed by asset path
+  final Map<String, AudioSource> _sources = {};
+
+  SoundHandle? _bgmHandle;
 
   /// Whether sounds are enabled
   bool get isEnabled => _enabled;
 
-  /// Initialize sound service - lazy-loads SFX only, BGM not started
+  /// Initialize SoLoud engine and preload all SFX assets
   Future<void> initialize() async {
     if (_initialized) return;
 
-    // BGM startup removed - will be added later
-    _initialized = true;
+    try {
+      await _soloud.init();
+      await _loadAll();
+      _initialized = true;
+    } catch (e) {
+      debugPrint('SoundService: Failed to initialize SoLoud - $e');
+    }
   }
 
-  /// Play a sound by its path (creates new player each time for reliability)
+  /// Preload all known sound assets into memory
+  Future<void> _loadAll() async {
+    final paths = [
+      AppSounds.correct,
+      AppSounds.wrong,
+      AppSounds.tap,
+      AppSounds.cameraShutter,
+      AppSounds.roundComplete,
+      AppSounds.gameComplete,
+      AppSounds.points,
+      AppSounds.achievement,
+      AppSounds.levelUp,
+      AppSounds.go,
+      AppSounds.error,
+      AppSounds.tryAgain,
+      AppSounds.soundtrack,
+    ];
+
+    for (final path in paths) {
+      try {
+        _sources[path] = await _soloud.loadAsset(path);
+      } catch (e) {
+        debugPrint('SoundService: Failed to preload $path - $e');
+      }
+    }
+  }
+
+  /// Play a sound by its path
+  /// SoLoud sources can be played multiple times; no need to dispose/recreate
   Future<void> play(String soundPath) async {
-    if (!_enabled) return;
+    if (!_enabled || !_initialized) return;
+
+    final source = _sources[soundPath];
+    if (source == null) {
+      debugPrint('SoundService: Sound not preloaded - $soundPath');
+      return;
+    }
 
     try {
-      final player = AudioPlayer();
-      await player.play(AssetSource(soundPath));
-      // Auto-dispose after playback
-      player.onPlayerStateChanged.listen((state) {
-        if (state == PlayerState.completed) {
-          player.dispose();
-        }
-      });
+      _soloud.play(source, volume: _sfxVolume);
     } catch (e) {
-      debugPrint('Failed to play sound: $soundPath - $e');
+      debugPrint('SoundService: Failed to play $soundPath - $e');
     }
   }
 
@@ -83,55 +121,79 @@ class SoundService {
 
   /// Play background music (soundtrack) on loop at low volume
   Future<void> playBGM() async {
+    if (!_initialized) return;
+
+    final source = _sources[AppSounds.soundtrack];
+    if (source == null) {
+      debugPrint('SoundService: BGM source not preloaded');
+      return;
+    }
+
     try {
-      await _bgmPlayer.setSource(AssetSource(AppSounds.soundtrack));
-      await _bgmPlayer.setReleaseMode(ReleaseMode.loop);
-      await _bgmPlayer.setVolume(_bgmVolume);
-      await _bgmPlayer.resume();
+      await stopBGM(); // Stop any existing BGM first
+      _bgmHandle = _soloud.play(
+        source,
+        volume: _bgmVolume,
+        looping: true,
+      );
     } catch (e) {
-      debugPrint('Failed to play BGM: $e');
+      debugPrint('SoundService: Failed to play BGM - $e');
     }
   }
 
   /// Pause background music
   Future<void> pauseBGM() async {
+    final handle = _bgmHandle;
+    if (handle == null) return;
     try {
-      await _bgmPlayer.pause();
+      _soloud.setPause(handle, true);
     } catch (e) {
-      debugPrint('Failed to pause BGM: $e');
+      debugPrint('SoundService: Failed to pause BGM - $e');
     }
   }
 
   /// Resume background music
   Future<void> resumeBGM() async {
+    final handle = _bgmHandle;
+    if (handle == null) return;
     try {
-      await _bgmPlayer.resume();
+      _soloud.setPause(handle, false);
     } catch (e) {
-      debugPrint('Failed to resume BGM: $e');
+      debugPrint('SoundService: Failed to resume BGM - $e');
     }
   }
 
   /// Stop background music
   Future<void> stopBGM() async {
+    final handle = _bgmHandle;
+    if (handle == null) return;
     try {
-      await _bgmPlayer.stop();
+      await _soloud.stop(handle);
+      _bgmHandle = null;
     } catch (e) {
-      debugPrint('Failed to stop BGM: $e');
+      debugPrint('SoundService: Failed to stop BGM - $e');
     }
   }
 
   /// Enable or disable all sounds
   void setEnabled(bool enabled) {
     _enabled = enabled;
+    if (!enabled) stopBGM();
   }
 
   /// Toggle sound on/off
-  void toggle() {
-    _enabled = !_enabled;
-  }
+  void toggle() => setEnabled(!_enabled);
 
   /// Dispose BGM player
-  void dispose() {
-    _bgmPlayer.dispose();
+  Future<void> dispose() async {
+    await stopBGM();
+    for (final source in _sources.values) {
+      try {
+        _soloud.disposeSource(source);
+      } catch (_) {}
+    }
+    _sources.clear();
+    _soloud.deinit();
+    _initialized = false;
   }
 }

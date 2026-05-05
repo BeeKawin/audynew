@@ -28,6 +28,9 @@ class AppSounds {
   static const String achievement = 'sounds/achievement.mp3';
   static const String levelUp = 'sounds/level_up.mp3';
 
+  // Meltdown screen sounds
+  static const String relaxingMusic = 'sounds/relaxing.mp3';
+
   /// All sounds that should be preloaded at app start
   static const List<String> allSounds = [
     correct,

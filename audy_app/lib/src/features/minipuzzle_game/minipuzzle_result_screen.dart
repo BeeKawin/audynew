@@ -63,30 +63,36 @@ class _MiniPuzzleResultScreenState extends State<MiniPuzzleResultScreen> {
   }
 
   Future<void> _showCelebrationIfNeeded() async {
-    if (_hasShownCelebration || !mounted || _pointsEarned == 0) return;
+    if (_hasShownCelebration || !mounted) return;
+    _hasShownCelebration = true;
 
-    setState(() => _hasShownCelebration = true);
+    // Show celebration dialog only if points were earned
+    if (_pointsEarned > 0) {
+      await showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (dialogContext) => PointCelebrationDialog(
+          points: _pointsEarned,
+          totalPoints: _newPoints,
+          currentLevel: _newLevel,
+          nextLevelThreshold: _getNextLevelThreshold(_newLevel),
+          nextLevelName: _getLevelNameEnglish(_newLevel + 1),
+          isLevelUp: _isLevelUp,
+          newLevelName: _isLevelUp ? _getLevelNameEnglish(_newLevel) : null,
+          onClose: () {
+            Navigator.of(dialogContext).pop();
+          },
+        ),
+      );
 
-    await showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (dialogContext) => PointCelebrationDialog(
-        points: _pointsEarned,
-        totalPoints: _newPoints,
-        currentLevel: _newLevel,
-        nextLevelThreshold: _getNextLevelThreshold(_newLevel),
-        nextLevelName: _getLevelNameEnglish(_newLevel + 1),
-        isLevelUp: _isLevelUp,
-        newLevelName: _isLevelUp ? _getLevelNameEnglish(_newLevel) : null,
-        onClose: () {
-          Navigator.of(dialogContext).pop();
-        },
-      ),
-    );
+      // Add points AFTER dialog to avoid notifyListeners disrupting it
+      if (mounted) {
+        await widget.controller.addPoints(_pointsEarned);
+      }
+    }
 
-    // Add points and track completion AFTER dialog to avoid notifyListeners disrupting it
+    // Always track completion (even with 0 points) to ensure gamesInCurrentSession is counted
     if (mounted) {
-      await widget.controller.addPoints(_pointsEarned);
       widget.controller.trackPuzzleCompleted();
 
       // Record session to analytics
@@ -162,9 +168,7 @@ class _MiniPuzzleResultScreenState extends State<MiniPuzzleResultScreen> {
                 InkWell(
                   onTap: () {
                     SoundService.instance.playTap();
-                    Navigator.of(context).popUntil(
-                      (route) => route.settings.name == AppRoutes.games,
-                    );
+                    AppRoutes.navigateAfterGameCompletion(context, widget.controller);
                   },
                   borderRadius: BorderRadius.circular(AudySpacing.radiusMedium),
                   child: SizedBox(
@@ -313,9 +317,7 @@ class _MiniPuzzleResultScreenState extends State<MiniPuzzleResultScreen> {
                   child: ElevatedButton(
                     onPressed: () {
                       SoundService.instance.playTap();
-                      Navigator.of(context).popUntil(
-                        (route) => route.settings.name == AppRoutes.games,
-                      );
+                      AppRoutes.navigateAfterGameCompletion(context, widget.controller);
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AudyColors.mintGreen,

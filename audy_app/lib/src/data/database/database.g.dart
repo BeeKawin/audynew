@@ -152,11 +152,22 @@ class $UserProgressTable extends UserProgress
     requiredDuringInsert: false,
     defaultValue: const Constant(0),
   );
-  static const VerificationMeta _colorsSortedCorrectlyMeta =
-      const VerificationMeta('colorsSortedCorrectly');
+  static const VerificationMeta _sortGameUnlockedLevelMeta =
+      const VerificationMeta('sortGameUnlockedLevel');
   @override
-  late final GeneratedColumn<int> colorsSortedCorrectly = GeneratedColumn<int>(
-    'colors_sorted_correctly',
+  late final GeneratedColumn<int> sortGameUnlockedLevel = GeneratedColumn<int>(
+    'sort_game_unlocked_level',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _gamesInCurrentSessionMeta =
+      const VerificationMeta('gamesInCurrentSession');
+  @override
+  late final GeneratedColumn<int> gamesInCurrentSession = GeneratedColumn<int>(
+    'games_in_current_session',
     aliasedName,
     false,
     type: DriftSqlType.int,
@@ -177,7 +188,8 @@ class $UserProgressTable extends UserProgress
     sortingGamesCompleted,
     emotionsRecognized,
     chatMessagesSent,
-    colorsSortedCorrectly,
+    sortGameUnlockedLevel,
+    gamesInCurrentSession,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -286,12 +298,21 @@ class $UserProgressTable extends UserProgress
         ),
       );
     }
-    if (data.containsKey('colors_sorted_correctly')) {
+    if (data.containsKey('sort_game_unlocked_level')) {
       context.handle(
-        _colorsSortedCorrectlyMeta,
-        colorsSortedCorrectly.isAcceptableOrUnknown(
-          data['colors_sorted_correctly']!,
-          _colorsSortedCorrectlyMeta,
+        _sortGameUnlockedLevelMeta,
+        sortGameUnlockedLevel.isAcceptableOrUnknown(
+          data['sort_game_unlocked_level']!,
+          _sortGameUnlockedLevelMeta,
+        ),
+      );
+    }
+    if (data.containsKey('games_in_current_session')) {
+      context.handle(
+        _gamesInCurrentSessionMeta,
+        gamesInCurrentSession.isAcceptableOrUnknown(
+          data['games_in_current_session']!,
+          _gamesInCurrentSessionMeta,
         ),
       );
     }
@@ -352,9 +373,13 @@ class $UserProgressTable extends UserProgress
         DriftSqlType.int,
         data['${effectivePrefix}chat_messages_sent'],
       )!,
-      colorsSortedCorrectly: attachedDatabase.typeMapping.read(
+      sortGameUnlockedLevel: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
-        data['${effectivePrefix}colors_sorted_correctly'],
+        data['${effectivePrefix}sort_game_unlocked_level'],
+      )!,
+      gamesInCurrentSession: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}games_in_current_session'],
       )!,
     );
   }
@@ -379,7 +404,8 @@ class UserProgressData extends DataClass
   final int sortingGamesCompleted;
   final int emotionsRecognized;
   final int chatMessagesSent;
-  final int colorsSortedCorrectly;
+  final int sortGameUnlockedLevel;
+  final int gamesInCurrentSession;
   const UserProgressData({
     required this.id,
     required this.learningPoints,
@@ -393,7 +419,8 @@ class UserProgressData extends DataClass
     required this.sortingGamesCompleted,
     required this.emotionsRecognized,
     required this.chatMessagesSent,
-    required this.colorsSortedCorrectly,
+    required this.sortGameUnlockedLevel,
+    required this.gamesInCurrentSession,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -414,7 +441,8 @@ class UserProgressData extends DataClass
     map['sorting_games_completed'] = Variable<int>(sortingGamesCompleted);
     map['emotions_recognized'] = Variable<int>(emotionsRecognized);
     map['chat_messages_sent'] = Variable<int>(chatMessagesSent);
-    map['colors_sorted_correctly'] = Variable<int>(colorsSortedCorrectly);
+    map['sort_game_unlocked_level'] = Variable<int>(sortGameUnlockedLevel);
+    map['games_in_current_session'] = Variable<int>(gamesInCurrentSession);
     return map;
   }
 
@@ -434,7 +462,8 @@ class UserProgressData extends DataClass
       sortingGamesCompleted: Value(sortingGamesCompleted),
       emotionsRecognized: Value(emotionsRecognized),
       chatMessagesSent: Value(chatMessagesSent),
-      colorsSortedCorrectly: Value(colorsSortedCorrectly),
+      sortGameUnlockedLevel: Value(sortGameUnlockedLevel),
+      gamesInCurrentSession: Value(gamesInCurrentSession),
     );
   }
 
@@ -462,8 +491,11 @@ class UserProgressData extends DataClass
       ),
       emotionsRecognized: serializer.fromJson<int>(json['emotionsRecognized']),
       chatMessagesSent: serializer.fromJson<int>(json['chatMessagesSent']),
-      colorsSortedCorrectly: serializer.fromJson<int>(
-        json['colorsSortedCorrectly'],
+      sortGameUnlockedLevel: serializer.fromJson<int>(
+        json['sortGameUnlockedLevel'],
+      ),
+      gamesInCurrentSession: serializer.fromJson<int>(
+        json['gamesInCurrentSession'],
       ),
     );
   }
@@ -485,7 +517,8 @@ class UserProgressData extends DataClass
       'sortingGamesCompleted': serializer.toJson<int>(sortingGamesCompleted),
       'emotionsRecognized': serializer.toJson<int>(emotionsRecognized),
       'chatMessagesSent': serializer.toJson<int>(chatMessagesSent),
-      'colorsSortedCorrectly': serializer.toJson<int>(colorsSortedCorrectly),
+      'sortGameUnlockedLevel': serializer.toJson<int>(sortGameUnlockedLevel),
+      'gamesInCurrentSession': serializer.toJson<int>(gamesInCurrentSession),
     };
   }
 
@@ -502,7 +535,8 @@ class UserProgressData extends DataClass
     int? sortingGamesCompleted,
     int? emotionsRecognized,
     int? chatMessagesSent,
-    int? colorsSortedCorrectly,
+    int? sortGameUnlockedLevel,
+    int? gamesInCurrentSession,
   }) => UserProgressData(
     id: id ?? this.id,
     learningPoints: learningPoints ?? this.learningPoints,
@@ -517,7 +551,8 @@ class UserProgressData extends DataClass
     sortingGamesCompleted: sortingGamesCompleted ?? this.sortingGamesCompleted,
     emotionsRecognized: emotionsRecognized ?? this.emotionsRecognized,
     chatMessagesSent: chatMessagesSent ?? this.chatMessagesSent,
-    colorsSortedCorrectly: colorsSortedCorrectly ?? this.colorsSortedCorrectly,
+    sortGameUnlockedLevel: sortGameUnlockedLevel ?? this.sortGameUnlockedLevel,
+    gamesInCurrentSession: gamesInCurrentSession ?? this.gamesInCurrentSession,
   );
   UserProgressData copyWithCompanion(UserProgressCompanion data) {
     return UserProgressData(
@@ -549,9 +584,12 @@ class UserProgressData extends DataClass
       chatMessagesSent: data.chatMessagesSent.present
           ? data.chatMessagesSent.value
           : this.chatMessagesSent,
-      colorsSortedCorrectly: data.colorsSortedCorrectly.present
-          ? data.colorsSortedCorrectly.value
-          : this.colorsSortedCorrectly,
+      sortGameUnlockedLevel: data.sortGameUnlockedLevel.present
+          ? data.sortGameUnlockedLevel.value
+          : this.sortGameUnlockedLevel,
+      gamesInCurrentSession: data.gamesInCurrentSession.present
+          ? data.gamesInCurrentSession.value
+          : this.gamesInCurrentSession,
     );
   }
 
@@ -570,7 +608,8 @@ class UserProgressData extends DataClass
           ..write('sortingGamesCompleted: $sortingGamesCompleted, ')
           ..write('emotionsRecognized: $emotionsRecognized, ')
           ..write('chatMessagesSent: $chatMessagesSent, ')
-          ..write('colorsSortedCorrectly: $colorsSortedCorrectly')
+          ..write('sortGameUnlockedLevel: $sortGameUnlockedLevel, ')
+          ..write('gamesInCurrentSession: $gamesInCurrentSession')
           ..write(')'))
         .toString();
   }
@@ -589,7 +628,8 @@ class UserProgressData extends DataClass
     sortingGamesCompleted,
     emotionsRecognized,
     chatMessagesSent,
-    colorsSortedCorrectly,
+    sortGameUnlockedLevel,
+    gamesInCurrentSession,
   );
   @override
   bool operator ==(Object other) =>
@@ -607,7 +647,8 @@ class UserProgressData extends DataClass
           other.sortingGamesCompleted == this.sortingGamesCompleted &&
           other.emotionsRecognized == this.emotionsRecognized &&
           other.chatMessagesSent == this.chatMessagesSent &&
-          other.colorsSortedCorrectly == this.colorsSortedCorrectly);
+          other.sortGameUnlockedLevel == this.sortGameUnlockedLevel &&
+          other.gamesInCurrentSession == this.gamesInCurrentSession);
 }
 
 class UserProgressCompanion extends UpdateCompanion<UserProgressData> {
@@ -623,7 +664,8 @@ class UserProgressCompanion extends UpdateCompanion<UserProgressData> {
   final Value<int> sortingGamesCompleted;
   final Value<int> emotionsRecognized;
   final Value<int> chatMessagesSent;
-  final Value<int> colorsSortedCorrectly;
+  final Value<int> sortGameUnlockedLevel;
+  final Value<int> gamesInCurrentSession;
   const UserProgressCompanion({
     this.id = const Value.absent(),
     this.learningPoints = const Value.absent(),
@@ -637,7 +679,8 @@ class UserProgressCompanion extends UpdateCompanion<UserProgressData> {
     this.sortingGamesCompleted = const Value.absent(),
     this.emotionsRecognized = const Value.absent(),
     this.chatMessagesSent = const Value.absent(),
-    this.colorsSortedCorrectly = const Value.absent(),
+    this.sortGameUnlockedLevel = const Value.absent(),
+    this.gamesInCurrentSession = const Value.absent(),
   });
   UserProgressCompanion.insert({
     this.id = const Value.absent(),
@@ -652,7 +695,8 @@ class UserProgressCompanion extends UpdateCompanion<UserProgressData> {
     this.sortingGamesCompleted = const Value.absent(),
     this.emotionsRecognized = const Value.absent(),
     this.chatMessagesSent = const Value.absent(),
-    this.colorsSortedCorrectly = const Value.absent(),
+    this.sortGameUnlockedLevel = const Value.absent(),
+    this.gamesInCurrentSession = const Value.absent(),
   }) : updatedAt = Value(updatedAt);
   static Insertable<UserProgressData> custom({
     Expression<int>? id,
@@ -667,7 +711,8 @@ class UserProgressCompanion extends UpdateCompanion<UserProgressData> {
     Expression<int>? sortingGamesCompleted,
     Expression<int>? emotionsRecognized,
     Expression<int>? chatMessagesSent,
-    Expression<int>? colorsSortedCorrectly,
+    Expression<int>? sortGameUnlockedLevel,
+    Expression<int>? gamesInCurrentSession,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -685,8 +730,10 @@ class UserProgressCompanion extends UpdateCompanion<UserProgressData> {
         'sorting_games_completed': sortingGamesCompleted,
       if (emotionsRecognized != null) 'emotions_recognized': emotionsRecognized,
       if (chatMessagesSent != null) 'chat_messages_sent': chatMessagesSent,
-      if (colorsSortedCorrectly != null)
-        'colors_sorted_correctly': colorsSortedCorrectly,
+      if (sortGameUnlockedLevel != null)
+        'sort_game_unlocked_level': sortGameUnlockedLevel,
+      if (gamesInCurrentSession != null)
+        'games_in_current_session': gamesInCurrentSession,
     });
   }
 
@@ -703,7 +750,8 @@ class UserProgressCompanion extends UpdateCompanion<UserProgressData> {
     Value<int>? sortingGamesCompleted,
     Value<int>? emotionsRecognized,
     Value<int>? chatMessagesSent,
-    Value<int>? colorsSortedCorrectly,
+    Value<int>? sortGameUnlockedLevel,
+    Value<int>? gamesInCurrentSession,
   }) {
     return UserProgressCompanion(
       id: id ?? this.id,
@@ -720,8 +768,10 @@ class UserProgressCompanion extends UpdateCompanion<UserProgressData> {
           sortingGamesCompleted ?? this.sortingGamesCompleted,
       emotionsRecognized: emotionsRecognized ?? this.emotionsRecognized,
       chatMessagesSent: chatMessagesSent ?? this.chatMessagesSent,
-      colorsSortedCorrectly:
-          colorsSortedCorrectly ?? this.colorsSortedCorrectly,
+      sortGameUnlockedLevel:
+          sortGameUnlockedLevel ?? this.sortGameUnlockedLevel,
+      gamesInCurrentSession:
+          gamesInCurrentSession ?? this.gamesInCurrentSession,
     );
   }
 
@@ -768,9 +818,14 @@ class UserProgressCompanion extends UpdateCompanion<UserProgressData> {
     if (chatMessagesSent.present) {
       map['chat_messages_sent'] = Variable<int>(chatMessagesSent.value);
     }
-    if (colorsSortedCorrectly.present) {
-      map['colors_sorted_correctly'] = Variable<int>(
-        colorsSortedCorrectly.value,
+    if (sortGameUnlockedLevel.present) {
+      map['sort_game_unlocked_level'] = Variable<int>(
+        sortGameUnlockedLevel.value,
+      );
+    }
+    if (gamesInCurrentSession.present) {
+      map['games_in_current_session'] = Variable<int>(
+        gamesInCurrentSession.value,
       );
     }
     return map;
@@ -791,7 +846,8 @@ class UserProgressCompanion extends UpdateCompanion<UserProgressData> {
           ..write('sortingGamesCompleted: $sortingGamesCompleted, ')
           ..write('emotionsRecognized: $emotionsRecognized, ')
           ..write('chatMessagesSent: $chatMessagesSent, ')
-          ..write('colorsSortedCorrectly: $colorsSortedCorrectly')
+          ..write('sortGameUnlockedLevel: $sortGameUnlockedLevel, ')
+          ..write('gamesInCurrentSession: $gamesInCurrentSession')
           ..write(')'))
         .toString();
   }
@@ -2878,6 +2934,472 @@ class GameSessionsCompanion extends UpdateCompanion<GameSession> {
   }
 }
 
+class $UserPreferencesTable extends UserPreferences
+    with TableInfo<$UserPreferencesTable, UserPreference> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $UserPreferencesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _communicationLevelMeta =
+      const VerificationMeta('communicationLevel');
+  @override
+  late final GeneratedColumn<int> communicationLevel = GeneratedColumn<int>(
+    'communication_level',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(3),
+  );
+  static const VerificationMeta _sensorySensitivityMeta =
+      const VerificationMeta('sensorySensitivity');
+  @override
+  late final GeneratedColumn<int> sensorySensitivity = GeneratedColumn<int>(
+    'sensory_sensitivity',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(1),
+  );
+  static const VerificationMeta _learningPaceMeta = const VerificationMeta(
+    'learningPace',
+  );
+  @override
+  late final GeneratedColumn<int> learningPace = GeneratedColumn<int>(
+    'learning_pace',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(1),
+  );
+  static const VerificationMeta _favoriteInterestsMeta = const VerificationMeta(
+    'favoriteInterests',
+  );
+  @override
+  late final GeneratedColumn<String> favoriteInterests =
+      GeneratedColumn<String>(
+        'favorite_interests',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+        defaultValue: const Constant(''),
+      );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _isSyncedMeta = const VerificationMeta(
+    'isSynced',
+  );
+  @override
+  late final GeneratedColumn<bool> isSynced = GeneratedColumn<bool>(
+    'is_synced',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_synced" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    communicationLevel,
+    sensorySensitivity,
+    learningPace,
+    favoriteInterests,
+    updatedAt,
+    isSynced,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'user_preferences';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<UserPreference> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('communication_level')) {
+      context.handle(
+        _communicationLevelMeta,
+        communicationLevel.isAcceptableOrUnknown(
+          data['communication_level']!,
+          _communicationLevelMeta,
+        ),
+      );
+    }
+    if (data.containsKey('sensory_sensitivity')) {
+      context.handle(
+        _sensorySensitivityMeta,
+        sensorySensitivity.isAcceptableOrUnknown(
+          data['sensory_sensitivity']!,
+          _sensorySensitivityMeta,
+        ),
+      );
+    }
+    if (data.containsKey('learning_pace')) {
+      context.handle(
+        _learningPaceMeta,
+        learningPace.isAcceptableOrUnknown(
+          data['learning_pace']!,
+          _learningPaceMeta,
+        ),
+      );
+    }
+    if (data.containsKey('favorite_interests')) {
+      context.handle(
+        _favoriteInterestsMeta,
+        favoriteInterests.isAcceptableOrUnknown(
+          data['favorite_interests']!,
+          _favoriteInterestsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    if (data.containsKey('is_synced')) {
+      context.handle(
+        _isSyncedMeta,
+        isSynced.isAcceptableOrUnknown(data['is_synced']!, _isSyncedMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  UserPreference map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return UserPreference(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      communicationLevel: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}communication_level'],
+      )!,
+      sensorySensitivity: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}sensory_sensitivity'],
+      )!,
+      learningPace: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}learning_pace'],
+      )!,
+      favoriteInterests: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}favorite_interests'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+      isSynced: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_synced'],
+      )!,
+    );
+  }
+
+  @override
+  $UserPreferencesTable createAlias(String alias) {
+    return $UserPreferencesTable(attachedDatabase, alias);
+  }
+}
+
+class UserPreference extends DataClass implements Insertable<UserPreference> {
+  final int id;
+  final int communicationLevel;
+  final int sensorySensitivity;
+  final int learningPace;
+  final String favoriteInterests;
+  final DateTime updatedAt;
+  final bool isSynced;
+  const UserPreference({
+    required this.id,
+    required this.communicationLevel,
+    required this.sensorySensitivity,
+    required this.learningPace,
+    required this.favoriteInterests,
+    required this.updatedAt,
+    required this.isSynced,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['communication_level'] = Variable<int>(communicationLevel);
+    map['sensory_sensitivity'] = Variable<int>(sensorySensitivity);
+    map['learning_pace'] = Variable<int>(learningPace);
+    map['favorite_interests'] = Variable<String>(favoriteInterests);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    map['is_synced'] = Variable<bool>(isSynced);
+    return map;
+  }
+
+  UserPreferencesCompanion toCompanion(bool nullToAbsent) {
+    return UserPreferencesCompanion(
+      id: Value(id),
+      communicationLevel: Value(communicationLevel),
+      sensorySensitivity: Value(sensorySensitivity),
+      learningPace: Value(learningPace),
+      favoriteInterests: Value(favoriteInterests),
+      updatedAt: Value(updatedAt),
+      isSynced: Value(isSynced),
+    );
+  }
+
+  factory UserPreference.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return UserPreference(
+      id: serializer.fromJson<int>(json['id']),
+      communicationLevel: serializer.fromJson<int>(json['communicationLevel']),
+      sensorySensitivity: serializer.fromJson<int>(json['sensorySensitivity']),
+      learningPace: serializer.fromJson<int>(json['learningPace']),
+      favoriteInterests: serializer.fromJson<String>(json['favoriteInterests']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      isSynced: serializer.fromJson<bool>(json['isSynced']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'communicationLevel': serializer.toJson<int>(communicationLevel),
+      'sensorySensitivity': serializer.toJson<int>(sensorySensitivity),
+      'learningPace': serializer.toJson<int>(learningPace),
+      'favoriteInterests': serializer.toJson<String>(favoriteInterests),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'isSynced': serializer.toJson<bool>(isSynced),
+    };
+  }
+
+  UserPreference copyWith({
+    int? id,
+    int? communicationLevel,
+    int? sensorySensitivity,
+    int? learningPace,
+    String? favoriteInterests,
+    DateTime? updatedAt,
+    bool? isSynced,
+  }) => UserPreference(
+    id: id ?? this.id,
+    communicationLevel: communicationLevel ?? this.communicationLevel,
+    sensorySensitivity: sensorySensitivity ?? this.sensorySensitivity,
+    learningPace: learningPace ?? this.learningPace,
+    favoriteInterests: favoriteInterests ?? this.favoriteInterests,
+    updatedAt: updatedAt ?? this.updatedAt,
+    isSynced: isSynced ?? this.isSynced,
+  );
+  UserPreference copyWithCompanion(UserPreferencesCompanion data) {
+    return UserPreference(
+      id: data.id.present ? data.id.value : this.id,
+      communicationLevel: data.communicationLevel.present
+          ? data.communicationLevel.value
+          : this.communicationLevel,
+      sensorySensitivity: data.sensorySensitivity.present
+          ? data.sensorySensitivity.value
+          : this.sensorySensitivity,
+      learningPace: data.learningPace.present
+          ? data.learningPace.value
+          : this.learningPace,
+      favoriteInterests: data.favoriteInterests.present
+          ? data.favoriteInterests.value
+          : this.favoriteInterests,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      isSynced: data.isSynced.present ? data.isSynced.value : this.isSynced,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('UserPreference(')
+          ..write('id: $id, ')
+          ..write('communicationLevel: $communicationLevel, ')
+          ..write('sensorySensitivity: $sensorySensitivity, ')
+          ..write('learningPace: $learningPace, ')
+          ..write('favoriteInterests: $favoriteInterests, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('isSynced: $isSynced')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    communicationLevel,
+    sensorySensitivity,
+    learningPace,
+    favoriteInterests,
+    updatedAt,
+    isSynced,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is UserPreference &&
+          other.id == this.id &&
+          other.communicationLevel == this.communicationLevel &&
+          other.sensorySensitivity == this.sensorySensitivity &&
+          other.learningPace == this.learningPace &&
+          other.favoriteInterests == this.favoriteInterests &&
+          other.updatedAt == this.updatedAt &&
+          other.isSynced == this.isSynced);
+}
+
+class UserPreferencesCompanion extends UpdateCompanion<UserPreference> {
+  final Value<int> id;
+  final Value<int> communicationLevel;
+  final Value<int> sensorySensitivity;
+  final Value<int> learningPace;
+  final Value<String> favoriteInterests;
+  final Value<DateTime> updatedAt;
+  final Value<bool> isSynced;
+  const UserPreferencesCompanion({
+    this.id = const Value.absent(),
+    this.communicationLevel = const Value.absent(),
+    this.sensorySensitivity = const Value.absent(),
+    this.learningPace = const Value.absent(),
+    this.favoriteInterests = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.isSynced = const Value.absent(),
+  });
+  UserPreferencesCompanion.insert({
+    this.id = const Value.absent(),
+    this.communicationLevel = const Value.absent(),
+    this.sensorySensitivity = const Value.absent(),
+    this.learningPace = const Value.absent(),
+    this.favoriteInterests = const Value.absent(),
+    required DateTime updatedAt,
+    this.isSynced = const Value.absent(),
+  }) : updatedAt = Value(updatedAt);
+  static Insertable<UserPreference> custom({
+    Expression<int>? id,
+    Expression<int>? communicationLevel,
+    Expression<int>? sensorySensitivity,
+    Expression<int>? learningPace,
+    Expression<String>? favoriteInterests,
+    Expression<DateTime>? updatedAt,
+    Expression<bool>? isSynced,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (communicationLevel != null) 'communication_level': communicationLevel,
+      if (sensorySensitivity != null) 'sensory_sensitivity': sensorySensitivity,
+      if (learningPace != null) 'learning_pace': learningPace,
+      if (favoriteInterests != null) 'favorite_interests': favoriteInterests,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (isSynced != null) 'is_synced': isSynced,
+    });
+  }
+
+  UserPreferencesCompanion copyWith({
+    Value<int>? id,
+    Value<int>? communicationLevel,
+    Value<int>? sensorySensitivity,
+    Value<int>? learningPace,
+    Value<String>? favoriteInterests,
+    Value<DateTime>? updatedAt,
+    Value<bool>? isSynced,
+  }) {
+    return UserPreferencesCompanion(
+      id: id ?? this.id,
+      communicationLevel: communicationLevel ?? this.communicationLevel,
+      sensorySensitivity: sensorySensitivity ?? this.sensorySensitivity,
+      learningPace: learningPace ?? this.learningPace,
+      favoriteInterests: favoriteInterests ?? this.favoriteInterests,
+      updatedAt: updatedAt ?? this.updatedAt,
+      isSynced: isSynced ?? this.isSynced,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (communicationLevel.present) {
+      map['communication_level'] = Variable<int>(communicationLevel.value);
+    }
+    if (sensorySensitivity.present) {
+      map['sensory_sensitivity'] = Variable<int>(sensorySensitivity.value);
+    }
+    if (learningPace.present) {
+      map['learning_pace'] = Variable<int>(learningPace.value);
+    }
+    if (favoriteInterests.present) {
+      map['favorite_interests'] = Variable<String>(favoriteInterests.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (isSynced.present) {
+      map['is_synced'] = Variable<bool>(isSynced.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('UserPreferencesCompanion(')
+          ..write('id: $id, ')
+          ..write('communicationLevel: $communicationLevel, ')
+          ..write('sensorySensitivity: $sensorySensitivity, ')
+          ..write('learningPace: $learningPace, ')
+          ..write('favoriteInterests: $favoriteInterests, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('isSynced: $isSynced')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -2888,6 +3410,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     this,
   );
   late final $GameSessionsTable gameSessions = $GameSessionsTable(this);
+  late final $UserPreferencesTable userPreferences = $UserPreferencesTable(
+    this,
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -2898,6 +3423,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     achievements,
     userAchievements,
     gameSessions,
+    userPreferences,
   ];
 }
 
@@ -2915,7 +3441,8 @@ typedef $$UserProgressTableCreateCompanionBuilder =
       Value<int> sortingGamesCompleted,
       Value<int> emotionsRecognized,
       Value<int> chatMessagesSent,
-      Value<int> colorsSortedCorrectly,
+      Value<int> sortGameUnlockedLevel,
+      Value<int> gamesInCurrentSession,
     });
 typedef $$UserProgressTableUpdateCompanionBuilder =
     UserProgressCompanion Function({
@@ -2931,7 +3458,8 @@ typedef $$UserProgressTableUpdateCompanionBuilder =
       Value<int> sortingGamesCompleted,
       Value<int> emotionsRecognized,
       Value<int> chatMessagesSent,
-      Value<int> colorsSortedCorrectly,
+      Value<int> sortGameUnlockedLevel,
+      Value<int> gamesInCurrentSession,
     });
 
 class $$UserProgressTableFilterComposer
@@ -3003,8 +3531,13 @@ class $$UserProgressTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<int> get colorsSortedCorrectly => $composableBuilder(
-    column: $table.colorsSortedCorrectly,
+  ColumnFilters<int> get sortGameUnlockedLevel => $composableBuilder(
+    column: $table.sortGameUnlockedLevel,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get gamesInCurrentSession => $composableBuilder(
+    column: $table.gamesInCurrentSession,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -3078,8 +3611,13 @@ class $$UserProgressTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<int> get colorsSortedCorrectly => $composableBuilder(
-    column: $table.colorsSortedCorrectly,
+  ColumnOrderings<int> get sortGameUnlockedLevel => $composableBuilder(
+    column: $table.sortGameUnlockedLevel,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get gamesInCurrentSession => $composableBuilder(
+    column: $table.gamesInCurrentSession,
     builder: (column) => ColumnOrderings(column),
   );
 }
@@ -3145,8 +3683,13 @@ class $$UserProgressTableAnnotationComposer
     builder: (column) => column,
   );
 
-  GeneratedColumn<int> get colorsSortedCorrectly => $composableBuilder(
-    column: $table.colorsSortedCorrectly,
+  GeneratedColumn<int> get sortGameUnlockedLevel => $composableBuilder(
+    column: $table.sortGameUnlockedLevel,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get gamesInCurrentSession => $composableBuilder(
+    column: $table.gamesInCurrentSession,
     builder: (column) => column,
   );
 }
@@ -3194,7 +3737,8 @@ class $$UserProgressTableTableManager
                 Value<int> sortingGamesCompleted = const Value.absent(),
                 Value<int> emotionsRecognized = const Value.absent(),
                 Value<int> chatMessagesSent = const Value.absent(),
-                Value<int> colorsSortedCorrectly = const Value.absent(),
+                Value<int> sortGameUnlockedLevel = const Value.absent(),
+                Value<int> gamesInCurrentSession = const Value.absent(),
               }) => UserProgressCompanion(
                 id: id,
                 learningPoints: learningPoints,
@@ -3208,7 +3752,8 @@ class $$UserProgressTableTableManager
                 sortingGamesCompleted: sortingGamesCompleted,
                 emotionsRecognized: emotionsRecognized,
                 chatMessagesSent: chatMessagesSent,
-                colorsSortedCorrectly: colorsSortedCorrectly,
+                sortGameUnlockedLevel: sortGameUnlockedLevel,
+                gamesInCurrentSession: gamesInCurrentSession,
               ),
           createCompanionCallback:
               ({
@@ -3224,7 +3769,8 @@ class $$UserProgressTableTableManager
                 Value<int> sortingGamesCompleted = const Value.absent(),
                 Value<int> emotionsRecognized = const Value.absent(),
                 Value<int> chatMessagesSent = const Value.absent(),
-                Value<int> colorsSortedCorrectly = const Value.absent(),
+                Value<int> sortGameUnlockedLevel = const Value.absent(),
+                Value<int> gamesInCurrentSession = const Value.absent(),
               }) => UserProgressCompanion.insert(
                 id: id,
                 learningPoints: learningPoints,
@@ -3238,7 +3784,8 @@ class $$UserProgressTableTableManager
                 sortingGamesCompleted: sortingGamesCompleted,
                 emotionsRecognized: emotionsRecognized,
                 chatMessagesSent: chatMessagesSent,
-                colorsSortedCorrectly: colorsSortedCorrectly,
+                sortGameUnlockedLevel: sortGameUnlockedLevel,
+                gamesInCurrentSession: gamesInCurrentSession,
               ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
@@ -4305,6 +4852,252 @@ typedef $$GameSessionsTableProcessedTableManager =
       GameSession,
       PrefetchHooks Function()
     >;
+typedef $$UserPreferencesTableCreateCompanionBuilder =
+    UserPreferencesCompanion Function({
+      Value<int> id,
+      Value<int> communicationLevel,
+      Value<int> sensorySensitivity,
+      Value<int> learningPace,
+      Value<String> favoriteInterests,
+      required DateTime updatedAt,
+      Value<bool> isSynced,
+    });
+typedef $$UserPreferencesTableUpdateCompanionBuilder =
+    UserPreferencesCompanion Function({
+      Value<int> id,
+      Value<int> communicationLevel,
+      Value<int> sensorySensitivity,
+      Value<int> learningPace,
+      Value<String> favoriteInterests,
+      Value<DateTime> updatedAt,
+      Value<bool> isSynced,
+    });
+
+class $$UserPreferencesTableFilterComposer
+    extends Composer<_$AppDatabase, $UserPreferencesTable> {
+  $$UserPreferencesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get communicationLevel => $composableBuilder(
+    column: $table.communicationLevel,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get sensorySensitivity => $composableBuilder(
+    column: $table.sensorySensitivity,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get learningPace => $composableBuilder(
+    column: $table.learningPace,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get favoriteInterests => $composableBuilder(
+    column: $table.favoriteInterests,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isSynced => $composableBuilder(
+    column: $table.isSynced,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$UserPreferencesTableOrderingComposer
+    extends Composer<_$AppDatabase, $UserPreferencesTable> {
+  $$UserPreferencesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get communicationLevel => $composableBuilder(
+    column: $table.communicationLevel,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get sensorySensitivity => $composableBuilder(
+    column: $table.sensorySensitivity,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get learningPace => $composableBuilder(
+    column: $table.learningPace,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get favoriteInterests => $composableBuilder(
+    column: $table.favoriteInterests,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isSynced => $composableBuilder(
+    column: $table.isSynced,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$UserPreferencesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $UserPreferencesTable> {
+  $$UserPreferencesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<int> get communicationLevel => $composableBuilder(
+    column: $table.communicationLevel,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get sensorySensitivity => $composableBuilder(
+    column: $table.sensorySensitivity,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get learningPace => $composableBuilder(
+    column: $table.learningPace,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get favoriteInterests => $composableBuilder(
+    column: $table.favoriteInterests,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<bool> get isSynced =>
+      $composableBuilder(column: $table.isSynced, builder: (column) => column);
+}
+
+class $$UserPreferencesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $UserPreferencesTable,
+          UserPreference,
+          $$UserPreferencesTableFilterComposer,
+          $$UserPreferencesTableOrderingComposer,
+          $$UserPreferencesTableAnnotationComposer,
+          $$UserPreferencesTableCreateCompanionBuilder,
+          $$UserPreferencesTableUpdateCompanionBuilder,
+          (
+            UserPreference,
+            BaseReferences<
+              _$AppDatabase,
+              $UserPreferencesTable,
+              UserPreference
+            >,
+          ),
+          UserPreference,
+          PrefetchHooks Function()
+        > {
+  $$UserPreferencesTableTableManager(
+    _$AppDatabase db,
+    $UserPreferencesTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$UserPreferencesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$UserPreferencesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$UserPreferencesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int> communicationLevel = const Value.absent(),
+                Value<int> sensorySensitivity = const Value.absent(),
+                Value<int> learningPace = const Value.absent(),
+                Value<String> favoriteInterests = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<bool> isSynced = const Value.absent(),
+              }) => UserPreferencesCompanion(
+                id: id,
+                communicationLevel: communicationLevel,
+                sensorySensitivity: sensorySensitivity,
+                learningPace: learningPace,
+                favoriteInterests: favoriteInterests,
+                updatedAt: updatedAt,
+                isSynced: isSynced,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int> communicationLevel = const Value.absent(),
+                Value<int> sensorySensitivity = const Value.absent(),
+                Value<int> learningPace = const Value.absent(),
+                Value<String> favoriteInterests = const Value.absent(),
+                required DateTime updatedAt,
+                Value<bool> isSynced = const Value.absent(),
+              }) => UserPreferencesCompanion.insert(
+                id: id,
+                communicationLevel: communicationLevel,
+                sensorySensitivity: sensorySensitivity,
+                learningPace: learningPace,
+                favoriteInterests: favoriteInterests,
+                updatedAt: updatedAt,
+                isSynced: isSynced,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$UserPreferencesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $UserPreferencesTable,
+      UserPreference,
+      $$UserPreferencesTableFilterComposer,
+      $$UserPreferencesTableOrderingComposer,
+      $$UserPreferencesTableAnnotationComposer,
+      $$UserPreferencesTableCreateCompanionBuilder,
+      $$UserPreferencesTableUpdateCompanionBuilder,
+      (
+        UserPreference,
+        BaseReferences<_$AppDatabase, $UserPreferencesTable, UserPreference>,
+      ),
+      UserPreference,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -4319,4 +5112,6 @@ class $AppDatabaseManager {
       $$UserAchievementsTableTableManager(_db, _db.userAchievements);
   $$GameSessionsTableTableManager get gameSessions =>
       $$GameSessionsTableTableManager(_db, _db.gameSessions);
+  $$UserPreferencesTableTableManager get userPreferences =>
+      $$UserPreferencesTableTableManager(_db, _db.userPreferences);
 }

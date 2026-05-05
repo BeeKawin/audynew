@@ -1,3 +1,7 @@
+import 'package:flutter/material.dart';
+
+import '../state/audy_controller.dart';
+
 final class AppRoutes {
   static const login = '/login';
   static const dashboard = '/';
@@ -18,4 +22,19 @@ final class AppRoutes {
   static const social = '/social';
   static const rewards = '/rewards';
   static const profile = '/profile';
+  static const preferences = '/preferences';
+  static const meltdown = '/meltdown';
+
+  /// Navigate after game completion, checking if meltdown protection should trigger.
+  /// If 5 games have been played, navigates to meltdown screen.
+  /// Otherwise, pops back to the games hub.
+  static void navigateAfterGameCompletion(BuildContext context, AudyController controller) {
+    if (controller.shouldTriggerMeltdown) {
+      // Navigate to meltdown screen with gentle transition
+      Navigator.of(context).pushNamed(meltdown);
+    } else {
+      // Pop back to games hub
+      Navigator.of(context).popUntil((route) => route.settings.name == games);
+    }
+  }
 }

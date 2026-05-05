@@ -30,6 +30,13 @@ class StorageRepository {
     }
   }
 
+  // ==================== USER PREFERENCES ====================
+
+  Future<UserPreferences?> getUserPreferences() => local.getUserPreferences();
+
+  Future<void> saveUserPreferences(UserPreferences preferences) =>
+      local.saveUserPreferences(preferences);
+
   // ==================== USER REWARDS ====================
 
   Future<List<RewardData>> getUserRewards() => local.getUserRewards();

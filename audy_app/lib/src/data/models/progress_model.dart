@@ -11,7 +11,12 @@ class ProgressData {
   final int sortingGamesCompleted;
   final int emotionsRecognized;
   final int chatMessagesSent;
-  final int colorsSortedCorrectly;
+
+  // Sorting game level unlock progress (0 = first level only)
+  final int sortGameUnlockedLevel;
+
+  // Meltdown protection - games played in current session
+  final int gamesInCurrentSession;
 
   const ProgressData({
     required this.learningPoints,
@@ -23,7 +28,8 @@ class ProgressData {
     this.sortingGamesCompleted = 0,
     this.emotionsRecognized = 0,
     this.chatMessagesSent = 0,
-    this.colorsSortedCorrectly = 0,
+    this.sortGameUnlockedLevel = 0,
+    this.gamesInCurrentSession = 0,
   });
 }
 
@@ -136,4 +142,42 @@ class GroupPerformanceData {
     required this.totalAchievementsUnlocked,
     required this.reportGeneratedAt,
   });
+}
+
+/// User preferences data for autism-related personalization
+/// Stores settings to customize the app experience
+class UserPreferences {
+  final int
+  communicationLevel; // 0=non-verbal, 1=single words, 2=short phrases, 3=full sentences
+  final int sensorySensitivity; // 0=low, 1=medium, 2=high
+  final int learningPace; // 0=slower, 1=standard, 2=faster
+  final String favoriteInterests; // comma-separated list
+
+  const UserPreferences({
+    this.communicationLevel = 3,
+    this.sensorySensitivity = 1,
+    this.learningPace = 1,
+    this.favoriteInterests = '',
+  });
+
+  /// Get favorite interests as a list
+  List<String> get interestsList {
+    if (favoriteInterests.isEmpty) return [];
+    return favoriteInterests.split(',').where((s) => s.isNotEmpty).toList();
+  }
+
+  /// Create copy with updated values
+  UserPreferences copyWith({
+    int? communicationLevel,
+    int? sensorySensitivity,
+    int? learningPace,
+    String? favoriteInterests,
+  }) {
+    return UserPreferences(
+      communicationLevel: communicationLevel ?? this.communicationLevel,
+      sensorySensitivity: sensorySensitivity ?? this.sensorySensitivity,
+      learningPace: learningPace ?? this.learningPace,
+      favoriteInterests: favoriteInterests ?? this.favoriteInterests,
+    );
+  }
 }

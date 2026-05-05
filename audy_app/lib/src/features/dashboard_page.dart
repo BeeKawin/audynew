@@ -115,6 +115,9 @@ class DashboardPage extends StatelessWidget {
                   Navigator.pushNamed(context, AppRoutes.profile),
             ),
             const SizedBox(height: AudySpacing.sectionGap),
+            // Games Played Indicator
+            _GamesPlayedCard(controller: controller, adaptive: adaptive),
+            const SizedBox(height: AudySpacing.sectionGap),
             AudySectionTitle(title: controller.tr('activities')),
             const SizedBox(height: AudySpacing.elementGap),
             AudyAdaptiveGrid(
@@ -166,4 +169,99 @@ class _ActivityData {
   final Color iconColor;
   final Color borderColor;
   final String route;
+}
+
+/// Games played indicator showing progress toward meltdown protection
+class _GamesPlayedCard extends StatelessWidget {
+  final AudyController controller;
+  final AudyAdaptive adaptive;
+
+  const _GamesPlayedCard({required this.controller, required this.adaptive});
+
+  @override
+  Widget build(BuildContext context) {
+    const int meltdownThreshold = 5;
+    final int gamesPlayed = controller.gamesInCurrentSession;
+    final double progress = gamesPlayed / meltdownThreshold;
+    final bool isNearThreshold = gamesPlayed >= 3;
+
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(adaptive.space(20)),
+      decoration: BoxDecoration(
+        color: isNearThreshold
+            ? const Color(0xFFFFF3E0).withValues(alpha: 0.5)
+            : AudyColors.backgroundCard,
+        borderRadius: BorderRadius.circular(AudySpacing.radiusLarge),
+        border: Border.all(
+          color: isNearThreshold
+              ? const Color(0xFFFFB74D).withValues(alpha: 0.5)
+              : AudyColors.skyBlue.withValues(alpha: 0.3),
+          width: isNearThreshold ? 2 : 1,
+        ),
+        boxShadow: AudyShadows.cardShadow,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.games_rounded,
+                size: adaptive.space(24),
+                color: isNearThreshold
+                    ? const Color(0xFFF57C00)
+                    : AudyColors.skyBlue,
+              ),
+              SizedBox(width: adaptive.space(8)),
+              Text(
+                'Games Played',
+                style: TextStyle(
+                  fontSize: adaptive.space(16),
+                  fontWeight: FontWeight.w700,
+                  color: AudyColors.textPrimary,
+                ),
+              ),
+              const Spacer(),
+              Text(
+                '$gamesPlayed / $meltdownThreshold',
+                style: TextStyle(
+                  fontSize: adaptive.space(18),
+                  fontWeight: FontWeight.w800,
+                  color: isNearThreshold
+                      ? const Color(0xFFF57C00)
+                      : AudyColors.skyBlue,
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: adaptive.space(12)),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(AudySpacing.radiusSmall),
+            child: LinearProgressIndicator(
+              value: progress.clamp(0.0, 1.0),
+              backgroundColor: AudyColors.borderLight,
+              valueColor: AlwaysStoppedAnimation<Color>(
+                isNearThreshold ? const Color(0xFFFFB74D) : AudyColors.skyBlue,
+              ),
+              minHeight: adaptive.space(12),
+            ),
+          ),
+          if (isNearThreshold) ...[
+            SizedBox(height: adaptive.space(8)),
+            Text(
+              gamesPlayed >= 5
+                  ? 'Time for a break! 🌸'
+                  : 'Almost time for a break... 🌸',
+              style: TextStyle(
+                fontSize: adaptive.space(14),
+                fontWeight: FontWeight.w600,
+                color: const Color(0xFFF57C00),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
 }

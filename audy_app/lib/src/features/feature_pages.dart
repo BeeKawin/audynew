@@ -8,6 +8,21 @@ import '../state/audy_controller.dart';
 class GamesHubPage extends StatelessWidget {
   const GamesHubPage({super.key});
 
+  void _navigateToGame(BuildContext context, String route) {
+    final controller = AudyScope.of(context);
+
+    SoundService.instance.playTap();
+
+    // Check if meltdown protection should trigger before starting a game
+    if (controller.shouldTriggerMeltdown) {
+      // Navigate to meltdown screen with calm transition
+      Navigator.of(context).pushNamed(AppRoutes.meltdown);
+      return;
+    }
+
+    Navigator.pushNamed(context, route);
+  }
+
   @override
   Widget build(BuildContext context) {
     final controller = AudyScope.of(context);
@@ -69,10 +84,7 @@ class GamesHubPage extends StatelessWidget {
                   icon: card.icon,
                   color: card.color,
                   adaptive: adaptive,
-                  onTap: () {
-                    SoundService.instance.playTap();
-                    Navigator.pushNamed(context, card.route);
-                  },
+                  onTap: () => _navigateToGame(context, card.route),
                 ),
               )
               .toList(),

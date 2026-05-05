@@ -469,10 +469,11 @@ class _LoginPageState extends State<LoginPage> {
           age: _selectedAge,
         );
 
-        setState(() {
-          _successMessage = 'Account created! Please sign in.';
-          _isSignUp = false;
-        });
+        // Navigate to preferences onboarding instead of showing success message
+        if (mounted) {
+          Navigator.pushReplacementNamed(context, AppRoutes.preferences);
+          return;
+        }
       } else {
         // Sign in
         await _authService.signIn(email: email, password: password);

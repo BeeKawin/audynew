@@ -11,6 +11,7 @@ import '../data/repositories/storage_repository.dart';
 import '../features/social_chat/chat_service.dart';
 import '../services/auth_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' show AuthChangeEvent;
+import '../services/gemini_tts_service.dart';
 import '../services/speech_service.dart';
 
 enum SortShape { circle, square, triangle }
@@ -22,8 +23,6 @@ typedef LevelUpCallback = void Function(int newLevel);
 enum RequestMethod { get, post, put }
 
 enum ReactionGameState { idle, waiting, ready, tooEarly, result }
-
-enum ColorSortRound { colorOnly, colorAndShape, withDistractors }
 
 class ColorPiece {
   const ColorPiece({
@@ -88,22 +87,6 @@ class UserReward {
   }
 
   double get progressRatio => currentProgress / targetCount;
-}
-
-class ColorSortRoundData {
-  const ColorSortRoundData({
-    required this.round,
-    required this.label,
-    required this.instruction,
-    required this.pieces,
-    required this.baskets,
-  });
-
-  final ColorSortRound round;
-  final String label;
-  final String instruction;
-  final List<ColorPiece> pieces;
-  final List<String> baskets;
 }
 
 class PreparedRequest {
@@ -340,7 +323,6 @@ class AudyController extends ChangeNotifier {
     if (isCorrect) {
       classifyScore += 1;
     }
-    gamesPlayed += 1;
     await addPoints(isCorrect ? 5 : 0);
     classifyQuestionIndex =
         (classifyQuestionIndex + 1) % _classifyQuestions.length;
@@ -407,26 +389,32 @@ class AudyController extends ChangeNotifier {
   }
 
   /// Track classify game completion (for Speed Star achievement)
-  void trackClassifyGameCompleted({required int durationSeconds}) {
+  Future<void> trackClassifyGameCompleted({
+    required int durationSeconds,
+  }) async {
     if (durationSeconds < 10) {
       _unlockAchievement('speed_star');
     }
+    gamesPlayed += 1;
     _trackGameInSession();
-    updateQuestProgress('game');
+    await updateQuestProgress('game');
     _updateRewardProgress(RewardCondition.emotionClassify);
     _checkAchievements();
+    await _saveProgress();
     notifyListeners();
   }
 
   /// Track mimic game completion (for Speed Star achievement)
-  void trackMimicGameCompleted({required int durationSeconds}) {
+  Future<void> trackMimicGameCompleted({required int durationSeconds}) async {
     if (durationSeconds < 10) {
       _unlockAchievement('speed_star');
     }
+    gamesPlayed += 1;
     _trackGameInSession();
-    updateQuestProgress('game');
+    await updateQuestProgress('game');
     _updateRewardProgress(RewardCondition.emotionMimic);
     _checkAchievements();
+    await _saveProgress();
     notifyListeners();
   }
 
@@ -446,6 +434,7 @@ class AudyController extends ChangeNotifier {
   // Thai Chat Services
   late final SpeechService speechService;
   late final ChatService chatService;
+  late final GeminiTTSService geminiTtsService;
 
   // Thai voice messages
   final List<SocialMessage> thaiSocialMessages = [];
@@ -462,9 +451,30 @@ class AudyController extends ChangeNotifier {
   int sortingGamesCompleted =
       0; // NEW Sorting Game (replaced old color sorting)
   int emotionsRecognized = 0;
-  int colorsSortedCorrectly = 0; // Kept for backward compatibility
   int gamesInCurrentSession = 0;
   DateTime? sessionStartTime;
+
+  // Meltdown protection constants
+  static const int _meltdownThreshold = 5; // Trigger after 5 games
+
+  /// Whether meltdown protection should trigger (after 5 games in session)
+  bool get shouldTriggerMeltdown => gamesInCurrentSession >= _meltdownThreshold;
+
+  /// Reset meltdown state after cooldown completes
+  /// Call this when returning from meltdown screen to games
+  Future<void> resetMeltdownState() async {
+    gamesInCurrentSession = 0;
+    sessionStartTime = null;
+    notifyListeners();
+    // Persist the reset immediately
+    await _saveProgress();
+  }
+
+  // Sorting game level unlock progress (0 = only first level unlocked)
+  int sortGameUnlockedLevel = 0;
+
+  // User preferences for autism-related personalization
+  UserPreferences userPreferences = const UserPreferences();
 
   // NEW Sorting Game tracking
   int newSortingCorrectActions =
@@ -592,7 +602,24 @@ class AudyController extends ChangeNotifier {
       currentReactionTimeMs = elapsed;
       reactionTimes.add(elapsed);
       reactionFeedback = '$elapsed ms';
-      reactionState = ReactionGameState.result;
+
+      // Track completion immediately on final round before UI switches to result page
+      // (The result page will replace the game container, preventing further taps)
+      if (reactionTimes.length >= reactionTotalRounds) {
+        reactionApiPayload = {
+          'game': 'reaction_time',
+          'totalRounds': reactionTotalRounds,
+          'roundTimes': List<int>.from(reactionTimes),
+          'averageTimeMs': reactionAverageMs,
+          'misses': reactionMisses,
+          'completedAt': DateTime.now().toIso8601String(),
+        };
+        reactionState = ReactionGameState.idle;
+        await trackReactionCompleted();
+      } else {
+        reactionState = ReactionGameState.result;
+      }
+
       _prepareRequest(
         feature: 'reaction_time',
         endpoint: '/api/games/reaction-time/round',
@@ -627,21 +654,9 @@ class AudyController extends ChangeNotifier {
       });
       notifyListeners();
     } else if (reactionState == ReactionGameState.result) {
-      if (reactionRound >= reactionTotalRounds) {
-        reactionApiPayload = {
-          'game': 'reaction_time',
-          'totalRounds': reactionTotalRounds,
-          'roundTimes': List<int>.from(reactionTimes),
-          'averageTimeMs': reactionAverageMs,
-          'misses': reactionMisses,
-          'completedAt': DateTime.now().toIso8601String(),
-        };
-        reactionState = ReactionGameState.idle;
-        trackReactionCompleted();
-      } else {
-        reactionRound += 1;
-        reactionState = ReactionGameState.idle;
-      }
+      // Intermediate rounds only — final round completion is handled in the ready state
+      reactionRound += 1;
+      reactionState = ReactionGameState.idle;
       notifyListeners();
     } else if (reactionState == ReactionGameState.idle) {
       startReactionRound();
@@ -701,11 +716,17 @@ class AudyController extends ChangeNotifier {
   // ==================== USER REWARDS ====================
 
   /// Add a new user reward
-  Future<void> addReward(String prize, RewardCondition condition, int targetCount) async {
+  Future<void> addReward(
+    String prize,
+    RewardCondition condition,
+    int targetCount,
+  ) async {
     if (!canAddReward) return;
 
     final now = DateTime.now();
-    final newId = userRewards.isEmpty ? 1 : userRewards.map((r) => r.id).reduce((a, b) => a > b ? a : b) + 1;
+    final newId = userRewards.isEmpty
+        ? 1
+        : userRewards.map((r) => r.id).reduce((a, b) => a > b ? a : b) + 1;
 
     final newReward = UserReward(
       id: newId,
@@ -803,10 +824,7 @@ class AudyController extends ChangeNotifier {
       feature: 'rewards',
       endpoint: '/api/rewards/claim',
       method: RequestMethod.post,
-      payload: {
-        'rewardId': rewardId,
-        'prize': reward.prize,
-      },
+      payload: {'rewardId': rewardId, 'prize': reward.prize},
     );
     notifyListeners();
   }
@@ -824,9 +842,7 @@ class AudyController extends ChangeNotifier {
       feature: 'rewards',
       endpoint: '/api/rewards/delete',
       method: RequestMethod.post,
-      payload: {
-        'rewardId': rewardId,
-      },
+      payload: {'rewardId': rewardId},
     );
     notifyListeners();
   }
@@ -902,7 +918,9 @@ class AudyController extends ChangeNotifier {
 
   /// Get real skill trends from database for the past N days
   /// Returns a map of game type to list of daily accuracy values
-  Future<Map<String, List<double>>> getRealSkillTrends({int daysBack = 7}) async {
+  Future<Map<String, List<double>>> getRealSkillTrends({
+    int daysBack = 7,
+  }) async {
     if (storage == null) {
       // Return simulated data if no storage
       return {
@@ -961,18 +979,20 @@ class AudyController extends ChangeNotifier {
   Future<WeeklyReportData> getWeeklyReport() async {
     final now = DateTime.now();
     final weekStart = now.subtract(const Duration(days: 7));
-    
+
     int totalPlayTimeMinutes = gamesPlayed * 5; // Fallback estimate
-    
+
     if (storage != null) {
       try {
-        final totalSeconds = await storage!.getTotalPlayTimeSeconds(daysBack: 7);
+        final totalSeconds = await storage!.getTotalPlayTimeSeconds(
+          daysBack: 7,
+        );
         totalPlayTimeMinutes = (totalSeconds / 60).round();
       } catch (e) {
         debugPrint('Failed to get real play time: $e');
       }
     }
-    
+
     return WeeklyReportData(
       gamesPlayed: gamesPlayed,
       pointsEarned: learningPoints,
@@ -1028,6 +1048,7 @@ class AudyController extends ChangeNotifier {
     reactionMisses = 0;
     _currentLevel = 0;
     _unlockedAchievementKeys.clear();
+    sortGameUnlockedLevel = 0;
 
     // Reset in storage
     if (storage != null) {
@@ -1059,10 +1080,19 @@ class AudyController extends ChangeNotifier {
         sortingGamesCompleted = progress.sortingGamesCompleted;
         emotionsRecognized = progress.emotionsRecognized;
         chatMessagesSent = progress.chatMessagesSent;
-        colorsSortedCorrectly = progress.colorsSortedCorrectly;
+        sortGameUnlockedLevel = progress.sortGameUnlockedLevel;
+
+        // Load meltdown session counter
+        gamesInCurrentSession = progress.gamesInCurrentSession;
 
         // Update streak based on last play date
         await _updateDayStreak();
+      }
+
+      // Load user preferences
+      final prefs = await storage!.getUserPreferences();
+      if (prefs != null) {
+        userPreferences = prefs;
       }
 
       // Load user rewards
@@ -1100,7 +1130,7 @@ class AudyController extends ChangeNotifier {
     }
   }
 
-  /// Save progress to storage
+  /// Save progress to storage (internal use)
   Future<void> _saveProgress() async {
     if (storage == null) return;
 
@@ -1116,11 +1146,32 @@ class AudyController extends ChangeNotifier {
           sortingGamesCompleted: sortingGamesCompleted,
           emotionsRecognized: emotionsRecognized,
           chatMessagesSent: chatMessagesSent,
-          colorsSortedCorrectly: colorsSortedCorrectly,
+          sortGameUnlockedLevel: sortGameUnlockedLevel,
+          gamesInCurrentSession: gamesInCurrentSession,
         ),
       );
     } catch (e) {
       debugPrint('Storage save error: $e');
+    }
+  }
+
+  /// Public method to save progress to storage
+  /// Used by UI components that need to persist progress changes
+  Future<void> saveProgress() async {
+    await _saveProgress();
+    notifyListeners();
+  }
+
+  /// Save user preferences to storage
+  Future<void> saveUserPreferences(UserPreferences preferences) async {
+    if (storage == null) return;
+
+    try {
+      userPreferences = preferences;
+      await storage!.saveUserPreferences(preferences);
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Save user preferences error: $e');
     }
   }
 
@@ -1186,7 +1237,6 @@ class AudyController extends ChangeNotifier {
       if (achievement.title == 'First Steps') key = 'first_steps';
       if (achievement.title == 'Emotion Expert') key = 'emotion_expert';
       if (achievement.title == 'Quick Reflexes') key = 'quick_reflexes';
-      if (achievement.title == 'Color Master') key = 'color_master';
       if (achievement.title == 'Social Butterfly') key = 'social_butterfly';
       if (achievement.title == 'Puzzle Starter') key = 'puzzle_starter';
       if (achievement.title == 'Speed Star') key = 'speed_star';
@@ -1195,7 +1245,6 @@ class AudyController extends ChangeNotifier {
       if (achievement.title == 'Emotion Explorer') key = 'emotion_explorer';
       if (achievement.title == 'Streak Keeper') key = 'streak_keeper';
       if (achievement.title == 'Social Star') key = 'social_star';
-      if (achievement.title == 'Color Pro') key = 'color_pro';
       if (achievement.title == 'Fast Learner') key = 'fast_learner';
       if (achievement.title == 'Reward Creator') key = 'reward_creator';
 
@@ -1227,10 +1276,12 @@ class AudyController extends ChangeNotifier {
   /// Track puzzle game completion
   Future<void> trackPuzzleCompleted() async {
     puzzleGamesCompleted++;
+    gamesPlayed += 1;
     if (puzzleGamesCompleted >= 1) {
       _unlockAchievement('puzzle_starter');
     }
-    updateQuestProgress('game');
+    await updateQuestProgress('game');
+    _trackGameInSession();
     _updateRewardProgress(RewardCondition.miniPuzzle);
     _checkAchievements();
     await _saveProgress();
@@ -1240,10 +1291,12 @@ class AudyController extends ChangeNotifier {
   /// Track reading exercise completion
   Future<void> trackReadingCompleted() async {
     readingExercisesCompleted++;
+    gamesPlayed += 1;
     if (readingExercisesCompleted >= 5) {
       _unlockAchievement('reading_buddy');
     }
-    updateQuestProgress('learn');
+    await updateQuestProgress('learn');
+    _trackGameInSession();
     _updateRewardProgress(RewardCondition.reading);
     _checkAchievements();
     await _saveProgress();
@@ -1260,7 +1313,7 @@ class AudyController extends ChangeNotifier {
     if (chatMessagesSent >= 10) {
       _unlockAchievement('social_butterfly');
     }
-    updateQuestProgress('chat');
+    await updateQuestProgress('chat');
     _updateRewardProgress(RewardCondition.socialChat);
     _checkAchievements();
     await _saveProgress();
@@ -1270,10 +1323,11 @@ class AudyController extends ChangeNotifier {
   /// Track sorting game completion
   Future<void> trackSortingCompleted() async {
     sortingGamesCompleted++;
+    gamesPlayed += 1;
     if (sortingGamesCompleted >= 10) {
       _unlockAchievement('sorting_champion');
     }
-    updateQuestProgress('game');
+    await updateQuestProgress('game');
     _trackGameInSession();
     _updateRewardProgress(RewardCondition.sortingGame);
     _checkAchievements();
@@ -1282,21 +1336,11 @@ class AudyController extends ChangeNotifier {
   }
 
   /// Track reaction game completed
-  void trackReactionCompleted() {
-    updateQuestProgress('game');
+  Future<void> trackReactionCompleted() async {
+    gamesPlayed += 1;
+    await updateQuestProgress('game');
     _trackGameInSession();
     _updateRewardProgress(RewardCondition.reactionTime);
-    _checkAchievements();
-    notifyListeners();
-  }
-
-  /// Track color sorted correctly
-  Future<void> trackColorSorted() async {
-    colorsSortedCorrectly++;
-    if (colorsSortedCorrectly >= 50) {
-      _unlockAchievement('color_pro');
-    }
-    updateQuestProgress('game');
     _checkAchievements();
     await _saveProgress();
     notifyListeners();
@@ -1308,20 +1352,22 @@ class AudyController extends ChangeNotifier {
     if (emotionsRecognized >= 5) {
       _unlockAchievement('emotion_explorer');
     }
-    updateQuestProgress('game');
+    await updateQuestProgress('game');
     _checkAchievements();
     await _saveProgress();
     notifyListeners();
   }
 
   /// Track emotion game completion (for Speed Star)
-  void trackEmotionGameCompleted({required int durationSeconds}) {
+  Future<void> trackEmotionGameCompleted({required int durationSeconds}) async {
     if (durationSeconds < 10) {
       _unlockAchievement('speed_star');
     }
+    gamesPlayed += 1;
     _trackGameInSession();
-    updateQuestProgress('game');
+    await updateQuestProgress('game');
     _checkAchievements();
+    await _saveProgress();
     notifyListeners();
   }
 
@@ -1364,6 +1410,8 @@ class AudyController extends ChangeNotifier {
   void _initThaiChat() {
     speechService = SpeechService();
     speechService.init();
+    geminiTtsService = GeminiTTSService.instance;
+    geminiTtsService.init(fallbackTts: speechService);
     _initChatService();
     _seedThaiMessages();
   }
@@ -1468,9 +1516,9 @@ class AudyController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Speak bot response (Thai TTS)
+  /// Speak bot response (Thai TTS) using Gemini TTS with fallback
   Future<void> speakThaiResponse(String text) async {
-    await speechService.speakThai(text);
+    await geminiTtsService.speakThai(text);
   }
 
   /// Listen for Thai speech (STT)
@@ -1500,7 +1548,6 @@ class AudyController extends ChangeNotifier {
         'first_steps': 'First Steps',
         'emotion_expert': 'Emotion Expert',
         'quick_reflexes': 'Quick Reflexes',
-        'color_master': 'Color Master',
         'social_butterfly': 'Social Butterfly',
         'puzzle_starter': 'Puzzle Starter',
         'speed_star': 'Speed Star',
@@ -1509,7 +1556,6 @@ class AudyController extends ChangeNotifier {
         'emotion_explorer': 'Emotion Explorer',
         'streak_keeper': 'Streak Keeper',
         'social_star': 'Social Star',
-        'color_pro': 'Color Pro',
         'fast_learner': 'Fast Learner',
         'reward_creator': 'Reward Creator',
       };
@@ -1750,8 +1796,9 @@ class AudyController extends ChangeNotifier {
   }
 
   /// Update quest progress by type
-  void updateQuestProgress(String type, {int amount = 1}) {
+  Future<void> updateQuestProgress(String type, {int amount = 1}) async {
     bool progressUpdated = false;
+    int pointsEarned = 0;
 
     for (var i = 0; i < dailyQuests.length; i++) {
       final quest = dailyQuests[i];
@@ -1764,7 +1811,7 @@ class AudyController extends ChangeNotifier {
           // Check if just completed
           if (dailyQuests[i].isCompleted) {
             dailyQuestsCompleted++;
-            learningPoints += quest.rewardPoints;
+            pointsEarned += quest.rewardPoints;
           }
         }
       }
@@ -1773,9 +1820,15 @@ class AudyController extends ChangeNotifier {
     // Check if all quests completed for bonus
     if (dailyQuestsCompleted >= 3 && !_allQuestsBonusGiven) {
       _allQuestsBonusGiven = true;
-      learningPoints += 20; // Bonus points
+      pointsEarned += 20; // Bonus points
       progressUpdated = true;
       // Could trigger a celebration here
+    }
+
+    // Persist quest reward points to storage
+    if (pointsEarned > 0) {
+      learningPoints += pointsEarned;
+      await _saveProgress();
     }
 
     // Always notify when progress changes

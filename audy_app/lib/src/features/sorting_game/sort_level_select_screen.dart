@@ -22,7 +22,6 @@ class SortLevelSelectScreen extends StatefulWidget {
 
 class _SortLevelSelectScreenState extends State<SortLevelSelectScreen> {
   late SortGameEngine _engine;
-  int _unlockedLevelIndex = 0;
 
   @override
   void initState() {
@@ -38,7 +37,10 @@ class _SortLevelSelectScreenState extends State<SortLevelSelectScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final levels = _engine.getLevels(unlockedLevelIndex: _unlockedLevelIndex);
+    final controller = AudyScope.of(context);
+    final levels = _engine.getLevels(
+      unlockedLevelIndex: controller.sortGameUnlockedLevel,
+    );
 
     return AudyResponsivePage(
       scrollable: false,
@@ -122,13 +124,18 @@ class _SortLevelSelectScreenState extends State<SortLevelSelectScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => SortGameScreen(level: level)),
-    ).then((result) {
+    ).then((result) async {
       if (result != null && result is Map<String, dynamic>) {
         final starsEarned = result['stars'] as int? ?? 0;
         if (starsEarned >= level.starsRequired) {
-          setState(() {
-            _unlockedLevelIndex = _unlockedLevelIndex + 1;
-          });
+          if (!mounted) return;
+          final controller = AudyScope.of(context);
+          final newUnlockedLevel = controller.sortGameUnlockedLevel + 1;
+          controller.sortGameUnlockedLevel = newUnlockedLevel;
+          await controller.saveProgress();
+          if (mounted) {
+            setState(() {});
+          }
         }
       }
     });

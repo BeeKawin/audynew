@@ -20,4 +20,10 @@ class UserProgress extends Table {
   IntColumn get chatMessagesSent => integer().withDefault(const Constant(0))();
   IntColumn get colorsSortedCorrectly =>
       integer().withDefault(const Constant(0))();
+  IntColumn get sortGameUnlockedLevel =>
+      integer().withDefault(const Constant(0))();
+
+  // Meltdown protection - games played in current session
+  IntColumn get gamesInCurrentSession =>
+      integer().withDefault(const Constant(0))();
 }

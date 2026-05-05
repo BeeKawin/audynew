@@ -414,6 +414,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.0.34"
+  flutter_soloud:
+    dependency: "direct main"
+    description:
+      name: flutter_soloud
+      sha256: "335c2b12cc1ceb466ca43428b1c80f10c9a9009505608e92c7f348b99b5a072f"
+      url: "https://pub.dev"
+    source: hosted
+    version: "4.0.4"
   flutter_test:
     dependency: "direct dev"
     description: flutter
@@ -1167,4 +1175,4 @@ packages:
     version: "2.1.0"
 sdks:
   dart: ">=3.11.4 <4.0.0"
-  flutter: ">=3.38.4"
+  flutter: ">=3.41.0"

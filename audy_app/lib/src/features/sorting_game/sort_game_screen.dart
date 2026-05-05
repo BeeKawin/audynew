@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/app_routes.dart';
 import '../../core/audy_theme.dart';
 import '../../core/audy_ui.dart';
 import '../../data/models/game_session_model.dart';
@@ -27,6 +28,7 @@ class SortGameScreen extends StatefulWidget {
 class _SortGameScreenState extends State<SortGameScreen> {
   late SortGameEngine _engine;
   String? _selectedItemId;
+  bool _sessionRecorded = false;
 
   @override
   void initState() {
@@ -373,21 +375,24 @@ class _SortGameScreenState extends State<SortGameScreen> {
   Widget _buildResultScreen() {
     final sessionData = _engine.getSessionData();
 
-    // Record the session to analytics database
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final controller = AudyScope.of(context);
-      final gameSession = GameSessionData.fromTimes(
-        gameType: 'sorting',
-        levelId: sessionData.levelId,
-        difficulty: sessionData.difficulty,
-        correctActions: sessionData.correctActions,
-        totalActions: sessionData.totalActions,
-        starsEarned: sessionData.totalStars,
-        sessionStartedAt: sessionData.sessionStartedAt,
-        sessionEndedAt: sessionData.sessionEndedAt,
-      );
-      controller.recordGameSession(gameSession);
-    });
+    // Record the session to analytics database (guard against duplicate calls)
+    if (!_sessionRecorded) {
+      _sessionRecorded = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final controller = AudyScope.of(context);
+        final gameSession = GameSessionData.fromTimes(
+          gameType: 'sorting',
+          levelId: sessionData.levelId,
+          difficulty: sessionData.difficulty,
+          correctActions: sessionData.correctActions,
+          totalActions: sessionData.totalActions,
+          starsEarned: sessionData.totalStars,
+          sessionStartedAt: sessionData.sessionStartedAt,
+          sessionEndedAt: sessionData.sessionEndedAt,
+        );
+        controller.recordGameSession(gameSession);
+      });
+    }
 
     return SortGameResultScreen(
       sessionData: sessionData,
@@ -401,10 +406,8 @@ class _SortGameScreenState extends State<SortGameScreen> {
         });
       },
       onDone: () {
-        Navigator.pop(context, {
-          'stars': sessionData.totalStars,
-          'data': sessionData.toJson(),
-        });
+        final controller = AudyScope.of(context);
+        AppRoutes.navigateAfterGameCompletion(context, controller);
       },
     );
   }

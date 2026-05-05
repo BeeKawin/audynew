@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/app_routes.dart';
 import '../../core/audy_theme.dart';
 import '../../core/audy_ui.dart';
 import '../../services/sound_service.dart';
@@ -405,7 +406,7 @@ class _ReactionTimeResultPageState extends State<ReactionTimeResultPage> {
                     onPressed: () {
                       SoundService.instance.playTap();
                       controller.resetReactionGame();
-                      Navigator.pop(context);
+                      AppRoutes.navigateAfterGameCompletion(context, controller);
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AudyColors.mintGreen,
@@ -454,7 +455,9 @@ class _TopRow extends StatelessWidget {
             label: leadingLabel,
             onPressed: () {
               SoundService.instance.playTap();
-              Navigator.pop(context);
+              final controller = AudyScope.of(context);
+              controller.resetReactionGame();
+              AppRoutes.navigateAfterGameCompletion(context, controller);
             },
           ),
         ),
