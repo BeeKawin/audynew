@@ -100,6 +100,13 @@ class DashboardPage extends StatelessWidget {
             borderColor: AudyColors.activityRewards,
             route: AppRoutes.rewards,
           ),
+          _ActivityData(
+            title: 'My Device',
+            icon: Icons.bluetooth_rounded,
+            iconColor: const Color(0xFF7FDBDA),
+            borderColor: const Color(0xFF7FDBDA),
+            route: AppRoutes.device,
+          ),
         ];
 
         return Column(

@@ -21,10 +21,12 @@ import 'src/features/read_pronounce/read_pronounce_practice.dart';
 import 'src/features/read_pronounce/read_pronounce_controller.dart';
 import 'src/features/reaction_game/reaction_game_screen.dart';
 import 'src/features/sorting_game/sort_level_select_screen.dart';
+import 'src/services/bluetooth_service.dart';
 import 'src/services/emotion_service.dart';
 import 'src/services/sound_service.dart';
 import 'src/state/audy_controller.dart';
 import 'src/widgets/achievement_toast.dart';
+import 'src/features/device/device_connection_page.dart';
 import 'src/features/social_chat/social_chat_page.dart';
 import 'src/features/settings/preferences_page.dart';
 
@@ -46,6 +48,14 @@ void main() async {
     debugPrint('Sound service initialized successfully');
   } catch (e) {
     debugPrint('Sound service initialization failed: $e');
+  }
+
+  // Initialize Bluetooth service
+  try {
+    await AudyBluetoothService.instance.initialize();
+    debugPrint('Bluetooth service initialized successfully');
+  } catch (e) {
+    debugPrint('Bluetooth service initialization failed: $e');
   }
 
   // Initialize database and storage
@@ -265,6 +275,7 @@ class _AudyAppState extends State<AudyApp> {
           AppRoutes.profile: (_) => _HomeShell(currentIndex: 3),
           AppRoutes.preferences: (_) => const PreferencesPage(isOnboarding: true),
           AppRoutes.meltdown: (_) => const MeltdownScreen(),
+          AppRoutes.device: (_) => const DeviceConnectionPage(),
         },
         onGenerateRoute: (settings) {
           debugPrint('onGenerateRoute: ${settings.name}');

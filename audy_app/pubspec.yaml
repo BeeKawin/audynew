@@ -26,6 +26,7 @@ dependencies:
   avatar_glow: ^3.0.1
   supabase_flutter: ^2.12.4
   flutter_soloud: ^4.0.4
+  flutter_blue_plus: ^1.35.3
 
 
 dev_dependencies:

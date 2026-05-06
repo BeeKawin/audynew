@@ -24,17 +24,39 @@ class SoundService {
 
   /// Whether sounds are enabled
   bool get isEnabled => _enabled;
+  
+  /// Whether sound service is initialized
+  bool get isInitialized => _initialized;
 
   /// Initialize SoLoud engine and preload all SFX assets
   Future<void> initialize() async {
-    if (_initialized) return;
+    if (_initialized) {
+      debugPrint('SoundService: Already initialized');
+      return;
+    }
 
     try {
-      await _soloud.init();
+      debugPrint('SoundService: Initializing SoLoud...');
+      
+      // Initialize SoLoud with mobile-friendly settings
+      await _soloud.init(
+        sampleRate: 44100,
+        bufferSize: 2048,
+        channels: Channels.stereo,
+        automaticCleanup: true,
+      );
+      
+      debugPrint('SoundService: SoLoud initialized successfully');
+      
+      // Preload all sounds
       await _loadAll();
+      
       _initialized = true;
-    } catch (e) {
+      debugPrint('SoundService: Initialization complete. Loaded ${_sources.length} sounds');
+    } catch (e, stackTrace) {
       debugPrint('SoundService: Failed to initialize SoLoud - $e');
+      debugPrint('Stack trace: $stackTrace');
+      _initialized = false;
     }
   }
 
@@ -56,72 +78,95 @@ class SoundService {
       AppSounds.soundtrack,
     ];
 
+    int loadedCount = 0;
+    int failedCount = 0;
+
     for (final path in paths) {
       try {
+        debugPrint('SoundService: Loading $path...');
         _sources[path] = await _soloud.loadAsset(path);
+        loadedCount++;
+        debugPrint('SoundService: Loaded $path successfully');
       } catch (e) {
+        failedCount++;
         debugPrint('SoundService: Failed to preload $path - $e');
       }
     }
+
+    debugPrint('SoundService: Loading complete. $loadedCount loaded, $failedCount failed');
   }
 
   /// Play a sound by its path
-  /// SoLoud sources can be played multiple times; no need to dispose/recreate
-  Future<void> play(String soundPath) async {
-    if (!_enabled || !_initialized) return;
+  /// Returns true if played successfully, false otherwise
+  bool play(String soundPath) {
+    if (!_enabled) {
+      debugPrint('SoundService: Sound disabled, not playing $soundPath');
+      return false;
+    }
+    
+    if (!_initialized) {
+      debugPrint('SoundService: Not initialized, cannot play $soundPath');
+      return false;
+    }
 
     final source = _sources[soundPath];
     if (source == null) {
       debugPrint('SoundService: Sound not preloaded - $soundPath');
-      return;
+      return false;
     }
 
     try {
       _soloud.play(source, volume: _sfxVolume);
+      debugPrint('SoundService: Playing $soundPath');
+      return true;
     } catch (e) {
       debugPrint('SoundService: Failed to play $soundPath - $e');
+      return false;
     }
   }
 
   /// Play correct answer sound
-  Future<void> playCorrect() => play(AppSounds.correct);
+  void playCorrect() => play(AppSounds.correct);
 
   /// Play wrong answer sound
-  Future<void> playWrong() => play(AppSounds.wrong);
+  void playWrong() => play(AppSounds.wrong);
 
   /// Play button tap sound
-  Future<void> playTap() => play(AppSounds.tap);
+  void playTap() => play(AppSounds.tap);
 
   /// Play camera shutter sound
-  Future<void> playCameraShutter() => play(AppSounds.cameraShutter);
+  void playCameraShutter() => play(AppSounds.cameraShutter);
 
   /// Play round complete sound
-  Future<void> playRoundComplete() => play(AppSounds.roundComplete);
+  void playRoundComplete() => play(AppSounds.roundComplete);
 
   /// Play game complete sound
-  Future<void> playGameComplete() => play(AppSounds.gameComplete);
+  void playGameComplete() => play(AppSounds.gameComplete);
 
   /// Play points earned sound
-  Future<void> playPoints() => play(AppSounds.points);
+  void playPoints() => play(AppSounds.points);
 
   /// Play achievement unlocked sound
-  Future<void> playAchievement() => play(AppSounds.achievement);
+  void playAchievement() => play(AppSounds.achievement);
 
   /// Play level up sound
-  Future<void> playLevelUp() => play(AppSounds.levelUp);
+  void playLevelUp() => play(AppSounds.levelUp);
 
   /// Play go signal (for reaction game)
-  Future<void> playGo() => play(AppSounds.go);
+  void playGo() => play(AppSounds.go);
 
   /// Play error sound
-  Future<void> playError() => play(AppSounds.error);
+  void playError() => play(AppSounds.error);
 
   /// Play try again sound
-  Future<void> playTryAgain() => play(AppSounds.tryAgain);
+  void playTryAgain() => play(AppSounds.tryAgain);
 
   /// Play background music (soundtrack) on loop at low volume
-  Future<void> playBGM() async {
-    if (!_initialized) return;
+  void playBGM() {
+    if (!_initialized) {
+      debugPrint('SoundService: Not initialized, cannot play BGM');
+      return;
+    }
 
     final source = _sources[AppSounds.soundtrack];
     if (source == null) {
@@ -130,19 +175,16 @@ class SoundService {
     }
 
     try {
-      await stopBGM(); // Stop any existing BGM first
-      _bgmHandle = _soloud.play(
-        source,
-        volume: _bgmVolume,
-        looping: true,
-      );
+      stopBGM(); // Stop any existing BGM first
+      _bgmHandle = _soloud.play(source, volume: _bgmVolume, looping: true);
+      debugPrint('SoundService: BGM started');
     } catch (e) {
       debugPrint('SoundService: Failed to play BGM - $e');
     }
   }
 
   /// Pause background music
-  Future<void> pauseBGM() async {
+  void pauseBGM() {
     final handle = _bgmHandle;
     if (handle == null) return;
     try {
@@ -153,7 +195,7 @@ class SoundService {
   }
 
   /// Resume background music
-  Future<void> resumeBGM() async {
+  void resumeBGM() {
     final handle = _bgmHandle;
     if (handle == null) return;
     try {
@@ -164,11 +206,11 @@ class SoundService {
   }
 
   /// Stop background music
-  Future<void> stopBGM() async {
+  void stopBGM() {
     final handle = _bgmHandle;
     if (handle == null) return;
     try {
-      await _soloud.stop(handle);
+      _soloud.stop(handle);
       _bgmHandle = null;
     } catch (e) {
       debugPrint('SoundService: Failed to stop BGM - $e');
@@ -186,7 +228,7 @@ class SoundService {
 
   /// Dispose BGM player
   Future<void> dispose() async {
-    await stopBGM();
+    stopBGM();
     for (final source in _sources.values) {
       try {
         _soloud.disposeSource(source);
