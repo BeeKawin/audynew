@@ -9,8 +9,29 @@ class BluetoothUuids {
   static const String deviceName = "AUDY#ABC1";
   // Service UUID
   static final Guid audyService = Guid('6755e7e6-3c34-43cf-bc4f-28f38656eca3');
-  // Characteristic UUID for LED control
+
+  // Flutter -> robot write characteristics
+  static final Guid armsCharacteristic = Guid(
+    'AA01e7e6-3c34-43cf-bc4f-28f38656eca3',
+  );
+  static final Guid emotionCharacteristic = Guid(
+    'AA02e7e6-3c34-43cf-bc4f-28f38656eca3',
+  );
   static final Guid ledCharacteristic = Guid(
-    '7855e7e6-3c34-43cf-bc4f-28f38656eca3',
+    'AA03e7e6-3c34-43cf-bc4f-28f38656eca3',
+  );
+
+  // Robot -> Flutter notify characteristics
+  static final Guid tummyCharacteristic = Guid(
+    'BB01e7e6-3c34-43cf-bc4f-28f38656eca3',
+  );
+  static final Guid noseCharacteristic = Guid(
+    'BB02e7e6-3c34-43cf-bc4f-28f38656eca3',
+  );
+  static final Guid forceCharacteristic = Guid(
+    'BB03e7e6-3c34-43cf-bc4f-28f38656eca3',
+  );
+  static final Guid earsCharacteristic = Guid(
+    'BB04e7e6-3c34-43cf-bc4f-28f38656eca3',
   );
 }

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 /// Types of mini-puzzle games available
-enum MiniPuzzleType { pattern, sorting, puzzle }
+enum MiniPuzzleType { pattern, oddOneOut, puzzle }
 
 /// Difficulty levels for each game
 enum MiniPuzzleDifficulty { easy, medium, hard }
@@ -97,27 +97,25 @@ class PatternToken {
   int get hashCode => id.hashCode;
 }
 
-/// Sorting game data
-class SortingData {
-  final SortingItem itemToSort;
-  final List<String> categories;
-  final String correctCategory;
+/// Odd-one-out game data
+class OddOneOutData {
+  final List<OddOneOutItem> items;
+  final String correctItemId;
 
-  const SortingData({
-    required this.itemToSort,
-    required this.categories,
-    required this.correctCategory,
+  const OddOneOutData({
+    required this.items,
+    required this.correctItemId,
   });
 }
 
-/// An item to be sorted
-class SortingItem {
+/// An item shown in the odd-one-out game
+class OddOneOutItem {
   final String id;
   final String label;
   final IconData icon;
   final Color color;
 
-  const SortingItem({
+  const OddOneOutItem({
     required this.id,
     required this.label,
     required this.icon,
@@ -210,6 +208,18 @@ class MiniPuzzleConfig {
         return 3;
       case MiniPuzzleDifficulty.hard:
         return 4;
+    }
+  }
+
+  /// Number of odd-one-out choices to show
+  int get oddOneOutChoiceCount {
+    switch (difficulty) {
+      case MiniPuzzleDifficulty.easy:
+        return 3;
+      case MiniPuzzleDifficulty.medium:
+        return 4;
+      case MiniPuzzleDifficulty.hard:
+        return 5;
     }
   }
 }

@@ -64,17 +64,17 @@ class AudyBleMessage {
 
 /// Bluetooth service for AUDY device.
 ///
-/// Text protocol:
+/// Robot BLE protocol:
 ///   Flutter -> ESP32:
-///     arms:0-4
-///     emotion:0-3
-///     led:0-15
+///     arms characteristic: 0-4
+///     emotion characteristic: 0-3
+///     led characteristic: 0-17
 ///
 ///   ESP32 -> Flutter:
-///     tummy:0-1
-///     nose:0-1
-///     force:0-2
-///     ears:0-2
+///     tummy characteristic: 0-1
+///     nose characteristic: 0-1
+///     force characteristic: 0-2
+///     ears characteristic: 0-2
 class AudyBluetoothService {
   AudyBluetoothService._internal();
 
@@ -83,10 +83,16 @@ class AudyBluetoothService {
   static AudyBluetoothService get instance => _instance;
 
   BluetoothDevice? _device;
-  BluetoothCharacteristic? _commandCharacteristic;
+  BluetoothCharacteristic? _armsCharacteristic;
+  BluetoothCharacteristic? _emotionCharacteristic;
+  BluetoothCharacteristic? _ledCharacteristic;
+  BluetoothCharacteristic? _tummyCharacteristic;
+  BluetoothCharacteristic? _noseCharacteristic;
+  BluetoothCharacteristic? _forceCharacteristic;
+  BluetoothCharacteristic? _earsCharacteristic;
 
   StreamSubscription<BluetoothConnectionState>? _connectionStateSub;
-  StreamSubscription<List<int>>? _incomingSub;
+  final List<StreamSubscription<List<int>>> _incomingSubs = [];
 
   final ValueNotifier<bool> connectionNotifier = ValueNotifier<bool>(false);
   final ValueNotifier<AudyBleMessage?> lastIncomingMessage =
@@ -211,7 +217,8 @@ class AudyBluetoothService {
       debugPrint('AudyBluetoothService: Connection state: $state');
 
       if (!connected) {
-        _commandCharacteristic = null;
+        unawaited(_cancelIncomingSubscriptions());
+        _clearCharacteristics();
       }
     });
 
@@ -220,91 +227,127 @@ class AudyBluetoothService {
     _isConnected = true;
     connectionNotifier.value = true;
 
-    await _findCommandCharacteristic();
+    await _findRobotCharacteristics();
     await _enableIncomingNotifications();
 
     debugPrint('AudyBluetoothService: Connected!');
   }
 
-  /// Find the command characteristic.
-  ///
-  /// This characteristic is used for both:
-  /// - Flutter -> ESP32 writes
-  /// - ESP32 -> Flutter notifications
-  Future<void> _findCommandCharacteristic() async {
+  /// Find all robot command and sensor characteristics.
+  Future<void> _findRobotCharacteristics() async {
     if (_device == null) {
       throw Exception('No BLE device selected');
     }
+
+    _clearCharacteristics();
 
     final services = await _device!.discoverServices();
 
     for (final service in services) {
       if (service.uuid == BluetoothUuids.audyService) {
         for (final characteristic in service.characteristics) {
-          if (characteristic.uuid == BluetoothUuids.ledCharacteristic) {
-            _commandCharacteristic = characteristic;
-            debugPrint('AudyBluetoothService: Found command characteristic');
-            return;
+          final uuid = characteristic.uuid;
+
+          if (uuid == BluetoothUuids.armsCharacteristic) {
+            _armsCharacteristic = characteristic;
+          } else if (uuid == BluetoothUuids.emotionCharacteristic) {
+            _emotionCharacteristic = characteristic;
+          } else if (uuid == BluetoothUuids.ledCharacteristic) {
+            _ledCharacteristic = characteristic;
+          } else if (uuid == BluetoothUuids.tummyCharacteristic) {
+            _tummyCharacteristic = characteristic;
+          } else if (uuid == BluetoothUuids.noseCharacteristic) {
+            _noseCharacteristic = characteristic;
+          } else if (uuid == BluetoothUuids.forceCharacteristic) {
+            _forceCharacteristic = characteristic;
+          } else if (uuid == BluetoothUuids.earsCharacteristic) {
+            _earsCharacteristic = characteristic;
           }
         }
       }
     }
 
-    throw Exception('AUDY command characteristic not found');
+    final missing = <String>[
+      if (_armsCharacteristic == null) 'arms',
+      if (_emotionCharacteristic == null) 'emotion',
+      if (_ledCharacteristic == null) 'led',
+      if (_tummyCharacteristic == null) 'tummy',
+      if (_noseCharacteristic == null) 'nose',
+      if (_forceCharacteristic == null) 'force',
+      if (_earsCharacteristic == null) 'ears',
+    ];
+
+    if (missing.isNotEmpty) {
+      throw Exception(
+        'AUDY robot characteristic(s) not found: ${missing.join(', ')}',
+      );
+    }
+
+    debugPrint('AudyBluetoothService: Found robot characteristics');
   }
 
   /// Enable ESP32 -> Flutter notifications.
   Future<void> _enableIncomingNotifications() async {
-    final characteristic = _commandCharacteristic;
+    await _cancelIncomingSubscriptions();
 
-    if (characteristic == null) {
-      throw Exception('Command characteristic not found');
-    }
-
-    await _incomingSub?.cancel();
-
-    _incomingSub = characteristic.onValueReceived.listen(_handleIncomingBytes);
-
-    await characteristic.setNotifyValue(true);
+    await _enableNotification('tummy', _tummyCharacteristic);
+    await _enableNotification('nose', _noseCharacteristic);
+    await _enableNotification('force', _forceCharacteristic);
+    await _enableNotification('ears', _earsCharacteristic);
 
     debugPrint('AudyBluetoothService: Notifications enabled');
   }
 
-  void _handleIncomingBytes(List<int> value) {
+  Future<void> _enableNotification(
+    String channel,
+    BluetoothCharacteristic? characteristic,
+  ) async {
+    if (characteristic == null) {
+      throw Exception('$channel characteristic not found');
+    }
+
+    final sub = characteristic.onValueReceived.listen(
+      (value) => _handleIncomingValue(channel, value),
+    );
+    _incomingSubs.add(sub);
+
+    await characteristic.setNotifyValue(true);
+  }
+
+  void _handleIncomingValue(String channel, List<int> value) {
     if (value.isEmpty) return;
 
     final decoded = utf8.decode(value).trim();
-    debugPrint('AudyBluetoothService: Received raw: $decoded');
+    final parsedValue = int.tryParse(decoded);
 
-    // Supports either:
-    //   tummy:1
-    //
-    // or multiple messages:
-    //   tummy:1\nforce:2
-    final messages = decoded.split(RegExp(r'[\r\n]+'));
-
-    for (final rawMessage in messages) {
-      final parsed = AudyBleMessage.tryParse(rawMessage);
-
-      if (parsed == null) {
-        debugPrint(
-          'AudyBluetoothService: Invalid incoming message: $rawMessage',
-        );
-        continue;
-      }
-
-      if (!_isValidIncomingMessage(parsed.channel, parsed.value)) {
-        debugPrint(
-          'AudyBluetoothService: Invalid incoming value: ${parsed.raw}',
-        );
-        continue;
-      }
-
-      lastIncomingMessage.value = parsed;
-      _incomingController.add(parsed);
-
-      debugPrint('AudyBluetoothService: Parsed incoming: ${parsed.raw}');
+    if (parsedValue == null) {
+      debugPrint(
+        'AudyBluetoothService: Invalid $channel value: $decoded',
+      );
+      return;
     }
+
+    _publishIncomingMessage(channel, parsedValue);
+  }
+
+  void _publishIncomingMessage(String channel, int value) {
+    if (!_isValidIncomingMessage(channel, value)) {
+      debugPrint(
+        'AudyBluetoothService: Invalid incoming value: $channel:$value',
+      );
+      return;
+    }
+
+    final parsed = AudyBleMessage(
+      channel: channel,
+      value: value,
+      receivedAt: DateTime.now(),
+    );
+
+    lastIncomingMessage.value = parsed;
+    _incomingController.add(parsed);
+
+    debugPrint('AudyBluetoothService: Parsed incoming: ${parsed.raw}');
   }
 
   bool _isValidIncomingMessage(String channel, int value) {
@@ -324,23 +367,38 @@ class AudyBluetoothService {
 
   /// Generic sender.
   ///
-  /// Example:
-  ///   sendCommand("arms", 2) -> sends "arms:2"
+  /// Backward-compatible wrapper for old debug commands:
+  ///   A:2, EM:1, L:7
+  /// Robot writes still send only the numeric value to each characteristic.
   Future<void> sendRawCommand(String message) async {
-    final characteristic = _commandCharacteristic;
+    final cleanMessage = message.trim();
+    final separatorIndex = cleanMessage.indexOf(':');
 
-    if (!_isConnected || characteristic == null) {
-      throw Exception('Not connected to AUDY device');
+    if (separatorIndex <= 0 || separatorIndex == cleanMessage.length - 1) {
+      throw ArgumentError('Invalid command format: $message');
     }
 
-    final cleanMessage = message.trim();
+    final channel = cleanMessage.substring(0, separatorIndex).trim();
+    final valueText = cleanMessage.substring(separatorIndex + 1).trim();
+    final value = int.tryParse(valueText);
 
-    debugPrint('AudyBluetoothService: Sending $cleanMessage');
+    if (value == null) {
+      throw ArgumentError('Invalid command value: $message');
+    }
 
-    await characteristic.write(
-      utf8.encode(cleanMessage),
-      withoutResponse: false,
-    );
+    switch (channel.toUpperCase()) {
+      case 'A':
+        await setArms(value);
+        break;
+      case 'EM':
+        await setEmotion(value);
+        break;
+      case 'L':
+        await setLed(value);
+        break;
+      default:
+        throw ArgumentError('Unknown command channel: $channel');
+    }
   }
 
   /// Arms channel:
@@ -351,7 +409,7 @@ class AudyBluetoothService {
   /// 4 = pose and back to normal
   Future<void> setArms(int value) async {
     _validateOutgoingValue('arms', value, min: 0, max: 4);
-    await sendRawCommand('A:$value');
+    await _writeNumericCommand('arms', _armsCharacteristic, value);
   }
 
   /// Emotion channel:
@@ -361,14 +419,32 @@ class AudyBluetoothService {
   /// 3 = sad eyes
   Future<void> setEmotion(int value) async {
     _validateOutgoingValue('emotion', value, min: 0, max: 3);
-    await sendRawCommand('EM:$value');
+    await _writeNumericCommand('emotion', _emotionCharacteristic, value);
   }
 
   /// LED channel:
-  /// 0-15 = LED color cases
+  /// 0-17 = LED color cases
   Future<void> setLed(int value) async {
-    _validateOutgoingValue('led', value, min: 0, max: 15);
-    await sendRawCommand('L:$value');
+    _validateOutgoingValue('led', value, min: 0, max: 17);
+    await _writeNumericCommand('led', _ledCharacteristic, value);
+  }
+
+  Future<void> _writeNumericCommand(
+    String channel,
+    BluetoothCharacteristic? characteristic,
+    int value,
+  ) async {
+    if (!_isConnected || characteristic == null) {
+      throw Exception('Not connected to AUDY device');
+    }
+
+    final payload = value.toString();
+    debugPrint('AudyBluetoothService: Sending $channel=$payload');
+
+    await characteristic.write(
+      utf8.encode(payload),
+      withoutResponse: false,
+    );
   }
 
   void _validateOutgoingValue(
@@ -388,12 +464,11 @@ class AudyBluetoothService {
   Future<void> disconnect() async {
     debugPrint('AudyBluetoothService: Disconnecting...');
 
-    await _incomingSub?.cancel();
+    await _cancelIncomingSubscriptions();
     await _connectionStateSub?.cancel();
 
-    _incomingSub = null;
     _connectionStateSub = null;
-    _commandCharacteristic = null;
+    _clearCharacteristics();
 
     if (_device != null) {
       try {
@@ -406,6 +481,25 @@ class AudyBluetoothService {
     _device = null;
     _isConnected = false;
     connectionNotifier.value = false;
+  }
+
+  Future<void> _cancelIncomingSubscriptions() async {
+    final subs = List<StreamSubscription<List<int>>>.from(_incomingSubs);
+    _incomingSubs.clear();
+
+    for (final sub in subs) {
+      await sub.cancel();
+    }
+  }
+
+  void _clearCharacteristics() {
+    _armsCharacteristic = null;
+    _emotionCharacteristic = null;
+    _ledCharacteristic = null;
+    _tummyCharacteristic = null;
+    _noseCharacteristic = null;
+    _forceCharacteristic = null;
+    _earsCharacteristic = null;
   }
 
   /// Optional cleanup if you ever permanently destroy this service.

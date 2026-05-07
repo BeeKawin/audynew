@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../core/app_routes.dart';
 import '../../core/audy_theme.dart';
 import '../../core/audy_ui.dart';
+import '../../services/bluetooth_service.dart';
 import '../../services/sound_service.dart';
 import '../../state/audy_controller.dart';
 import '../../widgets/point_celebration_dialog.dart';
@@ -12,8 +15,80 @@ String _tr(BuildContext context, String key, {Map<String, String>? params}) {
   return AudyScope.of(context).tr(key, params: params);
 }
 
-class ReactionTimePage extends StatelessWidget {
+class ReactionTimePage extends StatefulWidget {
   const ReactionTimePage({super.key});
+
+  @override
+  State<ReactionTimePage> createState() => _ReactionTimePageState();
+}
+
+class _ReactionTimePageState extends State<ReactionTimePage> {
+  StreamSubscription<AudyBleMessage>? _bleInputSub;
+  bool _isHandlingTap = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _bleInputSub = AudyBluetoothService.instance.incomingMessages.listen(
+      _handleBleInput,
+    );
+  }
+
+  void _handleBleInput(AudyBleMessage message) {
+    if (!mounted) return;
+    if (message.channel != 'tummy' || message.value != 1) return;
+
+    final controller = AudyScope.of(context);
+    if (controller.isReactionGameComplete) return;
+
+    unawaited(_handleClickBoxTap(playSound: true));
+  }
+
+  void _handleVisibleClickBoxTap() {
+    unawaited(_handleClickBoxTap(playSound: true));
+  }
+
+  Future<void> _handleClickBoxTap({required bool playSound}) async {
+    if (_isHandlingTap) return;
+    _isHandlingTap = true;
+
+    try {
+      if (playSound) {
+        SoundService.instance.playTap();
+      }
+
+      final controller = AudyScope.of(context);
+      if (controller.isReactionGameComplete) return;
+
+      final previousReactionCount = controller.reactionTimes.length;
+      await controller.handleReactionContainerTap();
+
+      if (!mounted) return;
+
+      final reactionWasRecorded =
+          controller.reactionTimes.length > previousReactionCount;
+      if (reactionWasRecorded) {
+        await _sendReactionBleFeedback(
+          isFinalRound: controller.isReactionGameComplete,
+        );
+      }
+    } finally {
+      _isHandlingTap = false;
+    }
+  }
+
+  Future<void> _sendReactionBleFeedback({required bool isFinalRound}) async {
+    try {
+      final bluetooth = AudyBluetoothService.instance;
+      if (isFinalRound) {
+        await bluetooth.setArms(4);
+      } else {
+        await bluetooth.setEmotion(2);
+      }
+    } catch (e) {
+      debugPrint('ReactionTimePage: BLE feedback skipped - $e');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -117,10 +192,7 @@ class ReactionTimePage extends StatelessWidget {
             SizedBox(
               height: adaptive.isPhone ? 260 : 420,
               child: InkWell(
-                onTap: () {
-                  SoundService.instance.playTap();
-                  controller.handleReactionContainerTap();
-                },
+                onTap: _handleVisibleClickBoxTap,
                 borderRadius: BorderRadius.circular(adaptive.space(28)),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
@@ -162,6 +234,12 @@ class ReactionTimePage extends StatelessWidget {
         );
       },
     );
+  }
+
+  @override
+  void dispose() {
+    _bleInputSub?.cancel();
+    super.dispose();
   }
 }
 

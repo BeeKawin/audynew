@@ -28,7 +28,7 @@ class MiniPuzzleLevelSelect extends StatelessWidget {
     switch (gameType) {
       case MiniPuzzleType.pattern:
         return const Color(0xFF9EC8F2);
-      case MiniPuzzleType.sorting:
+      case MiniPuzzleType.oddOneOut:
         return const Color(0xFFF6B9D7);
       case MiniPuzzleType.puzzle:
         return const Color(0xFFB8E8C4);
@@ -39,8 +39,8 @@ class MiniPuzzleLevelSelect extends StatelessWidget {
     switch (gameType) {
       case MiniPuzzleType.pattern:
         return Icons.auto_fix_high_rounded;
-      case MiniPuzzleType.sorting:
-        return Icons.category_rounded;
+      case MiniPuzzleType.oddOneOut:
+        return Icons.filter_center_focus_rounded;
       case MiniPuzzleType.puzzle:
         return Icons.extension_rounded;
     }
@@ -50,10 +50,10 @@ class MiniPuzzleLevelSelect extends StatelessWidget {
     switch (gameType) {
       case MiniPuzzleType.pattern:
         return 'minipuzzle_pattern';
-      case MiniPuzzleType.sorting:
-        return 'minipuzzle_sorting';
+      case MiniPuzzleType.oddOneOut:
+        return 'minipuzzle_odd_one_out';
       case MiniPuzzleType.puzzle:
-        return 'minipuzzle_puzzle';
+        return 'minipuzzle_visual_match';
     }
   }
 
@@ -175,11 +175,11 @@ class _LevelCard extends StatelessWidget {
   String _getDescriptionKey() {
     switch (level) {
       case MiniPuzzleDifficulty.easy:
-        return 'minipuzzle_easy_desc';
+        return 'minipuzzle_easy_desc_generic';
       case MiniPuzzleDifficulty.medium:
-        return 'minipuzzle_medium_desc';
+        return 'minipuzzle_medium_desc_generic';
       case MiniPuzzleDifficulty.hard:
-        return 'minipuzzle_hard_desc';
+        return 'minipuzzle_hard_desc_generic';
     }
   }
 

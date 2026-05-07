@@ -1,124 +1,99 @@
 import 'package:flutter/material.dart';
-import '../../../core/audy_ui.dart';
-import '../minipuzzle_controller.dart';
 
-/// Sorting game widget
-/// Shows an item and asks user to sort it into a category
-class SortingGameWidget extends StatelessWidget {
+import '../../../core/audy_ui.dart';
+import '../../../state/audy_controller.dart';
+import '../minipuzzle_controller.dart';
+import '../minipuzzle_models.dart';
+
+String _tr(BuildContext context, String key, {Map<String, String>? params}) {
+  return AudyScope.of(context).tr(key, params: params);
+}
+
+/// Odd-one-out cognitive game widget.
+class OddOneOutGameWidget extends StatelessWidget {
   final MiniPuzzleController controller;
   final AudyAdaptive adaptive;
   final Color gameColor;
 
-  const SortingGameWidget({
+  const OddOneOutGameWidget({
     super.key,
     required this.controller,
     required this.adaptive,
     required this.gameColor,
   });
 
+  double get _cardSize {
+    if (adaptive.isPhone) return 118;
+    if (adaptive.isTablet) return 132;
+    return 144;
+  }
+
   @override
   Widget build(BuildContext context) {
-    final sortingData = controller.sortingData;
-    if (sortingData == null) return const SizedBox.shrink();
+    final data = controller.oddOneOutData;
+    if (data == null) return const SizedBox.shrink();
 
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Title
         Text(
-          'Where does this go?',
+          _tr(context, 'minipuzzle_odd_prompt'),
           style: TextStyle(
             fontSize: adaptive.space(24),
             fontWeight: FontWeight.w800,
             color: const Color(0xFF243A5A),
           ),
+          textAlign: TextAlign.center,
         ),
-        SizedBox(height: adaptive.space(48)),
-
-        // Item to sort
-        Container(
-          width: adaptive.space(140),
-          height: adaptive.space(140),
-          decoration: BoxDecoration(
-            color: sortingData.itemToSort.color.withValues(alpha: 0.2),
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: sortingData.itemToSort.color, width: 4),
-            boxShadow: [
-              BoxShadow(
-                color: sortingData.itemToSort.color.withValues(alpha: 0.3),
-                blurRadius: 16,
-                offset: const Offset(0, 8),
-              ),
-            ],
-          ),
-          child: Icon(
-            sortingData.itemToSort.icon,
-            size: adaptive.space(72),
-            color: sortingData.itemToSort.color,
-          ),
-        ),
-        SizedBox(height: adaptive.space(48)),
-
-        // Category buttons
-        Text(
-          'Tap a category:',
-          style: TextStyle(
-            fontSize: adaptive.space(18),
-            fontWeight: FontWeight.w600,
-            color: const Color(0xFF60758F),
-          ),
-        ),
-        SizedBox(height: adaptive.space(24)),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: sortingData.categories.map((category) {
-            final isAnimal = category == 'animal';
-            final bgColor = isAnimal
-                ? const Color(0xFFB8E8C4)
-                : const Color(0xFFFFF2A8);
-            final icon = isAnimal
-                ? Icons.pets_rounded
-                : Icons.restaurant_rounded;
-
-            return Padding(
-              padding: EdgeInsets.symmetric(horizontal: adaptive.space(12)),
-              child: GestureDetector(
-                onTap: controller.showingFeedback
-                    ? null
-                    : () => controller.submitSortingAnswer(category),
-                child: Container(
-                  width: adaptive.space(140),
-                  height: adaptive.space(140),
-                  decoration: BoxDecoration(
-                    color: bgColor.withValues(alpha: 0.3),
-                    borderRadius: BorderRadius.circular(24),
-                    border: Border.all(color: bgColor, width: 4),
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        icon,
-                        size: adaptive.space(56),
-                        color: const Color(0xFF243A5A),
-                      ),
-                      SizedBox(height: adaptive.space(8)),
-                      Text(
-                        isAnimal ? 'Animal' : 'Food',
-                        style: TextStyle(
-                          fontSize: adaptive.space(18),
-                          fontWeight: FontWeight.w700,
-                          color: const Color(0xFF243A5A),
-                        ),
-                      ),
-                    ],
-                  ),
+        SizedBox(height: adaptive.space(30)),
+        Wrap(
+          alignment: WrapAlignment.center,
+          spacing: adaptive.space(16),
+          runSpacing: adaptive.space(16),
+          children: data.items
+              .map(
+                (item) => GestureDetector(
+                  onTap: controller.showingFeedback
+                      ? null
+                      : () => controller.submitOddOneOutAnswer(item.id),
+                  child: _OddItemCard(item: item, size: _cardSize),
                 ),
-              ),
-            );
-          }).toList(),
+              )
+              .toList(),
         ),
       ],
+    );
+  }
+}
+
+class _OddItemCard extends StatelessWidget {
+  final OddOneOutItem item;
+  final double size;
+
+  const _OddItemCard({required this.item, required this.size});
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: item.label,
+      child: Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          color: item.color.withValues(alpha: 0.2),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: item.color, width: 3),
+          boxShadow: [
+            BoxShadow(
+              color: item.color.withValues(alpha: 0.18),
+              blurRadius: 8,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Icon(item.icon, size: size * 0.66, color: item.color),
+      ),
     );
   }
 }

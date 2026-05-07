@@ -25,18 +25,18 @@ class MiniPuzzleGameSelection extends StatelessWidget {
       descriptionKey: 'minipuzzle_pattern_desc',
     ),
     MiniPuzzleGameInfo(
-      type: MiniPuzzleType.sorting,
-      titleKey: 'minipuzzle_sorting',
-      icon: Icons.category_rounded,
+      type: MiniPuzzleType.oddOneOut,
+      titleKey: 'minipuzzle_odd_one_out',
+      icon: Icons.filter_center_focus_rounded,
       color: Color(0xFFF6B9D7),
-      descriptionKey: 'minipuzzle_sorting_desc',
+      descriptionKey: 'minipuzzle_odd_one_out_desc',
     ),
     MiniPuzzleGameInfo(
       type: MiniPuzzleType.puzzle,
-      titleKey: 'minipuzzle_puzzle',
+      titleKey: 'minipuzzle_visual_match',
       icon: Icons.extension_rounded,
       color: Color(0xFFB8E8C4),
-      descriptionKey: 'minipuzzle_puzzle_desc',
+      descriptionKey: 'minipuzzle_visual_match_desc',
     ),
   ];
 

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../core/audy_theme.dart';
 import '../../core/audy_ui.dart';
 import '../../core/emotion_character_widget.dart';
+import '../../services/bluetooth_service.dart';
 import '../../services/sound_service.dart';
 import '../../state/audy_controller.dart';
 
@@ -27,6 +28,8 @@ class MimicResultScreen extends StatefulWidget {
 }
 
 class _MimicResultScreenState extends State<MimicResultScreen> {
+  bool _isContinuing = false;
+
   bool get isMatch {
     return widget.detectedEmotion.toLowerCase() ==
         widget.expectedEmotion.toLowerCase();
@@ -44,8 +47,14 @@ class _MimicResultScreenState extends State<MimicResultScreen> {
   }
 
   Future<void> _handleContinue() async {
+    if (_isContinuing) return;
+
+    setState(() => _isContinuing = true);
+
     final controller = AudyScope.of(context);
     final navigator = Navigator.of(context);
+    final isFinalRound =
+        controller.mimicCurrentRound >= controller.mimicTotalRounds;
 
     // Record the result and advance the round
     controller.recordMimicResult(
@@ -59,8 +68,27 @@ class _MimicResultScreenState extends State<MimicResultScreen> {
     }
 
     controller.gamesPlayed += 1;
+    await _sendRoundBleSignal(isFinalRound: isFinalRound);
     controller.advanceMimicRound();
     navigator.pop();
+  }
+
+  Future<void> _sendRoundBleSignal({required bool isFinalRound}) async {
+    try {
+      final bluetooth = AudyBluetoothService.instance;
+      if (isFinalRound) {
+        await bluetooth.setArms(4);
+      } else {
+        await bluetooth.setEmotion(1);
+      }
+    } catch (e) {
+      debugPrint('MimicResultScreen: BLE round signal skipped - $e');
+    }
+  }
+
+  void _handleContinueTap() {
+    SoundService.instance.playTap();
+    _handleContinue();
   }
 
   @override
@@ -163,10 +191,7 @@ class _MimicResultScreenState extends State<MimicResultScreen> {
               width: double.infinity,
               height: AudySpacing.buttonHeight + 12,
               child: ElevatedButton(
-                onPressed: () {
-                  SoundService.instance.playTap();
-                  _handleContinue();
-                },
+                onPressed: _isContinuing ? null : _handleContinueTap,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: isMatch
                       ? AudyColors.mintGreen

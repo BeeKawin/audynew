@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../core/app_routes.dart';
 import '../../core/audy_theme.dart';
 import '../../core/audy_ui.dart';
 import '../../data/models/game_session_model.dart';
+import '../../services/bluetooth_service.dart';
 import '../../services/sound_service.dart';
 import '../../state/audy_controller.dart';
 import 'sorting_game_models.dart';
@@ -29,6 +32,7 @@ class _SortGameScreenState extends State<SortGameScreen> {
   late SortGameEngine _engine;
   String? _selectedItemId;
   bool _sessionRecorded = false;
+  bool _sessionBleSignalSent = false;
 
   @override
   void initState() {
@@ -198,65 +202,201 @@ class _SortGameScreenState extends State<SortGameScreen> {
       );
     }
 
-    final crossCount = items.length <= 3 ? items.length : 3;
-
-    return GridView.count(
-      crossAxisCount: crossCount,
-      mainAxisSpacing: adaptive.space(12),
-      crossAxisSpacing: adaptive.space(12),
-      childAspectRatio: 1.0,
-      children: items.map((item) {
-        final isSelected = _selectedItemId == item.id;
-        final isHinted = _engine.hintItemId == item.id;
-
-        return SortItemCard(
-          item: item,
-          isSelected: isSelected,
-          isHinted: isHinted,
-          isDisabled: _engine.showingFeedback,
-          onTap: () {
-            SoundService.instance.playTap();
-            setState(() {
-              _selectedItemId = item.id;
-            });
-          },
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final spacing = adaptive.space(12);
+        final crossCount = _itemGridColumns(
+          adaptive: adaptive,
+          itemCount: items.length,
+          maxWidth: constraints.maxWidth,
         );
-      }).toList(),
+        final maxCardSize = _itemCardMaxSize(adaptive);
+        final gridWidth = _stableGridWidth(
+          availableWidth: constraints.maxWidth,
+          columns: crossCount,
+          spacing: spacing,
+          maxCardSize: maxCardSize,
+        );
+
+        return Center(
+          child: SizedBox(
+            width: gridWidth,
+            child: GridView.builder(
+              padding: EdgeInsets.zero,
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: crossCount,
+                mainAxisSpacing: spacing,
+                crossAxisSpacing: spacing,
+                childAspectRatio: 1.0,
+              ),
+              itemCount: items.length,
+              itemBuilder: (context, index) {
+                final item = items[index];
+                final isSelected = _selectedItemId == item.id;
+                final isHinted = _engine.hintItemId == item.id;
+
+                return SortItemCard(
+                  item: item,
+                  isSelected: isSelected,
+                  isHinted: isHinted,
+                  isDisabled: _engine.showingFeedback,
+                  onTap: () {
+                    SoundService.instance.playTap();
+                    setState(() {
+                      _selectedItemId = item.id;
+                    });
+                  },
+                );
+              },
+            ),
+          ),
+        );
+      },
     );
+  }
+
+  Future<void> _sendCorrectSortBleSignal() async {
+    try {
+      await AudyBluetoothService.instance.setEmotion(1);
+    } catch (e) {
+      debugPrint('SortGameScreen: Correct sort BLE signal skipped - $e');
+    }
+  }
+
+  Future<void> _sendSessionCompleteBleSignal() async {
+    if (_sessionBleSignalSent) return;
+    _sessionBleSignalSent = true;
+
+    try {
+      await AudyBluetoothService.instance.setArms(4);
+    } catch (e) {
+      debugPrint('SortGameScreen: Session complete BLE signal skipped - $e');
+    }
+  }
+
+  void _handleCategoryTap(String categoryId) {
+    SoundService.instance.playTap();
+    if (_selectedItemId == null || _engine.showingFeedback) return;
+
+    final previousCorrectCount = _engine.totalCorrect;
+    _engine.handleSortAttempt(_selectedItemId!, categoryId);
+
+    setState(() {
+      _selectedItemId = null;
+    });
+
+    if (_engine.totalCorrect > previousCorrectCount) {
+      unawaited(_sendCorrectSortBleSignal());
+    }
+  }
+
+  void _handleRoundContinue() {
+    SoundService.instance.playTap();
+    _engine.advanceToNextRound();
+
+    if (_engine.sessionComplete) {
+      unawaited(_sendSessionCompleteBleSignal());
+    }
   }
 
   Widget _buildCategoriesWrap(AudyAdaptive adaptive) {
     final categories = _engine.currentCategories;
 
-    return Wrap(
-      alignment: WrapAlignment.center,
-      runAlignment: WrapAlignment.center,
-      spacing: adaptive.space(12),
-      runSpacing: adaptive.space(8),
-      children: categories.map((category) {
-        return SizedBox(
-          width:
-              (adaptive.contentMaxWidth -
-                  adaptive.space(40) -
-                  adaptive.space(24)) /
-              (categories.length <= 2 ? categories.length : 3),
-          child: SortCategoryTarget(
-            category: category,
-            itemCount: 0,
-            isHighlighted: _selectedItemId != null,
-            onTap: () {
-              SoundService.instance.playTap();
-              if (_selectedItemId != null && !_engine.showingFeedback) {
-                _engine.handleSortAttempt(_selectedItemId!, category.id);
-                setState(() {
-                  _selectedItemId = null;
-                });
-              }
-            },
-          ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final spacing = adaptive.space(12);
+        final columns = _categoryColumns(
+          adaptive: adaptive,
+          categoryCount: categories.length,
+          maxWidth: constraints.maxWidth,
         );
-      }).toList(),
+        final cardWidth = _categoryCardWidth(
+          availableWidth: constraints.maxWidth,
+          columns: columns,
+          spacing: spacing,
+          adaptive: adaptive,
+        );
+        final cardHeight = _categoryCardHeight(adaptive);
+
+        return Wrap(
+          alignment: WrapAlignment.center,
+          runAlignment: WrapAlignment.center,
+          spacing: spacing,
+          runSpacing: adaptive.space(8),
+          children: categories.map((category) {
+            return SizedBox(
+              width: cardWidth,
+              height: cardHeight,
+              child: SortCategoryTarget(
+                category: category,
+                itemCount: 0,
+                isHighlighted: _selectedItemId != null,
+                onTap: () => _handleCategoryTap(category.id),
+              ),
+            );
+          }).toList(),
+        );
+      },
     );
+  }
+
+  int _itemGridColumns({
+    required AudyAdaptive adaptive,
+    required int itemCount,
+    required double maxWidth,
+  }) {
+    if (itemCount <= 1) return 1;
+    if (adaptive.isPhone && maxWidth < 360) return 2;
+    if (adaptive.isPhone && itemCount <= 2) return itemCount;
+    return itemCount < 3 ? itemCount : 3;
+  }
+
+  double _itemCardMaxSize(AudyAdaptive adaptive) {
+    if (adaptive.isDesktop) return 156;
+    if (adaptive.isTablet) return 148;
+    return 128;
+  }
+
+  double _stableGridWidth({
+    required double availableWidth,
+    required int columns,
+    required double spacing,
+    required double maxCardSize,
+  }) {
+    final preferredWidth = (columns * maxCardSize) + ((columns - 1) * spacing);
+    return preferredWidth < availableWidth ? preferredWidth : availableWidth;
+  }
+
+  int _categoryColumns({
+    required AudyAdaptive adaptive,
+    required int categoryCount,
+    required double maxWidth,
+  }) {
+    if (categoryCount <= 1) return 1;
+    if (adaptive.isPhone && maxWidth < 360) return 2;
+    if (categoryCount <= 2) return categoryCount;
+    return adaptive.isPhone ? 2 : 3;
+  }
+
+  double _categoryCardWidth({
+    required double availableWidth,
+    required int columns,
+    required double spacing,
+    required AudyAdaptive adaptive,
+  }) {
+    var maxWidth = 156.0;
+    if (adaptive.isTablet) maxWidth = 176.0;
+    if (adaptive.isDesktop) maxWidth = 188.0;
+
+    final availableCardWidth =
+        (availableWidth - (spacing * (columns - 1))) / columns;
+    return availableCardWidth < maxWidth ? availableCardWidth : maxWidth;
+  }
+
+  double _categoryCardHeight(AudyAdaptive adaptive) {
+    if (adaptive.isDesktop) return 128;
+    if (adaptive.isTablet) return 120;
+    return 108;
   }
 
   Widget _buildRoundCompleteOverlay() {
@@ -340,10 +480,7 @@ class _SortGameScreenState extends State<SortGameScreen> {
                   ),
                   SizedBox(height: adaptive.space(24)),
                   ElevatedButton(
-                    onPressed: () {
-                      SoundService.instance.playTap();
-                      _engine.advanceToNextRound();
-                    },
+                    onPressed: _handleRoundContinue,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AudyColors.skyBlue,
                       foregroundColor: AudyColors.textOnColor,
@@ -403,6 +540,8 @@ class _SortGameScreenState extends State<SortGameScreen> {
         _engine.startSession(widget.level);
         setState(() {
           _selectedItemId = null;
+          _sessionRecorded = false;
+          _sessionBleSignalSent = false;
         });
       },
       onDone: () {

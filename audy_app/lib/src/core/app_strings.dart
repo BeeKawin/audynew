@@ -329,6 +329,8 @@ class AppStrings {
     'minipuzzle_pattern': {'en': 'Pattern Game', 'th': 'เกมลายลวดลาย'},
     'minipuzzle_sorting': {'en': 'Sorting Game', 'th': 'เกมจัดเรียง'},
     'minipuzzle_puzzle': {'en': 'Puzzle Game', 'th': 'เกมจิ๊กซอว์'},
+    'minipuzzle_odd_one_out': {'en': 'Odd One Out', 'th': 'Odd One Out'},
+    'minipuzzle_visual_match': {'en': 'Visual Match', 'th': 'Visual Match'},
     'minipuzzle_pattern_desc': {
       'en': 'Find the next shape in the pattern',
       'th': 'หารูปทรงถัดไปในลายลวดลาย',
@@ -336,6 +338,14 @@ class AppStrings {
     'minipuzzle_sorting_desc': {
       'en': 'Sort items into the right groups',
       'th': 'จัดเรียงสิ่งของเข้ากลุ่มที่ถูกต้อง',
+    },
+    'minipuzzle_odd_one_out_desc': {
+      'en': 'Find the item that is different',
+      'th': 'Find the item that is different',
+    },
+    'minipuzzle_visual_match_desc': {
+      'en': 'Match shapes to their slots',
+      'th': 'Match shapes to their slots',
     },
     'minipuzzle_puzzle_desc': {
       'en': 'Match shapes to their slots',
@@ -352,6 +362,9 @@ class AppStrings {
     'minipuzzle_easy': {'en': 'Easy', 'th': 'ง่าย'},
     'minipuzzle_medium': {'en': 'Medium', 'th': 'ปานกลาง'},
     'minipuzzle_hard': {'en': 'Hard', 'th': 'ยาก'},
+    'minipuzzle_easy_desc_generic': {'en': 'Gentle start', 'th': 'Gentle start'},
+    'minipuzzle_medium_desc_generic': {'en': 'More choices', 'th': 'More choices'},
+    'minipuzzle_hard_desc_generic': {'en': 'Bigger challenge', 'th': 'Bigger challenge'},
     'minipuzzle_easy_desc': {
       'en': '2 items - Perfect for beginners',
       'th': '2 รายการ - เหมาะสำหรับผู้เริ่มต้น',
@@ -368,6 +381,9 @@ class AppStrings {
     'minipuzzle_correct': {'en': '{n} Correct!', 'th': '{n} ถูกต้อง!'},
     'minipuzzle_attempts': {'en': 'Attempts', 'th': 'ครั้งที่ลอง'},
     'back': {'en': 'Back', 'th': 'กลับ'},
+    'minipuzzle_pattern_prompt': {'en': 'What comes next?', 'th': 'What comes next?'},
+    'minipuzzle_odd_prompt': {'en': 'Find the different one', 'th': 'Find the different one'},
+    'minipuzzle_match_prompt': {'en': 'Match each shape', 'th': 'Match each shape'},
   };
 
   // Format string with placeholders

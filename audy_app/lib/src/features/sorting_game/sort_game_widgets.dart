@@ -71,8 +71,6 @@ class _SortItemCardState extends State<SortItemCard>
 
   @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final effectiveWidth = _Responsive.sp(screenWidth);
     final cardColor = widget.item.color ?? AudyColors.skyBlue;
     final borderColor = widget.isHinted
         ? AudyColors.starGold
@@ -89,7 +87,7 @@ class _SortItemCardState extends State<SortItemCard>
         scale: _scaleAnimation,
         child: AnimatedContainer(
           duration: AudyAnimation.normal,
-          padding: EdgeInsets.all(effectiveWidth * 0.02),
+          padding: const EdgeInsets.fromLTRB(8, 8, 8, 6),
           decoration: BoxDecoration(
             color: AudyColors.backgroundCard,
             borderRadius: BorderRadius.circular(AudySpacing.radiusLarge),
@@ -106,46 +104,49 @@ class _SortItemCardState extends State<SortItemCard>
           ),
           child: LayoutBuilder(
             builder: (context, constraints) {
-              final availableWidth = constraints.maxWidth;
-              final availableHeight = constraints.maxHeight;
-              final iconSize = (availableWidth * 0.4).clamp(28.0, 60.0);
-              final maxIconSize = (availableHeight * 0.6).clamp(28.0, 60.0);
-              final finalIconSize = iconSize < maxIconSize
-                  ? iconSize
-                  : maxIconSize;
+              final shortestSide = constraints.biggest.shortestSide;
+              final badgeSize = (shortestSide * 0.68).clamp(68.0, 112.0);
+              final imageSize = badgeSize * 0.88;
+              final labelFontSize = (shortestSide * 0.13).clamp(12.0, 16.0);
+
               return Column(
-                mainAxisSize: MainAxisSize.min,
+                mainAxisSize: MainAxisSize.max,
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  SizedBox(
-                    width: finalIconSize,
-                    height: finalIconSize,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: cardColor.withValues(alpha: 0.2),
-                        shape: BoxShape.circle,
-                      ),
-                      padding: EdgeInsets.all(finalIconSize * 0.12),
-                      child: Image.asset(
-                        widget.item.icon,
-                        width: finalIconSize * 0.76,
-                        height: finalIconSize * 0.76,
-                        fit: BoxFit.contain,
-                        errorBuilder: (context, error, stackTrace) => Icon(
-                          Icons.help_outline_rounded,
-                          size: finalIconSize * 0.55,
-                          color: cardColor,
+                  Expanded(
+                    child: Center(
+                      child: SizedBox(
+                        width: badgeSize,
+                        height: badgeSize,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: cardColor.withValues(alpha: 0.2),
+                            shape: BoxShape.circle,
+                          ),
+                          padding: EdgeInsets.all(badgeSize * 0.06),
+                          child: Image.asset(
+                            widget.item.icon,
+                            width: imageSize,
+                            height: imageSize,
+                            fit: BoxFit.contain,
+                            errorBuilder: (context, error, stackTrace) => Icon(
+                              Icons.help_outline_rounded,
+                              size: badgeSize * 0.72,
+                              color: cardColor,
+                            ),
+                          ),
                         ),
                       ),
                     ),
                   ),
-                  SizedBox(height: effectiveWidth * 0.01),
-                  Flexible(
+                  const SizedBox(height: 4),
+                  SizedBox(
+                    height: 22,
                     child: Text(
                       widget.item.label,
                       textAlign: TextAlign.center,
                       style: AudyTypography.labelMedium.copyWith(
-                        fontSize: (effectiveWidth * 0.035).clamp(12.0, 16.0),
+                        fontSize: labelFontSize,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -185,7 +186,7 @@ class SortCategoryTarget extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: AudyAnimation.normal,
-        padding: EdgeInsets.all(effectiveWidth * 0.04),
+        padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
         decoration: BoxDecoration(
           color: catColor.withValues(alpha: 0.25),
           borderRadius: BorderRadius.circular(AudySpacing.radiusLarge),
@@ -205,46 +206,52 @@ class SortCategoryTarget extends StatelessWidget {
         ),
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final availableWidth = constraints.maxWidth;
-            final availableHeight = constraints.maxHeight;
-            final iconSize = (availableWidth * 0.4).clamp(28.0, 60.0);
-            final maxIconSize = (availableHeight * 0.5).clamp(28.0, 60.0);
-            final finalIconSize = iconSize < maxIconSize
-                ? iconSize
-                : maxIconSize;
+            final visualLimit = constraints.maxWidth < constraints.maxHeight
+                ? constraints.maxWidth
+                : constraints.maxHeight;
+            final badgeSize = (visualLimit * 0.58).clamp(58.0, 84.0);
+            final iconSize = badgeSize * 0.72;
+            final labelFontSize =
+                (constraints.maxWidth * 0.13).clamp(12.0, 16.0);
+
             return Column(
-              mainAxisSize: MainAxisSize.min,
+              mainAxisSize: MainAxisSize.max,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                SizedBox(
-                  width: finalIconSize,
-                  height: finalIconSize,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: catColor.withValues(alpha: 0.3),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      category.icon,
-                      size: finalIconSize * 0.55,
-                      color: catColor,
+                Expanded(
+                  child: Center(
+                    child: SizedBox(
+                      width: badgeSize,
+                      height: badgeSize,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: catColor.withValues(alpha: 0.3),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          category.icon,
+                          size: iconSize,
+                          color: catColor,
+                        ),
+                      ),
                     ),
                   ),
                 ),
-                SizedBox(height: effectiveWidth * 0.01),
-                Flexible(
+                const SizedBox(height: 4),
+                SizedBox(
+                  height: 22,
                   child: Text(
                     category.label,
                     textAlign: TextAlign.center,
                     style: AudyTypography.labelMedium.copyWith(
-                      fontSize: (effectiveWidth * 0.035).clamp(12.0, 16.0),
+                      fontSize: labelFontSize,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 if (itemCount > 0) ...[
-                  SizedBox(height: effectiveWidth * 0.01),
+                  const SizedBox(height: 4),
                   Container(
                     padding: EdgeInsets.symmetric(
                       horizontal: effectiveWidth * 0.02,

@@ -14,9 +14,9 @@ import '../../services/sound_service.dart';
 /// - Scan for AUDY#ABC1
 /// - Connect
 /// - Send Flutter -> ESP32 commands:
-///   arms:value
-///   emotion:value
-///   led:value
+///   arms=value
+///   emotion=value
+///   led=value
 /// - Receive ESP32 -> Flutter messages:
 ///   tummy:value
 ///   nose:value
@@ -77,6 +77,8 @@ class _DeviceConnectionPageState extends State<DeviceConnectionPage> {
     13: '13 - Ears magenta / Tummy white',
     14: '14 - Ears white / Tummy red',
     15: '15 - Rainbow / Rainbow',
+    16: '16 - Ears split / Arms off / Tummy green',
+    17: '17 - Ears split / Arms off / Tummy white',
   };
   double _space(dynamic adaptive, num value) {
     return (adaptive.space(value.toDouble()) as num).toDouble();
@@ -154,21 +156,21 @@ class _DeviceConnectionPageState extends State<DeviceConnectionPage> {
 
   Future<void> _sendArms() async {
     await _sendCommand(
-      payload: 'A:$_armsValue',
+      payload: 'arms=$_armsValue',
       action: () => _bluetooth.setArms(_armsValue),
     );
   }
 
   Future<void> _sendEmotion() async {
     await _sendCommand(
-      payload: 'EM:$_emotionValue',
+      payload: 'emotion=$_emotionValue',
       action: () => _bluetooth.setEmotion(_emotionValue),
     );
   }
 
   Future<void> _sendLed() async {
     await _sendCommand(
-      payload: 'L:$_ledValue',
+      payload: 'led=$_ledValue',
       action: () => _bluetooth.setLed(_ledValue),
     );
   }
@@ -529,7 +531,7 @@ class _DeviceConnectionPageState extends State<DeviceConnectionPage> {
           ),
           const SizedBox(height: 14),
           DropdownButtonFormField<int>(
-            value: value,
+            initialValue: value,
             decoration: const InputDecoration(
               labelText: 'Command value',
               border: OutlineInputBorder(),

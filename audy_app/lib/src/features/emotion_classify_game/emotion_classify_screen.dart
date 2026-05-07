@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
+import '../../services/bluetooth_service.dart';
 import '../../core/audy_theme.dart';
 import '../../core/audy_ui.dart';
 import '../../core/emotion_character_widget.dart';
@@ -21,6 +24,62 @@ class _EmotionClassifyScreenState extends State<EmotionClassifyScreen> {
   bool _showingFeedback = false;
   bool _isCorrect = false;
 
+  StreamSubscription<AudyBleMessage>? _bleInputSub;
+  @override
+  void initState() {
+    super.initState();
+
+    _bleInputSub = AudyBluetoothService.instance.incomingMessages.listen(
+      _handleBleInput,
+    );
+  }
+
+  void _handleBleInput(AudyBleMessage message) {
+    if (!mounted) return;
+    if (_showingFeedback) return;
+
+    final answerIndex = _answerIndexFromBle(message);
+    if (answerIndex == null) return;
+
+    final controller = AudyScope.of(context);
+
+    if (controller.isClassifyGameComplete) return;
+
+    final options = controller.currentClassifyQuestion.options;
+
+    if (answerIndex < 0 || answerIndex >= options.length) return;
+
+    final selectedAnswer = options[answerIndex];
+
+    SoundService.instance.playTap();
+    _handleAnswer(selectedAnswer, controller);
+  }
+
+  int? _answerIndexFromBle(AudyBleMessage message) {
+    switch (message.channel) {
+      case 'ears':
+        if (message.value == 1) {
+          return 0; // Left Top
+        }
+        if (message.value == 2) {
+          return 1; // Right Top
+        }
+        return null;
+
+      case 'force':
+        if (message.value == 1) {
+          return 2; // Left Bottom
+        }
+        if (message.value == 2) {
+          return 3; // Right Bottom
+        }
+        return null;
+
+      default:
+        return null;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final controller = AudyScope.of(context);
@@ -30,7 +89,6 @@ class _EmotionClassifyScreenState extends State<EmotionClassifyScreen> {
       'Happy': Color(0xFFFFF2A8),
       'Sad': Color(0xFFBDD8F2),
       'Angry': Color(0xFFFFDAC7),
-      'Surprised': Color(0xFFF8C7DF),
       'Scared': Color(0xFFDDD0F4),
     };
 
@@ -216,5 +274,11 @@ class _EmotionClassifyScreenState extends State<EmotionClassifyScreen> {
         controller.advanceClassifyRound();
       }
     });
+  }
+
+  @override
+  void dispose() {
+    _bleInputSub?.cancel();
+    super.dispose();
   }
 }

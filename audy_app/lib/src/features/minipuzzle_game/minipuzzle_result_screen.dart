@@ -134,10 +134,10 @@ class _MiniPuzzleResultScreenState extends State<MiniPuzzleResultScreen> {
     switch (widget.sessionData.gameType) {
       case MiniPuzzleType.pattern:
         return 'minipuzzle_pattern';
-      case MiniPuzzleType.sorting:
-        return 'minipuzzle_sorting';
+      case MiniPuzzleType.oddOneOut:
+        return 'minipuzzle_odd_one_out';
       case MiniPuzzleType.puzzle:
-        return 'minipuzzle_puzzle';
+        return 'minipuzzle_visual_match';
     }
   }
 
@@ -145,7 +145,7 @@ class _MiniPuzzleResultScreenState extends State<MiniPuzzleResultScreen> {
     switch (widget.sessionData.gameType) {
       case MiniPuzzleType.pattern:
         return const Color(0xFF9EC8F2);
-      case MiniPuzzleType.sorting:
+      case MiniPuzzleType.oddOneOut:
         return const Color(0xFFF6B9D7);
       case MiniPuzzleType.puzzle:
         return const Color(0xFFB8E8C4);

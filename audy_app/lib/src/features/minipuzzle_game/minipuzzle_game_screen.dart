@@ -58,7 +58,7 @@ class _MiniPuzzleGameScreenState extends State<MiniPuzzleGameScreen> {
     switch (widget.gameType) {
       case MiniPuzzleType.pattern:
         return const Color(0xFF9EC8F2);
-      case MiniPuzzleType.sorting:
+      case MiniPuzzleType.oddOneOut:
         return const Color(0xFFF6B9D7);
       case MiniPuzzleType.puzzle:
         return const Color(0xFFB8E8C4);
@@ -157,8 +157,8 @@ class _MiniPuzzleGameScreenState extends State<MiniPuzzleGameScreen> {
           adaptive: adaptive,
           gameColor: gameColor,
         );
-      case MiniPuzzleType.sorting:
-        return SortingGameWidget(
+      case MiniPuzzleType.oddOneOut:
+        return OddOneOutGameWidget(
           controller: _controller,
           adaptive: adaptive,
           gameColor: gameColor,

@@ -11,6 +11,7 @@ import '../data/repositories/storage_repository.dart';
 import '../features/social_chat/chat_service.dart';
 import '../services/auth_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' show AuthChangeEvent;
+import '../services/bluetooth_service.dart';
 import '../services/gemini_tts_service.dart';
 import '../services/speech_service.dart';
 
@@ -23,20 +24,6 @@ typedef LevelUpCallback = void Function(int newLevel);
 enum RequestMethod { get, post, put }
 
 enum ReactionGameState { idle, waiting, ready, tooEarly, result }
-
-class ColorPiece {
-  const ColorPiece({
-    required this.id,
-    required this.colorName,
-    required this.shape,
-    required this.color,
-  });
-
-  final String id;
-  final String colorName;
-  final SortShape shape;
-  final Color color;
-}
 
 enum RewardCondition {
   emotionClassify,
@@ -1518,7 +1505,16 @@ class AudyController extends ChangeNotifier {
 
   /// Speak bot response (Thai TTS) using Gemini TTS with fallback
   Future<void> speakThaiResponse(String text) async {
-    await geminiTtsService.speakThai(text);
+    final trimmed = text.trim();
+    if (trimmed.isEmpty) return;
+
+    try {
+      await AudyBluetoothService.instance.setEmotion(2);
+    } catch (e) {
+      debugPrint('Social Chat BLE emotion signal failed: $e');
+    }
+
+    await geminiTtsService.speakThai(trimmed);
   }
 
   /// Listen for Thai speech (STT)
@@ -1653,27 +1649,22 @@ class AudyController extends ChangeNotifier {
       EmotionQuestion(
         prompt: 'What emotion is this?',
         correctAnswer: 'Happy',
-        options: ['Happy', 'Sad', 'Angry', 'Scared', 'Surprised'],
+        options: ['Happy', 'Sad', 'Angry', 'Scared'],
       ),
       EmotionQuestion(
         prompt: 'How does this person feel?',
         correctAnswer: 'Sad',
-        options: ['Happy', 'Sad', 'Angry', 'Scared', 'Surprised'],
+        options: ['Happy', 'Sad', 'Angry', 'Scared'],
       ),
       EmotionQuestion(
         prompt: 'Identify this emotion',
         correctAnswer: 'Angry',
-        options: ['Happy', 'Sad', 'Angry', 'Scared', 'Surprised'],
+        options: ['Happy', 'Sad', 'Angry', 'Scared'],
       ),
       EmotionQuestion(
         prompt: 'What feeling do you see?',
         correctAnswer: 'Scared',
-        options: ['Happy', 'Sad', 'Angry', 'Scared', 'Surprised'],
-      ),
-      EmotionQuestion(
-        prompt: 'Name this emotion',
-        correctAnswer: 'Surprised',
-        options: ['Happy', 'Sad', 'Angry', 'Scared', 'Surprised'],
+        options: ['Happy', 'Sad', 'Angry', 'Scared'],
       ),
     ];
 
