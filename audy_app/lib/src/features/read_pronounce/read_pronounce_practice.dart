@@ -331,12 +331,13 @@ class _ReadPronouncePracticeScreenState
                             ? 'Tap mic to check'
                             : 'Ready',
                   ),
-                  SizedBox(height: adaptive.space(12)),
-                  _SttDebugPanel(
-                    adaptive: adaptive,
-                    status: _sttDebugStatus,
-                    text: _sttDebugText,
-                  ),
+                  // Temporarily hidden; keep the STT debug panel ready for later.
+                  // SizedBox(height: adaptive.space(12)),
+                  // _SttDebugPanel(
+                  //   adaptive: adaptive,
+                  //   status: _sttDebugStatus,
+                  //   text: _sttDebugText,
+                  // ),
                   SizedBox(height: adaptive.space(16)),
                   Center(
                     child: _VoiceButton(
