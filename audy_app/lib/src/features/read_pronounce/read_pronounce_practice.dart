@@ -1,5 +1,9 @@
+import 'dart:async';
+
+import 'package:avatar_glow/avatar_glow.dart';
 import 'package:flutter/material.dart';
 
+import '../../services/bluetooth_service.dart';
 import '../../services/sound_service.dart';
 import '../../state/audy_controller.dart';
 import 'read_pronounce_controller.dart';
@@ -24,18 +28,23 @@ class ReadPronouncePracticeScreen extends StatefulWidget {
 }
 
 class _ReadPronouncePracticeScreenState
-    extends State<ReadPronouncePracticeScreen>
-    with TickerProviderStateMixin {
+    extends State<ReadPronouncePracticeScreen> {
   late final ReadPronounceController _controller;
   late final ReadPronounceService _service;
-  final TextEditingController _textController = TextEditingController();
 
-  bool _isTtsPlaying = false;
+  StreamSubscription<AudyBleMessage>? _bleMicSub;
+  Timer? _recordingTimer;
   bool _isSttListening = false;
+  bool _isAdvancingRound = false;
+  bool _hasNavigatedToResult = false;
+  int _recordingSeconds = 0;
+  int _listeningCount = 0;
   String _sttUnavailableMessage = '';
-
-  late AnimationController _pulseController;
-  late AnimationController _waveController;
+  String _sttDebugStatus = 'idle';
+  String _sttDebugText = '';
+  String _latestRecognizedText = '';
+  bool _isManualStopSubmitting = false;
+  bool _hasPendingSpeechSubmission = false;
 
   @override
   void initState() {
@@ -43,23 +52,23 @@ class _ReadPronouncePracticeScreenState
     _controller = ReadPronounceController();
     _service = ReadPronounceService();
     _controller.startSession(widget.module);
-
-    _pulseController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1200),
-    )..repeat(reverse: true);
-
-    _waveController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 800),
-    )..repeat(reverse: true);
-
     _controller.addListener(_onControllerChanged);
+    _bleMicSub = AudyBluetoothService.instance.incomingMessages.listen(
+      _handleBleInput,
+    );
+  }
+
+  void _handleBleInput(AudyBleMessage message) {
+    if (!mounted) return;
+    if (message.channel != 'tummy' || message.value != 1) return;
+
+    unawaited(_handleVoiceButtonTap());
   }
 
   void _onControllerChanged() {
     if (!mounted) return;
-    if (_controller.isSessionComplete) {
+    if (_controller.isSessionComplete && !_hasNavigatedToResult) {
+      _hasNavigatedToResult = true;
       final result = _controller.lastSessionResult;
       final title = widget.title;
       Future.microtask(() {
@@ -81,29 +90,38 @@ class _ReadPronouncePracticeScreenState
 
   @override
   void dispose() {
+    _bleMicSub?.cancel();
+    _recordingTimer?.cancel();
     _controller.removeListener(_onControllerChanged);
     _controller.dispose();
-    _textController.dispose();
-    _pulseController.dispose();
-    _waveController.dispose();
+    _service.dispose();
     super.dispose();
   }
 
-  Future<void> _handleListen() async {
-    final state = _controller.currentState;
-    if (state == null) return;
-
-    setState(() => _isTtsPlaying = true);
-
-    await _service.speak(state.prompt);
-
-    if (mounted) {
-      setState(() => _isTtsPlaying = false);
+  Future<void> _handleVoiceButtonTap() async {
+    if (_isAdvancingRound ||
+        _controller.isAwaitingNextRound ||
+        _controller.isSessionComplete) {
+      return;
     }
+
+    if (_isSttListening) {
+      await _stopListening();
+      return;
+    }
+
+    if (_hasPendingSpeechSubmission) {
+      SoundService.instance.playTap();
+      await _handleListeningResult(_latestRecognizedText);
+      return;
+    }
+
+    await _startListening();
   }
 
-  Future<void> _handleSayIt() async {
-    if (!_service.isSTTAvailable) {
+  Future<void> _startListening() async {
+    final sttAvailable = await _service.ensureSTTAvailable();
+    if (!sttAvailable) {
       setState(() {
         _sttUnavailableMessage =
             'This feature is not available on your device.';
@@ -111,26 +129,131 @@ class _ReadPronouncePracticeScreenState
       return;
     }
 
+    SoundService.instance.playTap();
+    _startRecordingTimer();
     setState(() {
       _isSttListening = true;
       _sttUnavailableMessage = '';
+      _sttDebugStatus = 'listening';
+      _sttDebugText = '';
+      _latestRecognizedText = '';
+      _hasPendingSpeechSubmission = false;
+      _listeningCount++;
     });
 
-    final result = await _service.listen();
+    final result = await _service.listen(
+      localeId: 'en_US',
+      onStatusChanged: (status) {
+        if (!mounted) return;
+        setState(() => _sttDebugStatus = status);
+      },
+      onPartialResult: (words) {
+        if (!mounted) return;
+        setState(() {
+          _sttDebugText = words;
+          _latestRecognizedText = words;
+        });
+      },
+    );
 
+    if (!mounted || _isManualStopSubmitting) return;
+    _stopRecordingTimer();
+    final finalText = result?.trim();
+    if (finalText != null && finalText.isNotEmpty) {
+      _latestRecognizedText = finalText;
+      _sttDebugText = finalText;
+    }
+    final hasRecognizedWords = _latestRecognizedText.trim().isNotEmpty;
+    setState(() {
+      _isSttListening = false;
+      _hasPendingSpeechSubmission = hasRecognizedWords;
+      _sttDebugStatus = hasRecognizedWords
+          ? 'ready. tap mic again to submit'
+          : 'stopped. no speech heard';
+    });
+  }
+
+  Future<void> _stopListening() async {
+    _isManualStopSubmitting = true;
+    try {
+      SoundService.instance.playTap();
+      final result = await _service.stopListening();
+      final submittedText = result?.trim().isNotEmpty == true
+          ? result!.trim()
+          : _latestRecognizedText.trim();
+      _stopRecordingTimer();
+      if (!mounted) return;
+      setState(() {
+        _isSttListening = false;
+        _hasPendingSpeechSubmission = false;
+        _sttDebugStatus = 'manual stop';
+        if (submittedText.isNotEmpty) {
+          _latestRecognizedText = submittedText;
+          _sttDebugText = submittedText;
+        }
+      });
+      await _handleListeningResult(submittedText);
+    } finally {
+      _isManualStopSubmitting = false;
+    }
+  }
+
+  Future<void> _handleListeningResult(String? result) async {
+    _stopRecordingTimer();
+    if (!mounted) return;
+
+    final submittedText = result?.trim() ?? '';
+    setState(() {
+      _isSttListening = false;
+      _hasPendingSpeechSubmission = false;
+      _sttDebugStatus = submittedText.isEmpty ? 'no result' : 'submitted';
+      if (submittedText.isNotEmpty) {
+        _latestRecognizedText = submittedText;
+        _sttDebugText = submittedText;
+      }
+    });
+    final outcome = _controller.submitAttempt(submittedText);
     if (mounted) {
-      setState(() => _isSttListening = false);
-
-      if (result != null && result.trim().isNotEmpty) {
-        _textController.text = result;
-        _handleAttempt(result);
+      setState(() => _sttDebugStatus = 'outcome: ${outcome.name}');
+    }
+    if (outcome == ReadPronounceAttemptOutcome.correct) {
+      SoundService.instance.playRoundComplete();
+      setState(() => _isAdvancingRound = true);
+      await Future.delayed(const Duration(milliseconds: 900));
+      if (!mounted) return;
+      _controller.advanceAfterCorrect();
+      if (mounted) {
+        setState(() => _isAdvancingRound = false);
       }
     }
   }
 
-  void _handleAttempt(String text) {
-    _controller.submitAttempt(text);
-    _textController.clear();
+  void _handleSkip() {
+    if (_isSttListening || _isAdvancingRound) return;
+    SoundService.instance.playTap();
+    _controller.skipCurrentPrompt();
+  }
+
+  void _startRecordingTimer() {
+    _recordingTimer?.cancel();
+    _recordingSeconds = 0;
+    _recordingTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) {
+        setState(() => _recordingSeconds++);
+      }
+    });
+  }
+
+  void _stopRecordingTimer() {
+    _recordingTimer?.cancel();
+    _recordingTimer = null;
+  }
+
+  String _formatRecordingTime() {
+    final minutes = _recordingSeconds ~/ 60;
+    final seconds = _recordingSeconds % 60;
+    return '${minutes.toString().padLeft(2, '0')}:'
+        '${seconds.toString().padLeft(2, '0')}';
   }
 
   @override
@@ -177,6 +300,7 @@ class _ReadPronouncePracticeScreenState
                         SizedBox(height: adaptive.space(8)),
                         Text(
                           widget.subtitle,
+                          textAlign: TextAlign.center,
                           style: TextStyle(
                             fontSize: adaptive.space(15),
                             color: const Color(0xFF617691),
@@ -191,39 +315,47 @@ class _ReadPronouncePracticeScreenState
                     current: state.progressCurrent,
                     total: state.progressTotal,
                   ),
-                  SizedBox(height: adaptive.space(28)),
+                  SizedBox(height: adaptive.space(24)),
                   _PromptCard(
                     adaptive: adaptive,
                     prompt: state.prompt,
                     imagePath: _controller.getCurrentImagePath(),
                   ),
-                  SizedBox(height: adaptive.space(24)),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _ListenButton(
-                          adaptive: adaptive,
-                          isPlaying: _isTtsPlaying,
-                          onPressed: () {
-                            SoundService.instance.playTap();
-                            _handleListen();
-                          },
-                        ),
-                      ),
-                      SizedBox(width: adaptive.space(16)),
-                      Expanded(
-                        child: _SayItButton(
-                          adaptive: adaptive,
-                          onPressed: () {
-                            SoundService.instance.playTap();
-                            _handleSayIt();
-                          },
-                          isListening: _isSttListening,
-                          isAvailable: _service.isSTTAvailable,
-                        ),
-                      ),
-                    ],
+                  SizedBox(height: adaptive.space(22)),
+                  _RecordingStatus(
+                    adaptive: adaptive,
+                    isRecording: _isSttListening,
+                    label: _isSttListening
+                        ? 'Recording ${_formatRecordingTime()}'
+                        : _hasPendingSpeechSubmission
+                            ? 'Tap mic to check'
+                            : 'Ready',
                   ),
+                  SizedBox(height: adaptive.space(12)),
+                  _SttDebugPanel(
+                    adaptive: adaptive,
+                    status: _sttDebugStatus,
+                    text: _sttDebugText,
+                  ),
+                  SizedBox(height: adaptive.space(16)),
+                  Center(
+                    child: _VoiceButton(
+                      adaptive: adaptive,
+                      isListening: _isSttListening,
+                      isEnabled: !_isAdvancingRound &&
+                          !_controller.isAwaitingNextRound,
+                      listeningCount: _listeningCount,
+                      onTap: _handleVoiceButtonTap,
+                    ),
+                  ),
+                  if (state.isCorrect) ...[
+                    SizedBox(height: adaptive.space(18)),
+                    Center(child: _CorrectBadge(adaptive: adaptive)),
+                  ],
+                  if (_controller.shouldShowSkip) ...[
+                    SizedBox(height: adaptive.space(18)),
+                    _SkipButton(adaptive: adaptive, onPressed: _handleSkip),
+                  ],
                   if (_sttUnavailableMessage.isNotEmpty) ...[
                     SizedBox(height: adaptive.space(16)),
                     _SttUnavailableMessage(
@@ -231,14 +363,12 @@ class _ReadPronouncePracticeScreenState
                       message: _sttUnavailableMessage,
                     ),
                   ],
-                  SizedBox(height: adaptive.space(20)),
-                  _ManualInput(
+                  SizedBox(height: adaptive.space(18)),
+                  _FeedbackCard(
                     adaptive: adaptive,
-                    controller: _textController,
-                    onAttempt: _handleAttempt,
+                    feedback: state.feedback,
+                    isCorrect: state.isCorrect,
                   ),
-                  SizedBox(height: adaptive.space(16)),
-                  _FeedbackCard(adaptive: adaptive, feedback: state.feedback),
                 ],
               ),
             ),
@@ -319,12 +449,14 @@ class _PromptCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final imageSize = adaptive.isPhone ? 112.0 : adaptive.space(132);
+
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.all(adaptive.space(32)),
+      padding: EdgeInsets.all(adaptive.space(28)),
       decoration: BoxDecoration(
         color: const Color(0xFFBDD8F2).withValues(alpha: 0.3),
-        borderRadius: BorderRadius.circular(adaptive.space(32)),
+        borderRadius: BorderRadius.circular(adaptive.space(28)),
         border: Border.all(color: const Color(0xFFBDD8F2), width: 3),
         boxShadow: [
           BoxShadow(
@@ -341,44 +473,23 @@ class _PromptCard extends StatelessWidget {
             child: imagePath != null
                 ? Image.asset(
                     imagePath!,
-                    width: adaptive.space(120),
-                    height: adaptive.space(120),
-                    fit: BoxFit.cover,
+                    width: imageSize,
+                    height: imageSize,
+                    fit: BoxFit.contain,
                     errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        width: adaptive.space(100),
-                        height: adaptive.space(100),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF8FBCEC).withValues(alpha: 0.2),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          Icons.image_not_supported_rounded,
-                          size: adaptive.space(52),
-                          color: const Color(0xFF243A5A),
-                        ),
+                      return _ImageFallback(
+                        adaptive: adaptive,
+                        size: imageSize,
                       );
                     },
                   )
-                : Container(
-                    width: adaptive.space(100),
-                    height: adaptive.space(100),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF8FBCEC).withValues(alpha: 0.2),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      Icons.image_rounded,
-                      size: adaptive.space(52),
-                      color: const Color(0xFF243A5A),
-                    ),
-                  ),
+                : _ImageFallback(adaptive: adaptive, size: imageSize),
           ),
-          SizedBox(height: adaptive.space(20)),
+          SizedBox(height: adaptive.space(18)),
           Text(
             prompt,
             style: TextStyle(
-              fontSize: adaptive.space(48),
+              fontSize: adaptive.space(prompt.length > 12 ? 34 : 48),
               fontWeight: FontWeight.w900,
               color: const Color(0xFF243A5A),
             ),
@@ -390,43 +501,214 @@ class _PromptCard extends StatelessWidget {
   }
 }
 
-class _ListenButton extends StatelessWidget {
-  const _ListenButton({
-    required this.adaptive,
-    required this.isPlaying,
-    required this.onPressed,
-  });
+class _ImageFallback extends StatelessWidget {
+  const _ImageFallback({required this.adaptive, required this.size});
 
   final _AudyAdaptive adaptive;
-  final bool isPlaying;
-  final VoidCallback onPressed;
+  final double size;
 
   @override
   Widget build(BuildContext context) {
-    return ElevatedButton(
-      onPressed: isPlaying ? null : onPressed,
-      style: ElevatedButton.styleFrom(
-        backgroundColor: const Color(0xFF8FBCEC),
-        foregroundColor: Colors.white,
-        padding: EdgeInsets.symmetric(vertical: adaptive.space(18)),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(adaptive.space(16)),
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: const Color(0xFF8FBCEC).withValues(alpha: 0.2),
+        shape: BoxShape.circle,
+      ),
+      child: Icon(
+        Icons.record_voice_over_rounded,
+        size: adaptive.space(54),
+        color: const Color(0xFF243A5A),
+      ),
+    );
+  }
+}
+
+class _RecordingStatus extends StatelessWidget {
+  const _RecordingStatus({
+    required this.adaptive,
+    required this.isRecording,
+    required this.label,
+  });
+
+  final _AudyAdaptive adaptive;
+  final bool isRecording;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Container(
+        constraints: const BoxConstraints(minHeight: 48),
+        padding: EdgeInsets.symmetric(
+          horizontal: adaptive.space(18),
+          vertical: adaptive.space(10),
         ),
-        elevation: 4,
+        decoration: BoxDecoration(
+          color: isRecording
+              ? const Color(0xFFF8C7DF).withValues(alpha: 0.45)
+              : const Color(0xFFF5F8FC),
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(
+            color: isRecording
+                ? const Color(0xFFF29AC5)
+                : const Color(0xFFBDD8F2),
+            width: 2,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              isRecording ? Icons.fiber_manual_record : Icons.mic_none_rounded,
+              size: adaptive.space(18),
+              color: isRecording
+                  ? const Color(0xFFC6427A)
+                  : const Color(0xFF617691),
+            ),
+            SizedBox(width: adaptive.space(8)),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: adaptive.space(15),
+                fontWeight: FontWeight.w800,
+                color: isRecording
+                    ? const Color(0xFFC6427A)
+                    : const Color(0xFF617691),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SttDebugPanel extends StatelessWidget {
+  const _SttDebugPanel({
+    required this.adaptive,
+    required this.status,
+    required this.text,
+  });
+
+  final _AudyAdaptive adaptive;
+  final String status;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final heardText = text.trim().isEmpty ? '(nothing yet)' : text.trim();
+
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(adaptive.space(12)),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF8E1),
+        borderRadius: BorderRadius.circular(adaptive.space(14)),
+        border: Border.all(color: const Color(0xFFFFD54F), width: 2),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'STT status: $status',
+            style: TextStyle(
+              fontSize: adaptive.space(13),
+              fontWeight: FontWeight.w800,
+              color: const Color(0xFF6D4C00),
+            ),
+          ),
+          SizedBox(height: adaptive.space(6)),
+          Text(
+            'Heard: $heardText',
+            style: TextStyle(
+              fontSize: adaptive.space(14),
+              fontWeight: FontWeight.w700,
+              color: const Color(0xFF243A5A),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _VoiceButton extends StatelessWidget {
+  const _VoiceButton({
+    required this.adaptive,
+    required this.isListening,
+    required this.isEnabled,
+    required this.listeningCount,
+    required this.onTap,
+  });
+
+  final _AudyAdaptive adaptive;
+  final bool isListening;
+  final bool isEnabled;
+  final int listeningCount;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final radius = adaptive.isPhone ? 62.0 : adaptive.space(72);
+
+    return AvatarGlow(
+      key: ValueKey('read_pronounce_glow_$listeningCount'),
+      glowColor: const Color(0xFFF8C7DF),
+      animate: isListening,
+      repeat: true,
+      child: GestureDetector(
+        onTap: isEnabled ? onTap : null,
+        child: CircleAvatar(
+          radius: radius,
+          backgroundColor: isEnabled || isListening
+              ? const Color(0xFFF8C7DF)
+              : const Color(0xFFD7DEE8),
+          child: Icon(
+            isListening ? Icons.mic_rounded : Icons.mic_none_rounded,
+            color: const Color(0xFF243A5A),
+            size: adaptive.space(54),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CorrectBadge extends StatelessWidget {
+  const _CorrectBadge({required this.adaptive});
+
+  final _AudyAdaptive adaptive;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      constraints: const BoxConstraints(minHeight: 48),
+      padding: EdgeInsets.symmetric(
+        horizontal: adaptive.space(20),
+        vertical: adaptive.space(10),
+      ),
+      decoration: BoxDecoration(
+        color: const Color(0xFFE8F5E9),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: const Color(0xFF69E0A0), width: 2),
       ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
-            isPlaying ? Icons.volume_off_rounded : Icons.volume_up_rounded,
+            Icons.check_circle_rounded,
+            color: const Color(0xFF2E7D32),
             size: adaptive.space(24),
           ),
           SizedBox(width: adaptive.space(8)),
           Text(
-            isPlaying ? 'Playing...' : 'Listen',
+            'Correct',
             style: TextStyle(
+              color: const Color(0xFF2E7D32),
               fontSize: adaptive.space(18),
-              fontWeight: FontWeight.w700,
+              fontWeight: FontWeight.w900,
             ),
           ),
         ],
@@ -435,91 +717,35 @@ class _ListenButton extends StatelessWidget {
   }
 }
 
-class _SayItButton extends StatefulWidget {
-  const _SayItButton({
-    required this.adaptive,
-    required this.onPressed,
-    required this.isListening,
-    required this.isAvailable,
-  });
+class _SkipButton extends StatelessWidget {
+  const _SkipButton({required this.adaptive, required this.onPressed});
 
   final _AudyAdaptive adaptive;
   final VoidCallback onPressed;
-  final bool isListening;
-  final bool isAvailable;
-
-  @override
-  State<_SayItButton> createState() => _SayItButtonState();
-}
-
-class _SayItButtonState extends State<_SayItButton>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _pulseController;
-  late Animation<double> _pulseAnimation;
-
-  @override
-  void initState() {
-    super.initState();
-    _pulseController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 600),
-    );
-    _pulseAnimation = Tween<double>(begin: 1.0, end: 1.15).animate(
-      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
-    );
-  }
-
-  @override
-  void didUpdateWidget(_SayItButton oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.isListening && !oldWidget.isListening) {
-      _pulseController.repeat(reverse: true);
-    } else if (!widget.isListening && oldWidget.isListening) {
-      _pulseController.stop();
-      _pulseController.value = 1.0;
-    }
-  }
-
-  @override
-  void dispose() {
-    _pulseController.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
-    return ElevatedButton(
-      onPressed: widget.isAvailable ? widget.onPressed : null,
-      style: ElevatedButton.styleFrom(
-        backgroundColor: widget.isAvailable
-            ? const Color(0xFF69E0A0)
-            : const Color(0xFFB0BEC5),
-        foregroundColor: Colors.white,
-        padding: EdgeInsets.symmetric(vertical: widget.adaptive.space(18)),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(widget.adaptive.space(16)),
-        ),
-        elevation: 4,
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          if (widget.isListening)
-            ScaleTransition(
-              scale: _pulseAnimation,
-              child: Icon(Icons.mic_rounded, size: widget.adaptive.space(24)),
-            )
-          else
-            Icon(Icons.mic_none_rounded, size: widget.adaptive.space(24)),
-          SizedBox(width: widget.adaptive.space(8)),
-          Text(
-            widget.isListening ? 'Listening...' : 'Say It!',
-            style: TextStyle(
-              fontSize: widget.adaptive.space(18),
-              fontWeight: FontWeight.w700,
-            ),
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton.icon(
+        onPressed: onPressed,
+        icon: Icon(Icons.skip_next_rounded, size: adaptive.space(24)),
+        label: Text(
+          'Skip',
+          style: TextStyle(
+            fontSize: adaptive.space(17),
+            fontWeight: FontWeight.w800,
           ),
-        ],
+        ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFFFFE0B2),
+          foregroundColor: const Color(0xFF6D4C00),
+          minimumSize: const Size.fromHeight(52),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(adaptive.space(16)),
+          ),
+          elevation: 2,
+        ),
       ),
     );
   }
@@ -565,145 +791,43 @@ class _SttUnavailableMessage extends StatelessWidget {
   }
 }
 
-class _ManualInput extends StatelessWidget {
-  const _ManualInput({
+class _FeedbackCard extends StatelessWidget {
+  const _FeedbackCard({
     required this.adaptive,
-    required this.controller,
-    required this.onAttempt,
+    required this.feedback,
+    required this.isCorrect,
   });
 
   final _AudyAdaptive adaptive;
-  final TextEditingController controller;
-  final ValueSetter<String> onAttempt;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.all(adaptive.space(16)),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF5F8FC),
-        borderRadius: BorderRadius.circular(adaptive.space(16)),
-        border: Border.all(
-          color: const Color(0xFFBDD8F2).withValues(alpha: 0.5),
-          width: 2,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Or type your answer:',
-            style: TextStyle(
-              fontSize: adaptive.space(14),
-              color: const Color(0xFF617691),
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          SizedBox(height: adaptive.space(12)),
-          TextField(
-            controller: controller,
-            decoration: InputDecoration(
-              hintText: 'Type here...',
-              filled: true,
-              fillColor: Colors.white,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(adaptive.space(12)),
-                borderSide: BorderSide(
-                  color: const Color(0xFFBDD8F2),
-                  width: 2,
-                ),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(adaptive.space(12)),
-                borderSide: BorderSide(
-                  color: const Color(0xFFBDD8F2),
-                  width: 2,
-                ),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(adaptive.space(12)),
-                borderSide: const BorderSide(
-                  color: Color(0xFF8FBCEC),
-                  width: 2,
-                ),
-              ),
-              contentPadding: EdgeInsets.symmetric(
-                horizontal: adaptive.space(16),
-                vertical: adaptive.space(14),
-              ),
-            ),
-            style: TextStyle(
-              fontSize: adaptive.space(18),
-              fontWeight: FontWeight.w600,
-              color: const Color(0xFF243A5A),
-            ),
-          ),
-          SizedBox(height: adaptive.space(12)),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: () {
-                SoundService.instance.playTap();
-                if (controller.text.trim().isNotEmpty) {
-                  onAttempt(controller.text.trim());
-                  controller.clear();
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFBDD8F2),
-                foregroundColor: const Color(0xFF243A5A),
-                padding: EdgeInsets.symmetric(vertical: adaptive.space(14)),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(adaptive.space(12)),
-                ),
-                elevation: 2,
-              ),
-              child: Text(
-                'Submit',
-                style: TextStyle(
-                  fontSize: adaptive.space(16),
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _FeedbackCard extends StatelessWidget {
-  const _FeedbackCard({required this.adaptive, required this.feedback});
-
-  final _AudyAdaptive adaptive;
   final String feedback;
+  final bool isCorrect;
 
   @override
   Widget build(BuildContext context) {
+    final color = isCorrect ? const Color(0xFF69E0A0) : const Color(0xFFBDD8F2);
+    final icon = isCorrect
+        ? Icons.check_circle_rounded
+        : Icons.tips_and_updates_rounded;
+
     return Container(
       width: double.infinity,
       padding: EdgeInsets.all(adaptive.space(16)),
       decoration: BoxDecoration(
-        color: const Color(0xFFE8F5E9),
+        color: color.withValues(alpha: 0.18),
         borderRadius: BorderRadius.circular(adaptive.space(16)),
-        border: Border.all(color: const Color(0xFF69E0A0), width: 2),
+        border: Border.all(color: color, width: 2),
       ),
       child: Row(
         children: [
-          Icon(
-            Icons.check_circle_rounded,
-            size: adaptive.space(24),
-            color: const Color(0xFF4CAF50),
-          ),
+          Icon(icon, size: adaptive.space(24), color: const Color(0xFF243A5A)),
           SizedBox(width: adaptive.space(12)),
           Expanded(
             child: Text(
               feedback,
               style: TextStyle(
                 fontSize: adaptive.space(15),
-                color: const Color(0xFF2E7D32),
-                fontWeight: FontWeight.w600,
+                color: const Color(0xFF243A5A),
+                fontWeight: FontWeight.w700,
               ),
             ),
           ),
@@ -729,6 +853,7 @@ class _TopRow extends StatelessWidget {
     return GestureDetector(
       onTap: onBack,
       child: Container(
+        constraints: const BoxConstraints(minHeight: 48),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         child: Row(
           mainAxisSize: MainAxisSize.min,

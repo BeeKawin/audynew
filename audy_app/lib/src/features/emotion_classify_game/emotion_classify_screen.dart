@@ -104,26 +104,25 @@ class _EmotionClassifyScreenState extends State<EmotionClassifyScreen> {
           children: [
             Row(
               children: [
-                Expanded(
-                  child: InkWell(
-                    onTap: () {
-                      SoundService.instance.playTap();
-                      controller.resetClassifyGame();
-                      Navigator.pop(context);
-                    },
-                    borderRadius: BorderRadius.circular(
-                      AudySpacing.radiusMedium,
-                    ),
-                    child: SizedBox(
-                      width: AudySpacing.touchTargetMin,
-                      height: AudySpacing.touchTargetMin,
-                      child: const Icon(
-                        Icons.arrow_back_rounded,
-                        size: AudySpacing.iconMedium,
-                      ),
+                InkWell(
+                  onTap: () {
+                    SoundService.instance.playTap();
+                    controller.resetClassifyGame();
+                    Navigator.pop(context);
+                  },
+                  borderRadius: BorderRadius.circular(
+                    AudySpacing.radiusMedium,
+                  ),
+                  child: SizedBox(
+                    width: AudySpacing.touchTargetMin,
+                    height: AudySpacing.touchTargetMin,
+                    child: const Icon(
+                      Icons.arrow_back_rounded,
+                      size: AudySpacing.iconMedium,
                     ),
                   ),
                 ),
+                const SizedBox(width: AudySpacing.elementGap),
                 Text(
                   controller.tr(
                     'round_format',

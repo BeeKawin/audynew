@@ -62,21 +62,7 @@ class SoundService {
 
   /// Preload all known sound assets into memory
   Future<void> _loadAll() async {
-    final paths = [
-      AppSounds.correct,
-      AppSounds.wrong,
-      AppSounds.tap,
-      AppSounds.cameraShutter,
-      AppSounds.roundComplete,
-      AppSounds.gameComplete,
-      AppSounds.points,
-      AppSounds.achievement,
-      AppSounds.levelUp,
-      AppSounds.go,
-      AppSounds.error,
-      AppSounds.tryAgain,
-      AppSounds.soundtrack,
-    ];
+    final paths = AppSounds.allSounds;
 
     int loadedCount = 0;
     int failedCount = 0;

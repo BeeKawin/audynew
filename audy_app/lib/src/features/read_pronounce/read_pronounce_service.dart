@@ -14,6 +14,11 @@ class ReadPronounceService {
   bool _isSpeaking = false;
   bool _isListening = false;
   bool _sttAvailable = false;
+  Completer<String?>? _activeListenCompleter;
+  Timer? _listenTimeoutTimer;
+  String _lastRecognizedWords = '';
+  void Function(String status)? _statusListener;
+  void Function(String words)? _partialResultListener;
 
   bool get isSpeaking => _isSpeaking;
   bool get isListening => _isListening;
@@ -31,7 +36,31 @@ class ReadPronounceService {
       _isSpeaking = false;
     });
 
-    _sttAvailable = await _stt.initialize();
+    _sttAvailable = await _initializeStt();
+  }
+
+  Future<bool> ensureSTTAvailable() async {
+    if (_sttAvailable) return true;
+    _sttAvailable = await _initializeStt();
+    return _sttAvailable;
+  }
+
+  Future<bool> _initializeStt() {
+    return _stt.initialize(
+      onStatus: (status) {
+        _statusListener?.call(status);
+        if (!_isListening) return;
+        if (status == 'done' || status == 'notListening') {
+          _completeListeningWithLastWords();
+        }
+      },
+      onError: (error) {
+        _statusListener?.call('error: ${error.errorMsg}');
+        if (_isListening) {
+          _completeListeningWithLastWords();
+        }
+      },
+    );
   }
 
   Future<void> speak(String text, {String language = 'en-US'}) async {
@@ -58,44 +87,122 @@ class ReadPronounceService {
     _isSpeaking = false;
   }
 
-  Future<String?> listen() async {
-    if (!_sttAvailable) return null;
-    if (_isListening) return null;
+  Future<String?> listen({
+    String? localeId,
+    void Function(String status)? onStatusChanged,
+    void Function(String words)? onPartialResult,
+  }) async {
+    _statusListener = onStatusChanged;
+    _partialResultListener = onPartialResult;
+
+    if (!await ensureSTTAvailable()) {
+      _statusListener?.call('initialize failed');
+      return null;
+    }
+    if (_isListening) {
+      final activeCompleter = _activeListenCompleter;
+      if (activeCompleter == null) return null;
+      return activeCompleter.future;
+    }
 
     final available = await _stt.hasPermission;
+    _statusListener?.call('permission: $available');
     if (!available) return null;
 
-    final completer = Completer<String?>();
-    String lastWords = '';
+    final selectedLocaleId = await _resolveLocaleId(localeId);
 
+    _lastRecognizedWords = '';
+    _activeListenCompleter = Completer<String?>();
     _isListening = true;
+    _statusListener?.call(
+      selectedLocaleId == null
+          ? 'starting default locale'
+          : 'starting $selectedLocaleId',
+    );
 
-    final started = await _stt.listen(
-      localeId: 'en_US',
-      listenFor: const Duration(seconds: 10),
+    await _stt.listen(
+      localeId: selectedLocaleId,
+      listenFor: const Duration(seconds: 30),
       pauseFor: const Duration(seconds: 3),
       listenOptions: SpeechListenOptions(partialResults: true),
       onResult: (result) {
-        lastWords = result.recognizedWords;
+        _lastRecognizedWords = result.recognizedWords;
+        _partialResultListener?.call(_lastRecognizedWords);
         if (result.finalResult) {
-          _isListening = false;
-          if (!completer.isCompleted) {
-            completer.complete(
-              lastWords.trim().isEmpty ? null : lastWords.trim(),
-            );
-          }
+          _completeListeningWithLastWords();
         }
       },
     );
 
-    if (!started) {
-      _isListening = false;
-      if (!completer.isCompleted) {
-        completer.complete(null);
+    _statusListener?.call(
+      selectedLocaleId == null
+          ? 'listening default locale'
+          : 'listening $selectedLocaleId',
+    );
+
+    _listenTimeoutTimer?.cancel();
+    _listenTimeoutTimer = Timer(const Duration(seconds: 32), () {
+      if (_isListening) {
+        _stt.stop();
+        _completeListeningWithLastWords();
       }
+    });
+
+    final activeCompleter = _activeListenCompleter;
+    if (activeCompleter == null) return null;
+    return activeCompleter.future;
+  }
+
+  Future<String?> _resolveLocaleId(String? requestedLocaleId) async {
+    if (requestedLocaleId == null || requestedLocaleId.trim().isEmpty) {
+      return null;
     }
 
-    return completer.future;
+    try {
+      final locales = await _stt.locales();
+      final requested = requestedLocaleId.trim();
+      final exactMatch = locales.any((locale) => locale.localeId == requested);
+      if (exactMatch) return requested;
+
+      final languageCode = requested.split('_').first.toLowerCase();
+      String? languageMatch;
+      for (final locale in locales) {
+        final localeLanguage = locale.localeId.split('_').first.toLowerCase();
+        if (localeLanguage == languageCode) {
+          languageMatch = locale.localeId;
+          break;
+        }
+      }
+      if (languageMatch != null) {
+        _statusListener?.call('fallback locale: $languageMatch');
+        return languageMatch;
+      }
+
+      final systemLocale = await _stt.systemLocale();
+      _statusListener?.call(
+        systemLocale == null
+            ? 'locale fallback: default'
+            : 'locale fallback: ${systemLocale.localeId}',
+      );
+      return systemLocale?.localeId;
+    } catch (e) {
+      _statusListener?.call('locale check failed: $e');
+      return null;
+    }
+  }
+
+  void _completeListeningWithLastWords() {
+    _isListening = false;
+    _listenTimeoutTimer?.cancel();
+    _listenTimeoutTimer = null;
+
+    final completer = _activeListenCompleter;
+    _activeListenCompleter = null;
+    if (completer == null || completer.isCompleted) return;
+
+    final trimmed = _lastRecognizedWords.trim();
+    _statusListener?.call('completed');
+    completer.complete(trimmed.isEmpty ? null : trimmed);
   }
 
   void stopSpeaking() async {
@@ -105,14 +212,25 @@ class ReadPronounceService {
     }
   }
 
-  void stopListening() async {
+  Future<String?> stopListening() async {
+    final activeCompleter = _activeListenCompleter;
     if (_isListening) {
       await _stt.stop();
-      _isListening = false;
+      _completeListeningWithLastWords();
     }
+
+    if (activeCompleter != null) {
+      return activeCompleter.future;
+    }
+
+    final trimmed = _lastRecognizedWords.trim();
+    return trimmed.isEmpty ? null : trimmed;
   }
 
   void dispose() {
+    _listenTimeoutTimer?.cancel();
+    _statusListener = null;
+    _partialResultListener = null;
     _tts.stop();
     _stt.stop();
   }

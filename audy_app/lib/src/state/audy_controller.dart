@@ -290,7 +290,8 @@ class AudyController extends ChangeNotifier {
   final List<PreparedRequest> preparedRequests = [];
 
   // ==================== EMOTION CLASSIFY GAME ====================
-  late final List<EmotionQuestion> _classifyQuestions;
+  late final List<EmotionQuestion> _classifyQuestionPool;
+  late List<EmotionQuestion> _classifyQuestions;
   int classifyQuestionIndex = 0;
   int classifyScore = 0;
   String classifyFeedback = 'Choose the matching emotion.';
@@ -327,12 +328,13 @@ class AudyController extends ChangeNotifier {
     classifyCurrentRound = 1;
     classifyScore = 0;
     classifyQuestionIndex = 0;
+    _classifyQuestions = _buildShuffledClassifyQuestions();
     classifyFeedback = 'Choose the matching emotion.';
     notifyListeners();
   }
 
   // ==================== EMOTION MIMIC GAME ====================
-  static const List<String> _mimicEmotions = [
+  static const List<String> _mimicEmotionPool = [
     'Happy',
     'Sad',
     'Surprised',
@@ -341,6 +343,7 @@ class AudyController extends ChangeNotifier {
     'Calm',
     'Disgust',
   ];
+  late List<String> _mimicEmotions;
 
   int mimicCurrentRound = 1;
   int mimicTotalRounds = 3;
@@ -363,6 +366,7 @@ class AudyController extends ChangeNotifier {
     mimicCurrentRound = 1;
     mimicScore = 0;
     _mimicEmotionIndex = 0;
+    _mimicEmotions = _buildShuffledMimicEmotions();
     mimicLastConfidence = 0.0;
     notifyListeners();
   }
@@ -414,7 +418,6 @@ class AudyController extends ChangeNotifier {
   String reactionFeedback = 'Tap the container when it turns green.';
   Map<String, dynamic>? reactionApiPayload;
 
-  final List<SocialMessage> socialMessages = [];
   double socialConfidence = 0.20;
   String socialFeedback = 'Start a conversation with a short message.';
 
@@ -454,6 +457,14 @@ class AudyController extends ChangeNotifier {
     sessionStartTime = null;
     notifyListeners();
     // Persist the reset immediately
+    await _saveProgress();
+  }
+
+  /// Temporary dashboard cheat to bypass meltdown testing.
+  Future<void> resetGamesPlayedCheat() async {
+    gamesInCurrentSession = 0;
+    sessionStartTime = null;
+    notifyListeners();
     await _saveProgress();
   }
 
@@ -511,8 +522,7 @@ class AudyController extends ChangeNotifier {
       AchievementItem(
         title: 'Social Butterfly',
         description: 'Have 10 conversations',
-        unlocked:
-            socialMessages.where((message) => message.isUser).length >= 10,
+        unlocked: chatMessagesSent >= 10,
       ),
       // NEW ACHIEVEMENTS
       AchievementItem(
@@ -648,56 +658,6 @@ class AudyController extends ChangeNotifier {
     } else if (reactionState == ReactionGameState.idle) {
       startReactionRound();
     }
-  }
-
-  String? validateChatMessage(String value) {
-    final trimmed = value.trim();
-    if (trimmed.isEmpty) return 'Please type a short message first.';
-    if (trimmed.length > 120) return 'Keep the message under 120 characters.';
-    return null;
-  }
-
-  Future<void> submitSocialMessage(String message) async {
-    final error = validateChatMessage(message);
-    if (error != null) {
-      socialFeedback = error;
-      notifyListeners();
-      return;
-    }
-
-    final trimmed = message.trim();
-    socialMessages.add(
-      SocialMessage(
-        id: 'user-${DateTime.now().microsecondsSinceEpoch}',
-        text: trimmed,
-        isUser: true,
-        createdAt: DateTime.now(),
-      ),
-    );
-    socialMessages.add(
-      SocialMessage(
-        id: 'bot-${DateTime.now().microsecondsSinceEpoch}',
-        text: _buildBotReply(trimmed),
-        isUser: false,
-        createdAt: DateTime.now(),
-      ),
-    );
-    socialConfidence = min(1.0, socialConfidence + 0.08);
-    socialFeedback = 'Draft conversation prepared for backend syncing.';
-    // Add points and check achievements/level up
-    await addPoints(2);
-    _prepareRequest(
-      feature: 'social_practice',
-      endpoint: '/api/social/messages',
-      method: RequestMethod.post,
-      payload: {
-        'message': trimmed,
-        'confidence': socialConfidence,
-        'conversationLength': socialMessages.length,
-      },
-    );
-    trackMessageSent();
-    notifyListeners();
   }
 
   // ==================== USER REWARDS ====================
@@ -1509,7 +1469,7 @@ class AudyController extends ChangeNotifier {
     if (trimmed.isEmpty) return;
 
     try {
-      await AudyBluetoothService.instance.setEmotion(2);
+      await AudyBluetoothService.instance.setEmotion(1);
     } catch (e) {
       debugPrint('Social Chat BLE emotion signal failed: $e');
     }
@@ -1630,22 +1590,25 @@ class AudyController extends ChangeNotifier {
     );
   }
 
-  String _buildBotReply(String message) {
-    final lower = message.toLowerCase();
-    if (lower.contains('pizza')) {
-      return 'Pizza sounds yummy. What drink did you have with it?';
-    }
-    if (lower.contains('play')) {
-      return 'That sounds fun. Who do you like to play with?';
-    }
-    if (lower.contains('hello') || lower.contains('hi')) {
-      return 'Hello! I am happy to chat with you today.';
-    }
-    return 'Thanks for sharing. Can you tell me a little more?';
+  List<EmotionQuestion> _buildShuffledClassifyQuestions() {
+    final questions = _classifyQuestionPool.map((question) {
+      final shuffledOptions = List<String>.from(question.options)
+        ..shuffle(_random);
+      return EmotionQuestion(
+        prompt: question.prompt,
+        correctAnswer: question.correctAnswer,
+        options: shuffledOptions,
+      );
+    }).toList()..shuffle(_random);
+    return questions;
+  }
+
+  List<String> _buildShuffledMimicEmotions() {
+    return List<String>.from(_mimicEmotionPool)..shuffle(_random);
   }
 
   void _seedState() {
-    _classifyQuestions = const [
+    _classifyQuestionPool = const [
       EmotionQuestion(
         prompt: 'What emotion is this?',
         correctAnswer: 'Happy',
@@ -1667,33 +1630,8 @@ class AudyController extends ChangeNotifier {
         options: ['Happy', 'Sad', 'Angry', 'Scared'],
       ),
     ];
-
-    socialMessages.addAll([
-      SocialMessage(
-        id: 'bot-1',
-        text: 'Hi! I am your friendly chat buddy!',
-        isUser: false,
-        createdAt: DateTime.now(),
-      ),
-      SocialMessage(
-        id: 'bot-2',
-        text: 'What did you eat today?',
-        isUser: false,
-        createdAt: DateTime.now(),
-      ),
-      SocialMessage(
-        id: 'user-1',
-        text: 'Pizza!',
-        isUser: true,
-        createdAt: DateTime.now(),
-      ),
-      SocialMessage(
-        id: 'bot-3',
-        text: 'Sounds delicious! What do you like to play?',
-        isUser: false,
-        createdAt: DateTime.now(),
-      ),
-    ]);
+    _classifyQuestions = _buildShuffledClassifyQuestions();
+    _mimicEmotions = _buildShuffledMimicEmotions();
 
     userRewards = [];
 

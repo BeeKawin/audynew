@@ -1,10 +1,13 @@
+import 'dart:async';
+
+import 'package:avatar_glow/avatar_glow.dart';
 import 'package:flutter/material.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 
 import '../../core/audy_ui.dart';
+import '../../services/bluetooth_service.dart';
 import '../../services/sound_service.dart';
 import '../../state/audy_controller.dart';
-import 'package:avatar_glow/avatar_glow.dart';
 
 class SocialPracticePage extends StatefulWidget {
   const SocialPracticePage({super.key});
@@ -17,6 +20,7 @@ class _SocialPracticePageState extends State<SocialPracticePage> {
   late final TextEditingController messageController;
   late final ScrollController _scrollController;
   final stt.SpeechToText _speech = stt.SpeechToText();
+  StreamSubscription<AudyBleMessage>? _bleMicSub;
   bool _speechInitialized = false;
   bool _isListening = false;
   int _listeningCount = 0; // To trigger AvatarGlow rebuild for each listen
@@ -27,12 +31,23 @@ class _SocialPracticePageState extends State<SocialPracticePage> {
     super.initState();
     messageController = TextEditingController();
     _scrollController = ScrollController();
+    _bleMicSub = AudyBluetoothService.instance.incomingMessages.listen(
+      _handleBleInput,
+    );
     // Scroll to bottom after initial build
     WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
   }
 
+  void _handleBleInput(AudyBleMessage message) {
+    if (!mounted) return;
+    if (message.channel != 'tummy' || message.value != 1) return;
+
+    _listen();
+  }
+
   @override
   void dispose() {
+    _bleMicSub?.cancel();
     messageController.dispose();
     _scrollController.dispose();
     _speech.stop();
@@ -50,6 +65,8 @@ class _SocialPracticePageState extends State<SocialPracticePage> {
   }
 
   void _listen() async {
+    final controller = AudyScope.of(context);
+
     if (!_isListening) {
       // Initialize STT on first use
       if (!_speechInitialized) {
@@ -89,10 +106,30 @@ class _SocialPracticePageState extends State<SocialPracticePage> {
         );
       }
     } else {
-      // User taps mic again to stop listening
+      // User taps mic again to stop listening and submit recognized speech.
       SoundService.instance.playTap();
       setState(() => _isListening = false);
-      _speech.stop();
+      await _speech.stop();
+      await _submitMessage(controller);
+    }
+  }
+
+  Future<void> _submitMessage(AudyController controller) async {
+    if (controller.isChatLoading) return;
+
+    final text = messageController.text;
+    if (controller.validateThaiChatMessage(text) != null) return;
+
+    final previousMessageCount = controller.thaiSocialMessages.length;
+
+    messageController.clear();
+    await controller.submitThaiSocialMessage(text);
+
+    final newBotMessages = controller.thaiSocialMessages
+        .skip(previousMessageCount)
+        .where((message) => !message.isUser);
+    if (newBotMessages.isNotEmpty) {
+      await controller.speakThaiResponse(newBotMessages.last.text);
     }
   }
 
@@ -240,12 +277,7 @@ class _SocialPracticePageState extends State<SocialPracticePage> {
                         ? null
                         : () async {
                             SoundService.instance.playTap();
-                            final text = messageController.text;
-                            if (controller.validateThaiChatMessage(text) ==
-                                null) {
-                              messageController.clear();
-                              await controller.submitThaiSocialMessage(text);
-                            }
+                            await _submitMessage(controller);
                           },
                     child: CircleAvatar(
                       radius: adaptive.isPhone ? 22 : 26,

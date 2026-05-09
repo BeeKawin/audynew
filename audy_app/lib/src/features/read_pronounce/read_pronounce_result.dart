@@ -320,7 +320,7 @@ class _AccuracyPanel extends StatelessWidget {
           ),
           SizedBox(height: adaptive.space(8)),
           Text(
-            '$correct / $total correct',
+            '$correct correct from $total tries',
             style: TextStyle(
               fontSize: adaptive.space(16),
               color: const Color(0xFF617691),

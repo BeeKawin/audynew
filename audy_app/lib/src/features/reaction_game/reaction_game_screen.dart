@@ -61,16 +61,14 @@ class _ReactionTimePageState extends State<ReactionTimePage> {
       if (controller.isReactionGameComplete) return;
 
       final previousReactionCount = controller.reactionTimes.length;
+      final isFinalSuccessfulTap =
+          previousReactionCount + 1 >= controller.reactionTotalRounds;
       await controller.handleReactionContainerTap();
-
-      if (!mounted) return;
 
       final reactionWasRecorded =
           controller.reactionTimes.length > previousReactionCount;
       if (reactionWasRecorded) {
-        await _sendReactionBleFeedback(
-          isFinalRound: controller.isReactionGameComplete,
-        );
+        await _sendReactionBleFeedback(isFinalRound: isFinalSuccessfulTap);
       }
     } finally {
       _isHandlingTap = false;
@@ -484,7 +482,10 @@ class _ReactionTimeResultPageState extends State<ReactionTimeResultPage> {
                     onPressed: () {
                       SoundService.instance.playTap();
                       controller.resetReactionGame();
-                      AppRoutes.navigateAfterGameCompletion(context, controller);
+                      AppRoutes.navigateAfterGameCompletion(
+                        context,
+                        controller,
+                      );
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AudyColors.mintGreen,

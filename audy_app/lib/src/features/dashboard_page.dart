@@ -242,6 +242,22 @@ class _GamesPlayedCard extends StatelessWidget {
               ),
             ],
           ),
+          SizedBox(height: adaptive.space(10)),
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton.icon(
+              onPressed: () async {
+                SoundService.instance.playTap();
+                await controller.resetGamesPlayedCheat();
+              },
+              icon: const Icon(Icons.refresh_rounded, size: 18),
+              label: const Text('Reset count'),
+              style: TextButton.styleFrom(
+                foregroundColor: AudyColors.textSecondary,
+                minimumSize: Size(adaptive.space(48), adaptive.space(48)),
+              ),
+            ),
+          ),
           SizedBox(height: adaptive.space(12)),
           ClipRRect(
             borderRadius: BorderRadius.circular(AudySpacing.radiusSmall),

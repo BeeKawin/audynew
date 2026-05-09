@@ -228,6 +228,7 @@ class AudyBluetoothService {
     connectionNotifier.value = true;
 
     await _findRobotCharacteristics();
+    await _resetOutgoingChannelsToDefault();
     await _enableIncomingNotifications();
 
     debugPrint('AudyBluetoothService: Connected!');
@@ -296,6 +297,14 @@ class AudyBluetoothService {
     await _enableNotification('ears', _earsCharacteristic);
 
     debugPrint('AudyBluetoothService: Notifications enabled');
+  }
+
+  Future<void> _resetOutgoingChannelsToDefault() async {
+    await _writeNumericCommand('arms', _armsCharacteristic, 0);
+    await _writeNumericCommand('emotion', _emotionCharacteristic, 0);
+    await _writeNumericCommand('led', _ledCharacteristic, 0);
+
+    debugPrint('AudyBluetoothService: Outgoing channels reset to defaults');
   }
 
   Future<void> _enableNotification(
