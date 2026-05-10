@@ -23,6 +23,7 @@ class LocalDataSource {
     final row = results.first;
     return ProgressData(
       learningPoints: row.learningPoints,
+      spentLearningPoints: row.spentLearningPoints,
       gamesPlayed: row.gamesPlayed,
       dayStreak: row.dayStreak,
       lastPlayedAt: row.lastPlayedAt,
@@ -46,6 +47,7 @@ class LocalDataSource {
           .insert(
             UserProgressCompanion.insert(
               learningPoints: Value(progress.learningPoints),
+              spentLearningPoints: Value(progress.spentLearningPoints),
               gamesPlayed: Value(progress.gamesPlayed),
               dayStreak: Value(progress.dayStreak),
               lastPlayedAt: progress.lastPlayedAt != null
@@ -71,6 +73,7 @@ class LocalDataSource {
       )..where((t) => t.id.equals(existing.first.id))).write(
         UserProgressCompanion(
           learningPoints: Value(progress.learningPoints),
+          spentLearningPoints: Value(progress.spentLearningPoints),
           gamesPlayed: Value(progress.gamesPlayed),
           dayStreak: Value(progress.dayStreak),
           lastPlayedAt: progress.lastPlayedAt != null
@@ -100,6 +103,7 @@ class LocalDataSource {
           .insert(
             UserProgressCompanion.insert(
               learningPoints: const Value(0),
+              spentLearningPoints: const Value(0),
               gamesPlayed: const Value(0),
               dayStreak: const Value(1),
               lastPlayedAt: Value(DateTime.now()),
@@ -121,6 +125,7 @@ class LocalDataSource {
       )..where((t) => t.id.equals(existing.first.id))).write(
         UserProgressCompanion(
           learningPoints: const Value(0),
+          spentLearningPoints: const Value(0),
           gamesPlayed: const Value(0),
           dayStreak: const Value(1),
           lastPlayedAt: Value(DateTime.now()),
@@ -150,6 +155,8 @@ class LocalDataSource {
       sensorySensitivity: row.sensorySensitivity,
       learningPace: row.learningPace,
       favoriteInterests: row.favoriteInterests,
+      ownedSkinIds: row.ownedSkinIds,
+      selectedSkinId: row.selectedSkinId,
     );
   }
 
@@ -166,6 +173,8 @@ class LocalDataSource {
               sensorySensitivity: Value(preferences.sensorySensitivity),
               learningPace: Value(preferences.learningPace),
               favoriteInterests: Value(preferences.favoriteInterests),
+              ownedSkinIds: Value(preferences.ownedSkinIds),
+              selectedSkinId: Value(preferences.selectedSkinId),
               updatedAt: DateTime.now(),
               isSynced: const Value(false),
             ),
@@ -180,6 +189,8 @@ class LocalDataSource {
           sensorySensitivity: Value(preferences.sensorySensitivity),
           learningPace: Value(preferences.learningPace),
           favoriteInterests: Value(preferences.favoriteInterests),
+          ownedSkinIds: Value(preferences.ownedSkinIds),
+          selectedSkinId: Value(preferences.selectedSkinId),
           updatedAt: Value(DateTime.now()),
           isSynced: const Value(false),
         ),
@@ -199,6 +210,8 @@ class LocalDataSource {
               sensorySensitivity: const Value(1), // Medium (default)
               learningPace: const Value(1), // Standard (default)
               favoriteInterests: const Value(''),
+              ownedSkinIds: const Value('0'),
+              selectedSkinId: const Value(0),
               updatedAt: DateTime.now(),
               isSynced: const Value(false),
             ),
@@ -357,6 +370,7 @@ class LocalDataSource {
           .insert(
             UserProgressCompanion.insert(
               learningPoints: const Value(0),
+              spentLearningPoints: const Value(0),
               gamesPlayed: const Value(0),
               dayStreak: const Value(1),
               lastPlayedAt: const Value.absent(),
@@ -482,6 +496,11 @@ class LocalDataSource {
             isSynced: const Value(false),
           ),
         );
+  }
+
+  /// Clear all game session analytics records.
+  Future<void> clearGameSessions() async {
+    await db.delete(db.gameSessions).go();
   }
 
   /// Get game sessions with optional date filter

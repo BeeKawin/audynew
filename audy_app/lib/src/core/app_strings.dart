@@ -264,6 +264,15 @@ class AppStrings {
       'en': 'Max 3 rewards',
       'th': 'สูงสุด 3 รางวัล',
     },
+    'skins': {'en': 'Skins', 'th': 'สกิน'},
+    'available_points': {'en': 'Available Points', 'th': 'คะแนนที่ใช้ได้'},
+    'skin_price': {'en': '{points} each', 'th': '{points} ต่อชิ้น'},
+    'skin_cost': {'en': '{points} points', 'th': '{points} คะแนน'},
+    'free_skin': {'en': 'Free', 'th': 'ฟรี'},
+    'buy_skin': {'en': 'Buy', 'th': 'ซื้อ'},
+    'select': {'en': 'Select', 'th': 'เลือก'},
+    'selected': {'en': 'Selected', 'th': 'เลือกแล้ว'},
+    'need_points': {'en': 'Need points', 'th': 'คะแนนไม่พอ'},
 
     // Create Reward Dialog
     'create_reward': {'en': 'Create Reward', 'th': 'สร้างรางวัล'},

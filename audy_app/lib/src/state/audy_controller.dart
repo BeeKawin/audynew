@@ -76,6 +76,18 @@ class UserReward {
   double get progressRatio => currentProgress / targetCount;
 }
 
+class SkinVariant {
+  final int id;
+  final String label;
+  final int price;
+
+  const SkinVariant({
+    required this.id,
+    required this.label,
+    required this.price,
+  });
+}
+
 class PreparedRequest {
   const PreparedRequest({
     required this.feature,
@@ -430,6 +442,11 @@ class AudyController extends ChangeNotifier {
   // Persisted in ProgressData.learningPoints.
   int learningPoints = 0;
 
+  // Persisted in ProgressData.spentLearningPoints.
+  int spentLearningPoints = 0;
+  int get availableLearningPoints =>
+      max(0, learningPoints - spentLearningPoints);
+
   // Persisted in ProgressData.gamesPlayed.
   int gamesPlayed = 0;
 
@@ -488,6 +505,72 @@ class AudyController extends ChangeNotifier {
 
   // User preferences for autism-related personalization
   UserPreferences userPreferences = const UserPreferences();
+  Set<int> ownedSkinIds = {0};
+  int selectedSkinId = 0;
+  static const int skinPrice = 50;
+
+  static const List<SkinVariant> skinVariants = [
+    SkinVariant(id: 0, label: 'Ears off / Arms off / Tummy white', price: 0),
+    SkinVariant(id: 1, label: 'All red / Tummy cyan', price: skinPrice),
+    SkinVariant(id: 2, label: 'All green / Tummy magenta', price: skinPrice),
+    SkinVariant(id: 3, label: 'All blue / Tummy yellow', price: skinPrice),
+    SkinVariant(id: 4, label: 'All yellow / Tummy blue', price: skinPrice),
+    SkinVariant(id: 5, label: 'All cyan / Tummy red', price: skinPrice),
+    SkinVariant(id: 6, label: 'All magenta / Tummy green', price: skinPrice),
+    SkinVariant(id: 7, label: 'All white / Tummy off', price: skinPrice),
+    SkinVariant(
+      id: 8,
+      label: 'Ears dim red / Arms green / Tummy yellow',
+      price: skinPrice,
+    ),
+    SkinVariant(
+      id: 9,
+      label: 'Ears dim green / Arms blue / Tummy blue',
+      price: skinPrice,
+    ),
+    SkinVariant(
+      id: 10,
+      label: 'Ears dim blue / Arms yellow / Tummy red',
+      price: skinPrice,
+    ),
+    SkinVariant(
+      id: 11,
+      label: 'Ears dim yellow / Arms cyan / Tummy green',
+      price: skinPrice,
+    ),
+    SkinVariant(
+      id: 12,
+      label: 'Ears dim cyan / Arms magenta / Tummy off',
+      price: skinPrice,
+    ),
+    SkinVariant(
+      id: 13,
+      label: 'Ears dim magenta / Arms white / Tummy cyan',
+      price: skinPrice,
+    ),
+    SkinVariant(
+      id: 14,
+      label: 'Ears dim white / Arms red / Tummy magenta',
+      price: skinPrice,
+    ),
+    SkinVariant(
+      id: 15,
+      label: 'Split ears / Split arms / Tummy white',
+      price: skinPrice,
+    ),
+    SkinVariant(
+      id: 16,
+      label: 'Ears split / Arms off / Tummy green',
+      price: skinPrice,
+    ),
+    SkinVariant(
+      id: 17,
+      label: 'Ears split / Arms off / Tummy white',
+      price: skinPrice,
+    ),
+    SkinVariant(id: 18, label: 'Rainbow', price: skinPrice),
+    SkinVariant(id: 19, label: 'All off', price: skinPrice),
+  ];
 
   // NEW Sorting Game tracking
   int newSortingCorrectActions =
@@ -809,6 +892,87 @@ class AudyController extends ChangeNotifier {
     notifyListeners();
   }
 
+  bool isSkinOwned(int skinId) => ownedSkinIds.contains(skinId);
+
+  Future<bool> buySkin(int skinId) async {
+    final variant = _skinVariantForId(skinId);
+    if (variant == null) return false;
+
+    if (isSkinOwned(skinId)) {
+      return selectSkin(skinId);
+    }
+
+    if (availableLearningPoints < variant.price) {
+      return false;
+    }
+
+    spentLearningPoints += variant.price;
+    ownedSkinIds = {...ownedSkinIds, skinId, 0};
+    selectedSkinId = skinId;
+    userPreferences = userPreferences.copyWith(
+      ownedSkinIds: _encodeOwnedSkinIds(),
+      selectedSkinId: selectedSkinId,
+    );
+
+    await _saveProgress();
+    await _saveSkinPreferences();
+
+    _prepareRequest(
+      feature: 'skins',
+      endpoint: '/api/rewards/skins/buy',
+      method: RequestMethod.post,
+      payload: {
+        'skinId': skinId,
+        'price': variant.price,
+        'spentLearningPoints': spentLearningPoints,
+        'availableLearningPoints': availableLearningPoints,
+      },
+    );
+    notifyListeners();
+    return true;
+  }
+
+  Future<bool> selectSkin(int skinId) async {
+    if (!isSkinOwned(skinId) || _skinVariantForId(skinId) == null) {
+      return false;
+    }
+
+    selectedSkinId = skinId;
+    userPreferences = userPreferences.copyWith(selectedSkinId: skinId);
+    await _saveSkinPreferences();
+
+    _prepareRequest(
+      feature: 'skins',
+      endpoint: '/api/rewards/skins/select',
+      method: RequestMethod.post,
+      payload: {'skinId': skinId},
+    );
+    notifyListeners();
+    return true;
+  }
+
+  SkinVariant? _skinVariantForId(int skinId) {
+    for (final variant in skinVariants) {
+      if (variant.id == skinId) return variant;
+    }
+    return null;
+  }
+
+  String _encodeOwnedSkinIds() {
+    final ids = ownedSkinIds.toList()..sort();
+    return ids.join(',');
+  }
+
+  Future<void> _saveSkinPreferences() async {
+    if (storage == null) return;
+
+    try {
+      await storage!.saveUserPreferences(userPreferences);
+    } catch (e) {
+      debugPrint('Save skin preferences error: $e');
+    }
+  }
+
   // ==================== ANALYTICS & DASHBOARD DATA ====================
 
   /// Emotion recognition accuracy (0.0 - 1.0)
@@ -893,6 +1057,171 @@ class AudyController extends ChangeNotifier {
       debugPrint('Failed to get skill trends: $e');
       return {};
     }
+  }
+
+  Future<ParentAnalyticsData> getParentAnalytics({int daysBack = 7}) async {
+    final now = DateTime.now();
+    final rangeStart = now.subtract(Duration(days: daysBack));
+    final featureTitles = _analyticsFeatureTitles;
+
+    if (storage == null) {
+      return ParentAnalyticsData(
+        rangeStart: rangeStart,
+        rangeEnd: now,
+        totalSessions: 0,
+        totalMinutes: 0,
+        averageScoredAccuracy: null,
+        latestSession: null,
+        features: _emptyFeatureAnalytics(featureTitles),
+        dailyActivityValues: const [],
+        recentSessions: const [],
+      );
+    }
+
+    try {
+      final sessions = await storage!.getGameSessions(daysBack: daysBack);
+      sessions.sort((a, b) => b.sessionEndedAt.compareTo(a.sessionEndedAt));
+
+      final features = <ParentFeatureAnalytics>[];
+      var scoredCorrect = 0;
+      var scoredTotal = 0;
+      var totalSeconds = 0;
+
+      for (final entry in featureTitles.entries) {
+        final typeSessions = sessions
+            .where((session) => session.gameType == entry.key)
+            .toList();
+        final correct = typeSessions.fold<int>(
+          0,
+          (sum, session) => sum + session.correctActions,
+        );
+        final total = typeSessions.fold<int>(
+          0,
+          (sum, session) => sum + session.totalActions,
+        );
+        final seconds = typeSessions.fold<int>(
+          0,
+          (sum, session) => sum + session.durationSeconds,
+        );
+
+        scoredCorrect += correct;
+        scoredTotal += total;
+        totalSeconds += seconds;
+
+        features.add(
+          ParentFeatureAnalytics(
+            gameType: entry.key,
+            title: entry.value,
+            sessions: typeSessions.length,
+            totalSeconds: seconds,
+            correctActions: correct,
+            totalActions: total,
+            latestSessionAt: typeSessions.isEmpty
+                ? null
+                : typeSessions.first.sessionEndedAt,
+          ),
+        );
+      }
+
+      final recentSessions = sessions
+          .take(8)
+          .map(_toParentRecentSession)
+          .toList();
+
+      return ParentAnalyticsData(
+        rangeStart: rangeStart,
+        rangeEnd: now,
+        totalSessions: sessions.length,
+        totalMinutes: (totalSeconds / 60).ceil(),
+        averageScoredAccuracy: scoredTotal > 0
+            ? scoredCorrect / scoredTotal
+            : null,
+        latestSession: recentSessions.isEmpty ? null : recentSessions.first,
+        features: features,
+        dailyActivityValues: _buildDailyActivityValues(sessions, daysBack),
+        recentSessions: recentSessions,
+      );
+    } catch (e) {
+      debugPrint('Failed to get parent analytics: $e');
+      return ParentAnalyticsData(
+        rangeStart: rangeStart,
+        rangeEnd: now,
+        totalSessions: 0,
+        totalMinutes: 0,
+        averageScoredAccuracy: null,
+        latestSession: null,
+        features: _emptyFeatureAnalytics(featureTitles),
+        dailyActivityValues: const [],
+        recentSessions: const [],
+      );
+    }
+  }
+
+  static const Map<String, String> _analyticsFeatureTitles = {
+    'emotion_classify': 'Emotion Classify',
+    'emotion_mimic': 'Emotion Mimic',
+    'minipuzzle': 'MiniPuzzle',
+    'sorting': 'Sorting',
+    'reaction_time': 'Reaction Time',
+    'reading': 'Read & Speak',
+    'social_chat': 'Social Chat',
+  };
+
+  List<ParentFeatureAnalytics> _emptyFeatureAnalytics(
+    Map<String, String> featureTitles,
+  ) {
+    return featureTitles.entries
+        .map(
+          (entry) => ParentFeatureAnalytics(
+            gameType: entry.key,
+            title: entry.value,
+            sessions: 0,
+            totalSeconds: 0,
+            correctActions: 0,
+            totalActions: 0,
+          ),
+        )
+        .toList();
+  }
+
+  ParentRecentSession _toParentRecentSession(GameSessionData session) {
+    return ParentRecentSession(
+      gameType: session.gameType,
+      title: _analyticsFeatureTitles[session.gameType] ?? session.gameType,
+      endedAt: session.sessionEndedAt,
+      durationSeconds: session.durationSeconds,
+      correctActions: session.correctActions,
+      totalActions: session.totalActions,
+      starsEarned: session.starsEarned,
+    );
+  }
+
+  List<double> _buildDailyActivityValues(
+    List<GameSessionData> sessions,
+    int daysBack,
+  ) {
+    if (sessions.isEmpty) return const [];
+
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final counts = List<int>.filled(daysBack, 0);
+
+    for (final session in sessions) {
+      final sessionDay = DateTime(
+        session.sessionStartedAt.year,
+        session.sessionStartedAt.month,
+        session.sessionStartedAt.day,
+      );
+      final dayDifference = today.difference(sessionDay).inDays;
+
+      if (dayDifference >= 0 && dayDifference < daysBack) {
+        counts[daysBack - dayDifference - 1] += 1;
+      }
+    }
+
+    final maxCount = counts.reduce(max);
+    if (maxCount == 0) return const [];
+    return counts.map((count) => count / maxCount).toList();
   }
 
   /// Emotion recognition progress history (simulated fallback data)
@@ -997,6 +1326,7 @@ class AudyController extends ChangeNotifier {
   /// Reset progress but keep owned accessories
   Future<void> resetProgress() async {
     learningPoints = 0;
+    spentLearningPoints = 0;
     gamesPlayed = 0;
     dayStreak = 1;
     classifyScore = 0;
@@ -1028,6 +1358,7 @@ class AudyController extends ChangeNotifier {
       if (progress != null) {
         // ProgressData fields mapped back into controller runtime state.
         learningPoints = progress.learningPoints;
+        spentLearningPoints = progress.spentLearningPoints;
         gamesPlayed = progress.gamesPlayed;
         dayStreak = progress.dayStreak;
         _currentLevel = _getLevelFromPoints(learningPoints);
@@ -1051,6 +1382,10 @@ class AudyController extends ChangeNotifier {
       final prefs = await storage!.getUserPreferences();
       if (prefs != null) {
         userPreferences = prefs;
+        ownedSkinIds = prefs.ownedSkinIdSet;
+        selectedSkinId = ownedSkinIds.contains(prefs.selectedSkinId)
+            ? prefs.selectedSkinId
+            : 0;
       }
 
       // Load user rewards
@@ -1097,6 +1432,7 @@ class AudyController extends ChangeNotifier {
         // Controller runtime state persisted through ProgressData.
         ProgressData(
           learningPoints: learningPoints,
+          spentLearningPoints: spentLearningPoints,
           gamesPlayed: gamesPlayed,
           dayStreak: dayStreak,
           lastPlayedAt: DateTime.now(),
@@ -1126,8 +1462,11 @@ class AudyController extends ChangeNotifier {
     if (storage == null) return;
 
     try {
-      userPreferences = preferences;
-      await storage!.saveUserPreferences(preferences);
+      userPreferences = preferences.copyWith(
+        ownedSkinIds: _encodeOwnedSkinIds(),
+        selectedSkinId: selectedSkinId,
+      );
+      await storage!.saveUserPreferences(userPreferences);
       notifyListeners();
     } catch (e) {
       debugPrint('Save user preferences error: $e');
@@ -1157,8 +1496,20 @@ class AudyController extends ChangeNotifier {
 
     try {
       await storage!.saveGameSession(session);
+      notifyListeners();
     } catch (e) {
       debugPrint('Failed to record analytics session: $e');
+    }
+  }
+
+  Future<void> clearAnalyticsSessions() async {
+    if (storage == null) return;
+
+    try {
+      await storage!.clearGameSessions();
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Failed to clear analytics sessions: $e');
     }
   }
 
@@ -1437,6 +1788,7 @@ class AudyController extends ChangeNotifier {
     }
 
     final trimmed = message.trim();
+    final sessionStartedAt = DateTime.now();
     _isChatLoading = true;
     notifyListeners();
 
@@ -1465,10 +1817,27 @@ class AudyController extends ChangeNotifier {
       );
 
       // Track message sent (achievement)
-      trackMessageSent();
+      await trackMessageSent();
 
       // Add points
       await addPoints(2);
+
+      final sessionEndedAt = DateTime.now();
+      final durationSeconds = max(
+        1,
+        sessionEndedAt.difference(sessionStartedAt).inSeconds,
+      );
+      await recordAnalyticsSession(
+        GameSessionData(
+          gameType: 'social_chat',
+          correctActions: 0,
+          totalActions: 0,
+          accuracyPercent: 0,
+          durationSeconds: durationSeconds,
+          sessionStartedAt: sessionStartedAt,
+          sessionEndedAt: sessionEndedAt,
+        ),
+      );
 
       socialFeedback = 'ข้อความส่งแล้ว';
     } catch (e) {

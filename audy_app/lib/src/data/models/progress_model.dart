@@ -1,6 +1,7 @@
 /// Comprehensive data model for user progress
 class ProgressData {
   final int learningPoints;
+  final int spentLearningPoints;
   final int gamesPlayed;
   final int dayStreak;
   final DateTime? lastPlayedAt;
@@ -20,6 +21,7 @@ class ProgressData {
 
   const ProgressData({
     required this.learningPoints,
+    this.spentLearningPoints = 0,
     required this.gamesPlayed,
     required this.dayStreak,
     this.lastPlayedAt,
@@ -98,6 +100,85 @@ class WeeklyReportData {
   });
 }
 
+/// Parent dashboard analytics summary for recent learning activity.
+class ParentAnalyticsData {
+  final DateTime rangeStart;
+  final DateTime rangeEnd;
+  final int totalSessions;
+  final int totalMinutes;
+  final double? averageScoredAccuracy;
+  final ParentRecentSession? latestSession;
+  final List<ParentFeatureAnalytics> features;
+  final List<double> dailyActivityValues;
+  final List<ParentRecentSession> recentSessions;
+
+  const ParentAnalyticsData({
+    required this.rangeStart,
+    required this.rangeEnd,
+    required this.totalSessions,
+    required this.totalMinutes,
+    required this.averageScoredAccuracy,
+    required this.latestSession,
+    required this.features,
+    required this.dailyActivityValues,
+    required this.recentSessions,
+  });
+}
+
+/// Per-feature analytics used by the Parent Dashboard.
+class ParentFeatureAnalytics {
+  final String gameType;
+  final String title;
+  final int sessions;
+  final int totalSeconds;
+  final int correctActions;
+  final int totalActions;
+  final DateTime? latestSessionAt;
+
+  const ParentFeatureAnalytics({
+    required this.gameType,
+    required this.title,
+    required this.sessions,
+    required this.totalSeconds,
+    required this.correctActions,
+    required this.totalActions,
+    this.latestSessionAt,
+  });
+
+  int get minutes => (totalSeconds / 60).ceil();
+
+  double? get averageAccuracy {
+    if (totalActions <= 0) return null;
+    return correctActions / totalActions;
+  }
+}
+
+/// Recent learning session item shown in the Parent Dashboard.
+class ParentRecentSession {
+  final String gameType;
+  final String title;
+  final DateTime endedAt;
+  final int durationSeconds;
+  final int correctActions;
+  final int totalActions;
+  final int? starsEarned;
+
+  const ParentRecentSession({
+    required this.gameType,
+    required this.title,
+    required this.endedAt,
+    required this.durationSeconds,
+    required this.correctActions,
+    required this.totalActions,
+    this.starsEarned,
+  });
+
+  double? get accuracy {
+    if (totalActions <= 0) return null;
+    return correctActions / totalActions;
+  }
+}
+
 /// Child profile data for institution panel
 class ChildProfileData {
   final String id;
@@ -152,12 +233,16 @@ class UserPreferences {
   final int sensorySensitivity; // 0=low, 1=medium, 2=high
   final int learningPace; // 0=slower, 1=standard, 2=faster
   final String favoriteInterests; // comma-separated list
+  final String ownedSkinIds; // comma-separated skin ids
+  final int selectedSkinId;
 
   const UserPreferences({
     this.communicationLevel = 3,
     this.sensorySensitivity = 1,
     this.learningPace = 1,
     this.favoriteInterests = '',
+    this.ownedSkinIds = '0',
+    this.selectedSkinId = 0,
   });
 
   /// Get favorite interests as a list
@@ -166,18 +251,31 @@ class UserPreferences {
     return favoriteInterests.split(',').where((s) => s.isNotEmpty).toList();
   }
 
+  Set<int> get ownedSkinIdSet {
+    return ownedSkinIds
+        .split(',')
+        .map((id) => int.tryParse(id.trim()))
+        .whereType<int>()
+        .toSet()
+      ..add(0);
+  }
+
   /// Create copy with updated values
   UserPreferences copyWith({
     int? communicationLevel,
     int? sensorySensitivity,
     int? learningPace,
     String? favoriteInterests,
+    String? ownedSkinIds,
+    int? selectedSkinId,
   }) {
     return UserPreferences(
       communicationLevel: communicationLevel ?? this.communicationLevel,
       sensorySensitivity: sensorySensitivity ?? this.sensorySensitivity,
       learningPace: learningPace ?? this.learningPace,
       favoriteInterests: favoriteInterests ?? this.favoriteInterests,
+      ownedSkinIds: ownedSkinIds ?? this.ownedSkinIds,
+      selectedSkinId: selectedSkinId ?? this.selectedSkinId,
     );
   }
 }

@@ -252,6 +252,7 @@ class ReactionTimeResultPage extends StatefulWidget {
 class _ReactionTimeResultPageState extends State<ReactionTimeResultPage> {
   bool _celebrationShown = false;
   bool _analyticsRecorded = false;
+  bool _completionSoundPlayed = false;
 
   late AudyController controller;
 
@@ -260,6 +261,18 @@ class _ReactionTimeResultPageState extends State<ReactionTimeResultPage> {
     super.didChangeDependencies();
     // 2. Safely grab the controller here, during a valid lifecycle phase
     controller = AudyScope.of(context);
+    _playCompletionSoundOnce();
+  }
+
+  void _playCompletionSoundOnce() {
+    if (_completionSoundPlayed) return;
+    _completionSoundPlayed = true;
+
+    SoundService.instance.playGameComplete();
+    SoundService.instance.playBearCompletionFeedback(
+      score: controller.reactionTimes.length,
+      maxScore: controller.reactionTimes.length + controller.reactionMisses,
+    );
   }
 
   @override

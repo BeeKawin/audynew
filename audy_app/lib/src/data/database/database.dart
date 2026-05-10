@@ -38,7 +38,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 8;
 
   @override
   MigrationStrategy get migration {
@@ -73,6 +73,18 @@ class AppDatabase extends _$AppDatabase {
         // Migration from version 5 to 6: Add gamesInCurrentSession column
         if (from <= 5) {
           await m.addColumn(userProgress, userProgress.gamesInCurrentSession);
+        }
+        // Migration from version 6 to 7: Add reward skin economy state
+        if (from <= 6) {
+          await m.addColumn(userProgress, userProgress.spentLearningPoints);
+        }
+        if (from >= 5 && from <= 6) {
+          await m.addColumn(userPreferences, userPreferences.ownedSkinIds);
+          await m.addColumn(userPreferences, userPreferences.selectedSkinId);
+        }
+        // Migration from version 7 to 8: Reset analytics session history only.
+        if (from <= 7) {
+          await delete(gameSessions).go();
         }
       },
     );

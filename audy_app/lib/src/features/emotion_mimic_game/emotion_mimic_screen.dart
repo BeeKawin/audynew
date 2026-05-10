@@ -18,13 +18,18 @@ class EmotionMimicScreen extends StatefulWidget {
 }
 
 class _EmotionMimicScreenState extends State<EmotionMimicScreen> {
+  final DateTime _sessionStartedAt = DateTime.now();
+
   @override
   Widget build(BuildContext context) {
     final controller = AudyScope.of(context);
     final targetEmotion = controller.currentMimicTarget;
 
     if (controller.isMimicGameComplete) {
-      return MimicCompleteScreen(controller: controller);
+      return MimicCompleteScreen(
+        controller: controller,
+        sessionStartedAt: _sessionStartedAt,
+      );
     }
 
     return AudyResponsivePage(

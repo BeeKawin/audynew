@@ -12,6 +12,9 @@ class UserPreferences extends Table {
       integer().withDefault(const Constant(1))(); // 0=slower, 1=standard, 2=faster
   TextColumn get favoriteInterests =>
       text().withDefault(const Constant(''))(); // comma-separated list
+  TextColumn get ownedSkinIds =>
+      text().withDefault(const Constant('0'))(); // comma-separated skin ids
+  IntColumn get selectedSkinId => integer().withDefault(const Constant(0))();
   DateTimeColumn get updatedAt => dateTime()();
   BoolColumn get isSynced => boolean().withDefault(const Constant(false))();
 }

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../core/app_routes.dart';
@@ -10,9 +12,14 @@ import '../../widgets/point_celebration_dialog.dart';
 
 /// Final score screen shown when emotion mimic game is complete.
 class MimicCompleteScreen extends StatefulWidget {
-  const MimicCompleteScreen({super.key, required this.controller});
+  const MimicCompleteScreen({
+    super.key,
+    required this.controller,
+    required this.sessionStartedAt,
+  });
 
   final AudyController controller;
+  final DateTime sessionStartedAt;
 
   @override
   State<MimicCompleteScreen> createState() => _MimicCompleteScreenState();
@@ -20,6 +27,7 @@ class MimicCompleteScreen extends StatefulWidget {
 
 class _MimicCompleteScreenState extends State<MimicCompleteScreen> {
   bool _hasShownCelebration = false;
+  bool _hasRecordedCompletion = false;
 
   int get stars {
     return widget.controller.mimicScore.clamp(0, 3);
@@ -48,8 +56,13 @@ class _MimicCompleteScreenState extends State<MimicCompleteScreen> {
   @override
   void initState() {
     super.initState();
+    unawaited(_trackCompletionAndAnalytics());
     // Play game complete sound
     SoundService.instance.playGameComplete();
+    SoundService.instance.playBearCompletionFeedback(
+      score: widget.controller.mimicScore,
+      maxScore: widget.controller.mimicTotalRounds,
+    );
     // Show celebration after first frame is built
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
@@ -88,28 +101,32 @@ class _MimicCompleteScreenState extends State<MimicCompleteScreen> {
           },
         ),
       );
-
-      // Track quest completion AFTER dialog to avoid notifyListeners disrupting the celebration
-      if (mounted) {
-        await _trackCompletionAndAnalytics();
-      }
     } else {
       setState(() => _hasShownCelebration = true);
-      // Track quest completion even when no points earned
-      await _trackCompletionAndAnalytics();
     }
   }
 
   Future<void> _trackCompletionAndAnalytics() async {
-    await widget.controller.trackMimicGameCompleted(durationSeconds: 0);
+    if (_hasRecordedCompletion) return;
+    _hasRecordedCompletion = true;
 
     final endedAt = DateTime.now();
+    final durationSeconds = endedAt
+        .difference(widget.sessionStartedAt)
+        .inSeconds
+        .clamp(1, 600)
+        .toInt();
+
+    await widget.controller.trackMimicGameCompleted(
+      durationSeconds: durationSeconds,
+    );
+
     final session = GameSessionData.fromTimes(
       gameType: 'emotion_mimic',
       correctActions: widget.controller.mimicScore,
       totalActions: widget.controller.mimicTotalRounds,
       starsEarned: stars,
-      sessionStartedAt: endedAt.subtract(const Duration(seconds: 1)),
+      sessionStartedAt: widget.sessionStartedAt,
       sessionEndedAt: endedAt,
     );
     await widget.controller.recordAnalyticsSession(session);

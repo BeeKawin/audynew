@@ -2,10 +2,11 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
-import '../../services/bluetooth_service.dart';
 import '../../core/audy_theme.dart';
 import '../../core/audy_ui.dart';
 import '../../core/emotion_character_widget.dart';
+import '../../core/emotion_images.dart';
+import '../../services/bluetooth_service.dart';
 import '../../services/sound_service.dart';
 import '../../state/audy_controller.dart';
 import 'emotion_classify_complete_screen.dart';
@@ -23,6 +24,8 @@ class _EmotionClassifyScreenState extends State<EmotionClassifyScreen> {
   String? _selectedAnswer;
   bool _showingFeedback = false;
   bool _isCorrect = false;
+  final Map<int, String> _roundImagePaths = {};
+  final DateTime _sessionStartedAt = DateTime.now();
 
   StreamSubscription<AudyBleMessage>? _bleInputSub;
   @override
@@ -83,7 +86,6 @@ class _EmotionClassifyScreenState extends State<EmotionClassifyScreen> {
   @override
   Widget build(BuildContext context) {
     final controller = AudyScope.of(context);
-    final question = controller.currentClassifyQuestion;
 
     const palette = {
       'Happy': Color(0xFFFFF2A8),
@@ -93,8 +95,17 @@ class _EmotionClassifyScreenState extends State<EmotionClassifyScreen> {
     };
 
     if (controller.isClassifyGameComplete) {
-      return EmotionClassifyCompleteScreen(controller: controller);
+      return EmotionClassifyCompleteScreen(
+        controller: controller,
+        sessionStartedAt: _sessionStartedAt,
+      );
     }
+
+    final question = controller.currentClassifyQuestion;
+    final imagePath = _imagePathForRound(
+      controller.classifyCurrentRound,
+      question.correctAnswer,
+    );
 
     return AudyResponsivePage(
       scrollable: false,
@@ -159,6 +170,7 @@ class _EmotionClassifyScreenState extends State<EmotionClassifyScreen> {
                 emotion: question.correctAnswer,
                 size: 180,
                 useHumanImage: true,
+                imagePath: imagePath,
               ),
             ),
             const SizedBox(height: AudySpacing.sectionGap),
@@ -273,6 +285,14 @@ class _EmotionClassifyScreenState extends State<EmotionClassifyScreen> {
         controller.advanceClassifyRound();
       }
     });
+  }
+
+  String? _imagePathForRound(int round, String emotion) {
+    if (!EmotionImages.hasImages(emotion)) return null;
+    return _roundImagePaths.putIfAbsent(
+      round,
+      () => EmotionImages.getRandomPath(emotion),
+    );
   }
 
   @override

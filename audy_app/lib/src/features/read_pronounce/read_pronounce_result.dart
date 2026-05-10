@@ -34,6 +34,10 @@ class _ReadPronounceResultScreenState extends State<ReadPronounceResultScreen> {
     _trackReadingCompletion();
     // Play game complete sound
     SoundService.instance.playGameComplete();
+    SoundService.instance.playBearCompletionFeedback(
+      score: widget.result.stars,
+      maxScore: 3,
+    );
     // Show celebration after first frame is built
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {

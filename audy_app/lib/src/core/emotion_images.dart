@@ -29,6 +29,14 @@ class EmotionImages {
     return '$_basePath/${images[index]}';
   }
 
+  /// Returns the first available image path for the given emotion.
+  /// Returns empty string if emotion has no images.
+  static String getDefaultPath(String emotion) {
+    final images = _assets[emotion];
+    if (images == null || images.isEmpty) return '';
+    return '$_basePath/${images.first}';
+  }
+
   /// Returns true if the emotion has human images available
   static bool hasImages(String emotion) {
     final images = _assets[emotion];

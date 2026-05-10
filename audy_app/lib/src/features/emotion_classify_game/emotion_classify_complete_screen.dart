@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../core/app_routes.dart';
@@ -10,9 +12,14 @@ import '../../widgets/point_celebration_dialog.dart';
 
 /// Final score screen for emotion classification game
 class EmotionClassifyCompleteScreen extends StatefulWidget {
-  const EmotionClassifyCompleteScreen({super.key, required this.controller});
+  const EmotionClassifyCompleteScreen({
+    super.key,
+    required this.controller,
+    required this.sessionStartedAt,
+  });
 
   final AudyController controller;
+  final DateTime sessionStartedAt;
 
   @override
   State<EmotionClassifyCompleteScreen> createState() =>
@@ -22,6 +29,7 @@ class EmotionClassifyCompleteScreen extends StatefulWidget {
 class _EmotionClassifyCompleteScreenState
     extends State<EmotionClassifyCompleteScreen> {
   bool _hasShownCelebration = false;
+  bool _hasRecordedCompletion = false;
 
   int get stars {
     return widget.controller.classifyScore.clamp(0, 3);
@@ -50,8 +58,13 @@ class _EmotionClassifyCompleteScreenState
   @override
   void initState() {
     super.initState();
+    unawaited(_trackCompletionAndAnalytics());
     // Play game complete sound
     SoundService.instance.playGameComplete();
+    SoundService.instance.playBearCompletionFeedback(
+      score: widget.controller.classifyScore,
+      maxScore: widget.controller.classifyTotalRounds,
+    );
     // Show celebration after first frame is built
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
@@ -90,28 +103,32 @@ class _EmotionClassifyCompleteScreenState
           },
         ),
       );
-
-      // Track quest completion AFTER dialog to avoid notifyListeners disrupting the celebration
-      if (mounted) {
-        await _trackCompletionAndAnalytics();
-      }
     } else {
       setState(() => _hasShownCelebration = true);
-      // Track quest completion even when no points earned
-      await _trackCompletionAndAnalytics();
     }
   }
 
   Future<void> _trackCompletionAndAnalytics() async {
-    await widget.controller.trackClassifyGameCompleted(durationSeconds: 0);
+    if (_hasRecordedCompletion) return;
+    _hasRecordedCompletion = true;
 
     final endedAt = DateTime.now();
+    final durationSeconds = endedAt
+        .difference(widget.sessionStartedAt)
+        .inSeconds
+        .clamp(1, 600)
+        .toInt();
+
+    await widget.controller.trackClassifyGameCompleted(
+      durationSeconds: durationSeconds,
+    );
+
     final session = GameSessionData.fromTimes(
       gameType: 'emotion_classify',
       correctActions: widget.controller.classifyScore,
       totalActions: widget.controller.classifyTotalRounds,
       starsEarned: stars,
-      sessionStartedAt: endedAt.subtract(const Duration(seconds: 1)),
+      sessionStartedAt: widget.sessionStartedAt,
       sessionEndedAt: endedAt,
     );
     await widget.controller.recordAnalyticsSession(session);

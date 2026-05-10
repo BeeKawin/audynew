@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter_soloud/flutter_soloud.dart';
 import 'package:flutter/foundation.dart';
 
 import '../core/app_sounds.dart';
+import 'bluetooth_service.dart';
 
 /// Centralized sound management service for AUDY app
 /// Handles preloading, playing, and disposing of sound effects
@@ -16,6 +19,7 @@ class SoundService {
   bool _initialized = false;
   static const double _bgmVolume = 0.3;
   static const double _sfxVolume = 1.0;
+  static const Duration _bearCompletionDelay = Duration(milliseconds: 900);
 
   /// Preloaded audio sources keyed by asset path
   final Map<String, AudioSource> _sources = {};
@@ -24,7 +28,7 @@ class SoundService {
 
   /// Whether sounds are enabled
   bool get isEnabled => _enabled;
-  
+
   /// Whether sound service is initialized
   bool get isInitialized => _initialized;
 
@@ -37,7 +41,7 @@ class SoundService {
 
     try {
       debugPrint('SoundService: Initializing SoLoud...');
-      
+
       // Initialize SoLoud with mobile-friendly settings
       await _soloud.init(
         sampleRate: 44100,
@@ -45,14 +49,16 @@ class SoundService {
         channels: Channels.stereo,
         automaticCleanup: true,
       );
-      
+
       debugPrint('SoundService: SoLoud initialized successfully');
-      
+
       // Preload all sounds
       await _loadAll();
-      
+
       _initialized = true;
-      debugPrint('SoundService: Initialization complete. Loaded ${_sources.length} sounds');
+      debugPrint(
+        'SoundService: Initialization complete. Loaded ${_sources.length} sounds',
+      );
     } catch (e, stackTrace) {
       debugPrint('SoundService: Failed to initialize SoLoud - $e');
       debugPrint('Stack trace: $stackTrace');
@@ -79,7 +85,9 @@ class SoundService {
       }
     }
 
-    debugPrint('SoundService: Loading complete. $loadedCount loaded, $failedCount failed');
+    debugPrint(
+      'SoundService: Loading complete. $loadedCount loaded, $failedCount failed',
+    );
   }
 
   /// Play a sound by its path
@@ -89,7 +97,7 @@ class SoundService {
       debugPrint('SoundService: Sound disabled, not playing $soundPath');
       return false;
     }
-    
+
     if (!_initialized) {
       debugPrint('SoundService: Not initialized, cannot play $soundPath');
       return false;
@@ -128,6 +136,29 @@ class SoundService {
 
   /// Play game complete sound
   void playGameComplete() => play(AppSounds.gameComplete);
+
+  /// Play Bluetooth-gated bear feedback after the generic completion sound.
+  void playBearCompletionFeedback({
+    required int score,
+    required int maxScore,
+  }) {
+    if (!_enabled ||
+        maxScore <= 0 ||
+        !AudyBluetoothService.instance.isConnected) {
+      return;
+    }
+
+    final isSuccessful = score / maxScore >= 2 / 3;
+    final soundPath = isSuccessful
+        ? AppSounds.bearCongrats
+        : AppSounds.bearTryAgain;
+
+    unawaited(
+      Future.delayed(_bearCompletionDelay, () {
+        play(soundPath);
+      }),
+    );
+  }
 
   /// Play points earned sound
   void playPoints() => play(AppSounds.points);

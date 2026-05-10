@@ -34,6 +34,17 @@ class $UserProgressTable extends UserProgress
     requiredDuringInsert: false,
     defaultValue: const Constant(0),
   );
+  static const VerificationMeta _spentLearningPointsMeta =
+      const VerificationMeta('spentLearningPoints');
+  @override
+  late final GeneratedColumn<int> spentLearningPoints = GeneratedColumn<int>(
+    'spent_learning_points',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
   static const VerificationMeta _gamesPlayedMeta = const VerificationMeta(
     'gamesPlayed',
   );
@@ -178,6 +189,7 @@ class $UserProgressTable extends UserProgress
   List<GeneratedColumn> get $columns => [
     id,
     learningPoints,
+    spentLearningPoints,
     gamesPlayed,
     dayStreak,
     lastPlayedAt,
@@ -212,6 +224,15 @@ class $UserProgressTable extends UserProgress
         learningPoints.isAcceptableOrUnknown(
           data['learning_points']!,
           _learningPointsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('spent_learning_points')) {
+      context.handle(
+        _spentLearningPointsMeta,
+        spentLearningPoints.isAcceptableOrUnknown(
+          data['spent_learning_points']!,
+          _spentLearningPointsMeta,
         ),
       );
     }
@@ -333,6 +354,10 @@ class $UserProgressTable extends UserProgress
         DriftSqlType.int,
         data['${effectivePrefix}learning_points'],
       )!,
+      spentLearningPoints: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}spent_learning_points'],
+      )!,
       gamesPlayed: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}games_played'],
@@ -394,6 +419,7 @@ class UserProgressData extends DataClass
     implements Insertable<UserProgressData> {
   final int id;
   final int learningPoints;
+  final int spentLearningPoints;
   final int gamesPlayed;
   final int dayStreak;
   final DateTime? lastPlayedAt;
@@ -409,6 +435,7 @@ class UserProgressData extends DataClass
   const UserProgressData({
     required this.id,
     required this.learningPoints,
+    required this.spentLearningPoints,
     required this.gamesPlayed,
     required this.dayStreak,
     this.lastPlayedAt,
@@ -427,6 +454,7 @@ class UserProgressData extends DataClass
     final map = <String, Expression>{};
     map['id'] = Variable<int>(id);
     map['learning_points'] = Variable<int>(learningPoints);
+    map['spent_learning_points'] = Variable<int>(spentLearningPoints);
     map['games_played'] = Variable<int>(gamesPlayed);
     map['day_streak'] = Variable<int>(dayStreak);
     if (!nullToAbsent || lastPlayedAt != null) {
@@ -450,6 +478,7 @@ class UserProgressData extends DataClass
     return UserProgressCompanion(
       id: Value(id),
       learningPoints: Value(learningPoints),
+      spentLearningPoints: Value(spentLearningPoints),
       gamesPlayed: Value(gamesPlayed),
       dayStreak: Value(dayStreak),
       lastPlayedAt: lastPlayedAt == null && nullToAbsent
@@ -475,6 +504,9 @@ class UserProgressData extends DataClass
     return UserProgressData(
       id: serializer.fromJson<int>(json['id']),
       learningPoints: serializer.fromJson<int>(json['learningPoints']),
+      spentLearningPoints: serializer.fromJson<int>(
+        json['spentLearningPoints'],
+      ),
       gamesPlayed: serializer.fromJson<int>(json['gamesPlayed']),
       dayStreak: serializer.fromJson<int>(json['dayStreak']),
       lastPlayedAt: serializer.fromJson<DateTime?>(json['lastPlayedAt']),
@@ -505,6 +537,7 @@ class UserProgressData extends DataClass
     return <String, dynamic>{
       'id': serializer.toJson<int>(id),
       'learningPoints': serializer.toJson<int>(learningPoints),
+      'spentLearningPoints': serializer.toJson<int>(spentLearningPoints),
       'gamesPlayed': serializer.toJson<int>(gamesPlayed),
       'dayStreak': serializer.toJson<int>(dayStreak),
       'lastPlayedAt': serializer.toJson<DateTime?>(lastPlayedAt),
@@ -525,6 +558,7 @@ class UserProgressData extends DataClass
   UserProgressData copyWith({
     int? id,
     int? learningPoints,
+    int? spentLearningPoints,
     int? gamesPlayed,
     int? dayStreak,
     Value<DateTime?> lastPlayedAt = const Value.absent(),
@@ -540,6 +574,7 @@ class UserProgressData extends DataClass
   }) => UserProgressData(
     id: id ?? this.id,
     learningPoints: learningPoints ?? this.learningPoints,
+    spentLearningPoints: spentLearningPoints ?? this.spentLearningPoints,
     gamesPlayed: gamesPlayed ?? this.gamesPlayed,
     dayStreak: dayStreak ?? this.dayStreak,
     lastPlayedAt: lastPlayedAt.present ? lastPlayedAt.value : this.lastPlayedAt,
@@ -560,6 +595,9 @@ class UserProgressData extends DataClass
       learningPoints: data.learningPoints.present
           ? data.learningPoints.value
           : this.learningPoints,
+      spentLearningPoints: data.spentLearningPoints.present
+          ? data.spentLearningPoints.value
+          : this.spentLearningPoints,
       gamesPlayed: data.gamesPlayed.present
           ? data.gamesPlayed.value
           : this.gamesPlayed,
@@ -598,6 +636,7 @@ class UserProgressData extends DataClass
     return (StringBuffer('UserProgressData(')
           ..write('id: $id, ')
           ..write('learningPoints: $learningPoints, ')
+          ..write('spentLearningPoints: $spentLearningPoints, ')
           ..write('gamesPlayed: $gamesPlayed, ')
           ..write('dayStreak: $dayStreak, ')
           ..write('lastPlayedAt: $lastPlayedAt, ')
@@ -618,6 +657,7 @@ class UserProgressData extends DataClass
   int get hashCode => Object.hash(
     id,
     learningPoints,
+    spentLearningPoints,
     gamesPlayed,
     dayStreak,
     lastPlayedAt,
@@ -637,6 +677,7 @@ class UserProgressData extends DataClass
       (other is UserProgressData &&
           other.id == this.id &&
           other.learningPoints == this.learningPoints &&
+          other.spentLearningPoints == this.spentLearningPoints &&
           other.gamesPlayed == this.gamesPlayed &&
           other.dayStreak == this.dayStreak &&
           other.lastPlayedAt == this.lastPlayedAt &&
@@ -654,6 +695,7 @@ class UserProgressData extends DataClass
 class UserProgressCompanion extends UpdateCompanion<UserProgressData> {
   final Value<int> id;
   final Value<int> learningPoints;
+  final Value<int> spentLearningPoints;
   final Value<int> gamesPlayed;
   final Value<int> dayStreak;
   final Value<DateTime?> lastPlayedAt;
@@ -669,6 +711,7 @@ class UserProgressCompanion extends UpdateCompanion<UserProgressData> {
   const UserProgressCompanion({
     this.id = const Value.absent(),
     this.learningPoints = const Value.absent(),
+    this.spentLearningPoints = const Value.absent(),
     this.gamesPlayed = const Value.absent(),
     this.dayStreak = const Value.absent(),
     this.lastPlayedAt = const Value.absent(),
@@ -685,6 +728,7 @@ class UserProgressCompanion extends UpdateCompanion<UserProgressData> {
   UserProgressCompanion.insert({
     this.id = const Value.absent(),
     this.learningPoints = const Value.absent(),
+    this.spentLearningPoints = const Value.absent(),
     this.gamesPlayed = const Value.absent(),
     this.dayStreak = const Value.absent(),
     this.lastPlayedAt = const Value.absent(),
@@ -701,6 +745,7 @@ class UserProgressCompanion extends UpdateCompanion<UserProgressData> {
   static Insertable<UserProgressData> custom({
     Expression<int>? id,
     Expression<int>? learningPoints,
+    Expression<int>? spentLearningPoints,
     Expression<int>? gamesPlayed,
     Expression<int>? dayStreak,
     Expression<DateTime>? lastPlayedAt,
@@ -717,6 +762,8 @@ class UserProgressCompanion extends UpdateCompanion<UserProgressData> {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (learningPoints != null) 'learning_points': learningPoints,
+      if (spentLearningPoints != null)
+        'spent_learning_points': spentLearningPoints,
       if (gamesPlayed != null) 'games_played': gamesPlayed,
       if (dayStreak != null) 'day_streak': dayStreak,
       if (lastPlayedAt != null) 'last_played_at': lastPlayedAt,
@@ -740,6 +787,7 @@ class UserProgressCompanion extends UpdateCompanion<UserProgressData> {
   UserProgressCompanion copyWith({
     Value<int>? id,
     Value<int>? learningPoints,
+    Value<int>? spentLearningPoints,
     Value<int>? gamesPlayed,
     Value<int>? dayStreak,
     Value<DateTime?>? lastPlayedAt,
@@ -756,6 +804,8 @@ class UserProgressCompanion extends UpdateCompanion<UserProgressData> {
     return UserProgressCompanion(
       id: id ?? this.id,
       learningPoints: learningPoints ?? this.learningPoints,
+      spentLearningPoints:
+          spentLearningPoints ?? this.spentLearningPoints,
       gamesPlayed: gamesPlayed ?? this.gamesPlayed,
       dayStreak: dayStreak ?? this.dayStreak,
       lastPlayedAt: lastPlayedAt ?? this.lastPlayedAt,
@@ -783,6 +833,9 @@ class UserProgressCompanion extends UpdateCompanion<UserProgressData> {
     }
     if (learningPoints.present) {
       map['learning_points'] = Variable<int>(learningPoints.value);
+    }
+    if (spentLearningPoints.present) {
+      map['spent_learning_points'] = Variable<int>(spentLearningPoints.value);
     }
     if (gamesPlayed.present) {
       map['games_played'] = Variable<int>(gamesPlayed.value);
@@ -836,6 +889,7 @@ class UserProgressCompanion extends UpdateCompanion<UserProgressData> {
     return (StringBuffer('UserProgressCompanion(')
           ..write('id: $id, ')
           ..write('learningPoints: $learningPoints, ')
+          ..write('spentLearningPoints: $spentLearningPoints, ')
           ..write('gamesPlayed: $gamesPlayed, ')
           ..write('dayStreak: $dayStreak, ')
           ..write('lastPlayedAt: $lastPlayedAt, ')
@@ -3000,6 +3054,30 @@ class $UserPreferencesTable extends UserPreferences
         requiredDuringInsert: false,
         defaultValue: const Constant(''),
       );
+  static const VerificationMeta _ownedSkinIdsMeta = const VerificationMeta(
+    'ownedSkinIds',
+  );
+  @override
+  late final GeneratedColumn<String> ownedSkinIds = GeneratedColumn<String>(
+    'owned_skin_ids',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('0'),
+  );
+  static const VerificationMeta _selectedSkinIdMeta = const VerificationMeta(
+    'selectedSkinId',
+  );
+  @override
+  late final GeneratedColumn<int> selectedSkinId = GeneratedColumn<int>(
+    'selected_skin_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
   static const VerificationMeta _updatedAtMeta = const VerificationMeta(
     'updatedAt',
   );
@@ -3033,6 +3111,8 @@ class $UserPreferencesTable extends UserPreferences
     sensorySensitivity,
     learningPace,
     favoriteInterests,
+    ownedSkinIds,
+    selectedSkinId,
     updatedAt,
     isSynced,
   ];
@@ -3087,6 +3167,24 @@ class $UserPreferencesTable extends UserPreferences
         ),
       );
     }
+    if (data.containsKey('owned_skin_ids')) {
+      context.handle(
+        _ownedSkinIdsMeta,
+        ownedSkinIds.isAcceptableOrUnknown(
+          data['owned_skin_ids']!,
+          _ownedSkinIdsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('selected_skin_id')) {
+      context.handle(
+        _selectedSkinIdMeta,
+        selectedSkinId.isAcceptableOrUnknown(
+          data['selected_skin_id']!,
+          _selectedSkinIdMeta,
+        ),
+      );
+    }
     if (data.containsKey('updated_at')) {
       context.handle(
         _updatedAtMeta,
@@ -3130,6 +3228,14 @@ class $UserPreferencesTable extends UserPreferences
         DriftSqlType.string,
         data['${effectivePrefix}favorite_interests'],
       )!,
+      ownedSkinIds: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}owned_skin_ids'],
+      )!,
+      selectedSkinId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}selected_skin_id'],
+      )!,
       updatedAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}updated_at'],
@@ -3153,6 +3259,8 @@ class UserPreference extends DataClass implements Insertable<UserPreference> {
   final int sensorySensitivity;
   final int learningPace;
   final String favoriteInterests;
+  final String ownedSkinIds;
+  final int selectedSkinId;
   final DateTime updatedAt;
   final bool isSynced;
   const UserPreference({
@@ -3161,6 +3269,8 @@ class UserPreference extends DataClass implements Insertable<UserPreference> {
     required this.sensorySensitivity,
     required this.learningPace,
     required this.favoriteInterests,
+    required this.ownedSkinIds,
+    required this.selectedSkinId,
     required this.updatedAt,
     required this.isSynced,
   });
@@ -3172,6 +3282,8 @@ class UserPreference extends DataClass implements Insertable<UserPreference> {
     map['sensory_sensitivity'] = Variable<int>(sensorySensitivity);
     map['learning_pace'] = Variable<int>(learningPace);
     map['favorite_interests'] = Variable<String>(favoriteInterests);
+    map['owned_skin_ids'] = Variable<String>(ownedSkinIds);
+    map['selected_skin_id'] = Variable<int>(selectedSkinId);
     map['updated_at'] = Variable<DateTime>(updatedAt);
     map['is_synced'] = Variable<bool>(isSynced);
     return map;
@@ -3184,6 +3296,8 @@ class UserPreference extends DataClass implements Insertable<UserPreference> {
       sensorySensitivity: Value(sensorySensitivity),
       learningPace: Value(learningPace),
       favoriteInterests: Value(favoriteInterests),
+      ownedSkinIds: Value(ownedSkinIds),
+      selectedSkinId: Value(selectedSkinId),
       updatedAt: Value(updatedAt),
       isSynced: Value(isSynced),
     );
@@ -3200,6 +3314,8 @@ class UserPreference extends DataClass implements Insertable<UserPreference> {
       sensorySensitivity: serializer.fromJson<int>(json['sensorySensitivity']),
       learningPace: serializer.fromJson<int>(json['learningPace']),
       favoriteInterests: serializer.fromJson<String>(json['favoriteInterests']),
+      ownedSkinIds: serializer.fromJson<String>(json['ownedSkinIds']),
+      selectedSkinId: serializer.fromJson<int>(json['selectedSkinId']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       isSynced: serializer.fromJson<bool>(json['isSynced']),
     );
@@ -3213,6 +3329,8 @@ class UserPreference extends DataClass implements Insertable<UserPreference> {
       'sensorySensitivity': serializer.toJson<int>(sensorySensitivity),
       'learningPace': serializer.toJson<int>(learningPace),
       'favoriteInterests': serializer.toJson<String>(favoriteInterests),
+      'ownedSkinIds': serializer.toJson<String>(ownedSkinIds),
+      'selectedSkinId': serializer.toJson<int>(selectedSkinId),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'isSynced': serializer.toJson<bool>(isSynced),
     };
@@ -3224,6 +3342,8 @@ class UserPreference extends DataClass implements Insertable<UserPreference> {
     int? sensorySensitivity,
     int? learningPace,
     String? favoriteInterests,
+    String? ownedSkinIds,
+    int? selectedSkinId,
     DateTime? updatedAt,
     bool? isSynced,
   }) => UserPreference(
@@ -3232,6 +3352,8 @@ class UserPreference extends DataClass implements Insertable<UserPreference> {
     sensorySensitivity: sensorySensitivity ?? this.sensorySensitivity,
     learningPace: learningPace ?? this.learningPace,
     favoriteInterests: favoriteInterests ?? this.favoriteInterests,
+    ownedSkinIds: ownedSkinIds ?? this.ownedSkinIds,
+    selectedSkinId: selectedSkinId ?? this.selectedSkinId,
     updatedAt: updatedAt ?? this.updatedAt,
     isSynced: isSynced ?? this.isSynced,
   );
@@ -3250,6 +3372,12 @@ class UserPreference extends DataClass implements Insertable<UserPreference> {
       favoriteInterests: data.favoriteInterests.present
           ? data.favoriteInterests.value
           : this.favoriteInterests,
+      ownedSkinIds: data.ownedSkinIds.present
+          ? data.ownedSkinIds.value
+          : this.ownedSkinIds,
+      selectedSkinId: data.selectedSkinId.present
+          ? data.selectedSkinId.value
+          : this.selectedSkinId,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       isSynced: data.isSynced.present ? data.isSynced.value : this.isSynced,
     );
@@ -3263,6 +3391,8 @@ class UserPreference extends DataClass implements Insertable<UserPreference> {
           ..write('sensorySensitivity: $sensorySensitivity, ')
           ..write('learningPace: $learningPace, ')
           ..write('favoriteInterests: $favoriteInterests, ')
+          ..write('ownedSkinIds: $ownedSkinIds, ')
+          ..write('selectedSkinId: $selectedSkinId, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('isSynced: $isSynced')
           ..write(')'))
@@ -3276,6 +3406,8 @@ class UserPreference extends DataClass implements Insertable<UserPreference> {
     sensorySensitivity,
     learningPace,
     favoriteInterests,
+    ownedSkinIds,
+    selectedSkinId,
     updatedAt,
     isSynced,
   );
@@ -3288,6 +3420,8 @@ class UserPreference extends DataClass implements Insertable<UserPreference> {
           other.sensorySensitivity == this.sensorySensitivity &&
           other.learningPace == this.learningPace &&
           other.favoriteInterests == this.favoriteInterests &&
+          other.ownedSkinIds == this.ownedSkinIds &&
+          other.selectedSkinId == this.selectedSkinId &&
           other.updatedAt == this.updatedAt &&
           other.isSynced == this.isSynced);
 }
@@ -3298,6 +3432,8 @@ class UserPreferencesCompanion extends UpdateCompanion<UserPreference> {
   final Value<int> sensorySensitivity;
   final Value<int> learningPace;
   final Value<String> favoriteInterests;
+  final Value<String> ownedSkinIds;
+  final Value<int> selectedSkinId;
   final Value<DateTime> updatedAt;
   final Value<bool> isSynced;
   const UserPreferencesCompanion({
@@ -3306,6 +3442,8 @@ class UserPreferencesCompanion extends UpdateCompanion<UserPreference> {
     this.sensorySensitivity = const Value.absent(),
     this.learningPace = const Value.absent(),
     this.favoriteInterests = const Value.absent(),
+    this.ownedSkinIds = const Value.absent(),
+    this.selectedSkinId = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.isSynced = const Value.absent(),
   });
@@ -3315,6 +3453,8 @@ class UserPreferencesCompanion extends UpdateCompanion<UserPreference> {
     this.sensorySensitivity = const Value.absent(),
     this.learningPace = const Value.absent(),
     this.favoriteInterests = const Value.absent(),
+    this.ownedSkinIds = const Value.absent(),
+    this.selectedSkinId = const Value.absent(),
     required DateTime updatedAt,
     this.isSynced = const Value.absent(),
   }) : updatedAt = Value(updatedAt);
@@ -3324,6 +3464,8 @@ class UserPreferencesCompanion extends UpdateCompanion<UserPreference> {
     Expression<int>? sensorySensitivity,
     Expression<int>? learningPace,
     Expression<String>? favoriteInterests,
+    Expression<String>? ownedSkinIds,
+    Expression<int>? selectedSkinId,
     Expression<DateTime>? updatedAt,
     Expression<bool>? isSynced,
   }) {
@@ -3333,6 +3475,8 @@ class UserPreferencesCompanion extends UpdateCompanion<UserPreference> {
       if (sensorySensitivity != null) 'sensory_sensitivity': sensorySensitivity,
       if (learningPace != null) 'learning_pace': learningPace,
       if (favoriteInterests != null) 'favorite_interests': favoriteInterests,
+      if (ownedSkinIds != null) 'owned_skin_ids': ownedSkinIds,
+      if (selectedSkinId != null) 'selected_skin_id': selectedSkinId,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (isSynced != null) 'is_synced': isSynced,
     });
@@ -3344,6 +3488,8 @@ class UserPreferencesCompanion extends UpdateCompanion<UserPreference> {
     Value<int>? sensorySensitivity,
     Value<int>? learningPace,
     Value<String>? favoriteInterests,
+    Value<String>? ownedSkinIds,
+    Value<int>? selectedSkinId,
     Value<DateTime>? updatedAt,
     Value<bool>? isSynced,
   }) {
@@ -3353,6 +3499,8 @@ class UserPreferencesCompanion extends UpdateCompanion<UserPreference> {
       sensorySensitivity: sensorySensitivity ?? this.sensorySensitivity,
       learningPace: learningPace ?? this.learningPace,
       favoriteInterests: favoriteInterests ?? this.favoriteInterests,
+      ownedSkinIds: ownedSkinIds ?? this.ownedSkinIds,
+      selectedSkinId: selectedSkinId ?? this.selectedSkinId,
       updatedAt: updatedAt ?? this.updatedAt,
       isSynced: isSynced ?? this.isSynced,
     );
@@ -3376,6 +3524,12 @@ class UserPreferencesCompanion extends UpdateCompanion<UserPreference> {
     if (favoriteInterests.present) {
       map['favorite_interests'] = Variable<String>(favoriteInterests.value);
     }
+    if (ownedSkinIds.present) {
+      map['owned_skin_ids'] = Variable<String>(ownedSkinIds.value);
+    }
+    if (selectedSkinId.present) {
+      map['selected_skin_id'] = Variable<int>(selectedSkinId.value);
+    }
     if (updatedAt.present) {
       map['updated_at'] = Variable<DateTime>(updatedAt.value);
     }
@@ -3393,6 +3547,8 @@ class UserPreferencesCompanion extends UpdateCompanion<UserPreference> {
           ..write('sensorySensitivity: $sensorySensitivity, ')
           ..write('learningPace: $learningPace, ')
           ..write('favoriteInterests: $favoriteInterests, ')
+          ..write('ownedSkinIds: $ownedSkinIds, ')
+          ..write('selectedSkinId: $selectedSkinId, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('isSynced: $isSynced')
           ..write(')'))
@@ -3431,6 +3587,7 @@ typedef $$UserProgressTableCreateCompanionBuilder =
     UserProgressCompanion Function({
       Value<int> id,
       Value<int> learningPoints,
+      Value<int> spentLearningPoints,
       Value<int> gamesPlayed,
       Value<int> dayStreak,
       Value<DateTime?> lastPlayedAt,
@@ -3448,6 +3605,7 @@ typedef $$UserProgressTableUpdateCompanionBuilder =
     UserProgressCompanion Function({
       Value<int> id,
       Value<int> learningPoints,
+      Value<int> spentLearningPoints,
       Value<int> gamesPlayed,
       Value<int> dayStreak,
       Value<DateTime?> lastPlayedAt,
@@ -3478,6 +3636,11 @@ class $$UserProgressTableFilterComposer
 
   ColumnFilters<int> get learningPoints => $composableBuilder(
     column: $table.learningPoints,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get spentLearningPoints => $composableBuilder(
+    column: $table.spentLearningPoints,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3561,6 +3724,11 @@ class $$UserProgressTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get spentLearningPoints => $composableBuilder(
+    column: $table.spentLearningPoints,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get gamesPlayed => $composableBuilder(
     column: $table.gamesPlayed,
     builder: (column) => ColumnOrderings(column),
@@ -3636,6 +3804,11 @@ class $$UserProgressTableAnnotationComposer
 
   GeneratedColumn<int> get learningPoints => $composableBuilder(
     column: $table.learningPoints,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get spentLearningPoints => $composableBuilder(
+    column: $table.spentLearningPoints,
     builder: (column) => column,
   );
 
@@ -3727,6 +3900,7 @@ class $$UserProgressTableTableManager
               ({
                 Value<int> id = const Value.absent(),
                 Value<int> learningPoints = const Value.absent(),
+                Value<int> spentLearningPoints = const Value.absent(),
                 Value<int> gamesPlayed = const Value.absent(),
                 Value<int> dayStreak = const Value.absent(),
                 Value<DateTime?> lastPlayedAt = const Value.absent(),
@@ -3742,6 +3916,7 @@ class $$UserProgressTableTableManager
               }) => UserProgressCompanion(
                 id: id,
                 learningPoints: learningPoints,
+                spentLearningPoints: spentLearningPoints,
                 gamesPlayed: gamesPlayed,
                 dayStreak: dayStreak,
                 lastPlayedAt: lastPlayedAt,
@@ -3759,6 +3934,7 @@ class $$UserProgressTableTableManager
               ({
                 Value<int> id = const Value.absent(),
                 Value<int> learningPoints = const Value.absent(),
+                Value<int> spentLearningPoints = const Value.absent(),
                 Value<int> gamesPlayed = const Value.absent(),
                 Value<int> dayStreak = const Value.absent(),
                 Value<DateTime?> lastPlayedAt = const Value.absent(),
@@ -3774,6 +3950,7 @@ class $$UserProgressTableTableManager
               }) => UserProgressCompanion.insert(
                 id: id,
                 learningPoints: learningPoints,
+                spentLearningPoints: spentLearningPoints,
                 gamesPlayed: gamesPlayed,
                 dayStreak: dayStreak,
                 lastPlayedAt: lastPlayedAt,
@@ -4859,6 +5036,8 @@ typedef $$UserPreferencesTableCreateCompanionBuilder =
       Value<int> sensorySensitivity,
       Value<int> learningPace,
       Value<String> favoriteInterests,
+      Value<String> ownedSkinIds,
+      Value<int> selectedSkinId,
       required DateTime updatedAt,
       Value<bool> isSynced,
     });
@@ -4869,6 +5048,8 @@ typedef $$UserPreferencesTableUpdateCompanionBuilder =
       Value<int> sensorySensitivity,
       Value<int> learningPace,
       Value<String> favoriteInterests,
+      Value<String> ownedSkinIds,
+      Value<int> selectedSkinId,
       Value<DateTime> updatedAt,
       Value<bool> isSynced,
     });
@@ -4904,6 +5085,16 @@ class $$UserPreferencesTableFilterComposer
 
   ColumnFilters<String> get favoriteInterests => $composableBuilder(
     column: $table.favoriteInterests,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get ownedSkinIds => $composableBuilder(
+    column: $table.ownedSkinIds,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get selectedSkinId => $composableBuilder(
+    column: $table.selectedSkinId,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -4952,6 +5143,16 @@ class $$UserPreferencesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get ownedSkinIds => $composableBuilder(
+    column: $table.ownedSkinIds,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get selectedSkinId => $composableBuilder(
+    column: $table.selectedSkinId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
     column: $table.updatedAt,
     builder: (column) => ColumnOrderings(column),
@@ -4992,6 +5193,16 @@ class $$UserPreferencesTableAnnotationComposer
 
   GeneratedColumn<String> get favoriteInterests => $composableBuilder(
     column: $table.favoriteInterests,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get ownedSkinIds => $composableBuilder(
+    column: $table.ownedSkinIds,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get selectedSkinId => $composableBuilder(
+    column: $table.selectedSkinId,
     builder: (column) => column,
   );
 
@@ -5044,6 +5255,8 @@ class $$UserPreferencesTableTableManager
                 Value<int> sensorySensitivity = const Value.absent(),
                 Value<int> learningPace = const Value.absent(),
                 Value<String> favoriteInterests = const Value.absent(),
+                Value<String> ownedSkinIds = const Value.absent(),
+                Value<int> selectedSkinId = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<bool> isSynced = const Value.absent(),
               }) => UserPreferencesCompanion(
@@ -5052,6 +5265,8 @@ class $$UserPreferencesTableTableManager
                 sensorySensitivity: sensorySensitivity,
                 learningPace: learningPace,
                 favoriteInterests: favoriteInterests,
+                ownedSkinIds: ownedSkinIds,
+                selectedSkinId: selectedSkinId,
                 updatedAt: updatedAt,
                 isSynced: isSynced,
               ),
@@ -5062,6 +5277,8 @@ class $$UserPreferencesTableTableManager
                 Value<int> sensorySensitivity = const Value.absent(),
                 Value<int> learningPace = const Value.absent(),
                 Value<String> favoriteInterests = const Value.absent(),
+                Value<String> ownedSkinIds = const Value.absent(),
+                Value<int> selectedSkinId = const Value.absent(),
                 required DateTime updatedAt,
                 Value<bool> isSynced = const Value.absent(),
               }) => UserPreferencesCompanion.insert(
@@ -5070,6 +5287,8 @@ class $$UserPreferencesTableTableManager
                 sensorySensitivity: sensorySensitivity,
                 learningPace: learningPace,
                 favoriteInterests: favoriteInterests,
+                ownedSkinIds: ownedSkinIds,
+                selectedSkinId: selectedSkinId,
                 updatedAt: updatedAt,
                 isSynced: isSynced,
               ),

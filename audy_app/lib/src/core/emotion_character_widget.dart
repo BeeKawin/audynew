@@ -10,6 +10,7 @@ class EmotionCharacterWidget extends StatelessWidget {
     required this.emotion,
     this.size = 160,
     this.useHumanImage = false,
+    this.imagePath,
   });
 
   final String emotion;
@@ -18,6 +19,10 @@ class EmotionCharacterWidget extends StatelessWidget {
   /// If true, shows human face image (for guessing game).
   /// If false, shows icon (for selfie/result screens).
   final bool useHumanImage;
+
+  /// Optional fixed human image asset path.
+  /// Use this when the caller needs the image to stay stable across rebuilds.
+  final String? imagePath;
 
   IconData get _icon {
     switch (emotion) {
@@ -86,8 +91,9 @@ class EmotionCharacterWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     // Show human image if requested and available
     if (useHumanImage && EmotionImages.hasImages(emotion)) {
-      final imagePath = EmotionImages.getRandomPath(emotion);
-      if (imagePath.isNotEmpty) {
+      final resolvedImagePath =
+          imagePath ?? EmotionImages.getDefaultPath(emotion);
+      if (resolvedImagePath.isNotEmpty) {
         return Container(
           width: size,
           height: size,
@@ -105,7 +111,7 @@ class EmotionCharacterWidget extends StatelessWidget {
           child: ClipRRect(
             borderRadius: BorderRadius.circular(size * 0.25),
             child: Image.asset(
-              imagePath,
+              resolvedImagePath,
               fit: BoxFit.cover,
               errorBuilder: (context, error, stackTrace) {
                 // Fallback to icon if image fails to load

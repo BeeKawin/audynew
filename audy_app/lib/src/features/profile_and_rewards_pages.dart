@@ -73,7 +73,7 @@ class _RewardsPageState extends State<RewardsPage> {
                       ),
                       SizedBox(height: adaptive.space(8)),
                       Text(
-                        _tr(context, 'collect_accessories'),
+                        _tr(context, 'Manage your rewards'),
                         style: TextStyle(
                           fontSize: adaptive.space(16),
                           color: const Color(0xFF60758F),
@@ -96,7 +96,7 @@ class _RewardsPageState extends State<RewardsPage> {
               runSpacing: adaptive.space(12),
               children: [
                 _RewardTabChip(
-                  label: _tr(context, 'progress'),
+                  label: _tr(context, 'Progress'),
                   icon: Icons.workspace_premium_outlined,
                   selected: selectedTab == 0,
                   color: const Color(0xFFBDD8F2),
@@ -116,13 +116,23 @@ class _RewardsPageState extends State<RewardsPage> {
                   },
                 ),
                 _RewardTabChip(
-                  label: _tr(context, 'achievements'),
-                  icon: Icons.auto_awesome_outlined,
+                  label: _tr(context, 'skins'),
+                  icon: Icons.palette_outlined,
                   selected: selectedTab == 2,
-                  color: const Color(0xFFC9E8C1),
+                  color: const Color(0xFFE7D8FA),
                   onTap: () {
                     SoundService.instance.playTap();
                     setState(() => selectedTab = 2);
+                  },
+                ),
+                _RewardTabChip(
+                  label: _tr(context, 'achievements'),
+                  icon: Icons.auto_awesome_outlined,
+                  selected: selectedTab == 3,
+                  color: const Color(0xFFC9E8C1),
+                  onTap: () {
+                    SoundService.instance.playTap();
+                    setState(() => selectedTab = 3);
                   },
                 ),
               ],
@@ -131,11 +141,10 @@ class _RewardsPageState extends State<RewardsPage> {
             if (selectedTab == 0)
               _RewardsProgressTab(adaptive: adaptive, controller: controller),
             if (selectedTab == 1)
-              _RewardsMyRewardsTab(
-                adaptive: adaptive,
-                controller: controller,
-              ),
+              _RewardsMyRewardsTab(adaptive: adaptive, controller: controller),
             if (selectedTab == 2)
+              _RewardsSkinsTab(adaptive: adaptive, controller: controller),
+            if (selectedTab == 3)
               _RewardsAchievementsTab(
                 adaptive: adaptive,
                 controller: controller,
@@ -523,191 +532,220 @@ class _ParentDashboardTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final skills = controller.skillPercentages.entries.toList();
-    final skillTrendFuture = controller.getRealSkillTrends();
-
-    return FutureBuilder<WeeklyReportData>(
-      future: controller.getWeeklyReport(),
+    return FutureBuilder<ParentAnalyticsData>(
+      future: controller.getParentAnalytics(),
       builder: (context, snapshot) {
-        final report = snapshot.data ?? WeeklyReportData(
-          gamesPlayed: controller.gamesPlayed,
-          pointsEarned: controller.learningPoints,
-          currentStreak: controller.dayStreak,
-          achievementsUnlocked: controller.unlockedAchievementCount,
-          weekStart: DateTime.now().subtract(const Duration(days: 7)),
-          weekEnd: DateTime.now(),
-          skillProgress: controller.skillPercentages,
-          totalPlayTimeMinutes: controller.gamesPlayed * 5,
-        );
+        final analytics = snapshot.data ?? _emptyAnalytics();
+        final latest = analytics.latestSession;
 
         return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Progress Tracking Section
-        Text(
-          'Session Trends',
-          style: TextStyle(
-            fontSize: adaptive.space(20),
-            fontWeight: FontWeight.w800,
-            color: const Color(0xFF243A5A),
-          ),
-        ),
-        SizedBox(height: adaptive.space(16)),
-        AudyAdaptiveGrid(
-          adaptive: adaptive,
-          phoneColumns: 1,
-          tabletColumns: 2,
-          desktopColumns: 2,
-          items: [
-            FutureBuilder<Map<String, List<double>>>(
-              future: skillTrendFuture,
-              builder: (context, trendSnapshot) {
-                final trends =
-                    trendSnapshot.data ?? const <String, List<double>>{};
-                return _ChartCard(
-                  title: 'Emotion Sessions',
-                  subtitle: 'Based on recorded emotion game sessions',
-                  values:
-                      trends['emotion'] ??
-                      trends['emotion_classify'] ??
-                      const <double>[],
-                  color: const Color(0xFFF7BCD8),
-                );
-              },
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Learning Analytics',
+              style: TextStyle(
+                fontSize: adaptive.space(20),
+                fontWeight: FontWeight.w800,
+                color: const Color(0xFF243A5A),
+              ),
             ),
-            FutureBuilder<Map<String, List<double>>>(
-              future: skillTrendFuture,
-              builder: (context, trendSnapshot) {
-                final trends =
-                    trendSnapshot.data ?? const <String, List<double>>{};
-                return _ChartCard(
-                  title: 'MiniPuzzle Sessions',
-                  subtitle: 'Based on recorded MiniPuzzle sessions',
-                  values: trends['minipuzzle'] ?? const <double>[],
+            SizedBox(height: adaptive.space(6)),
+            Text(
+              '${_formatDate(analytics.rangeStart)} - '
+              '${_formatDate(analytics.rangeEnd)}',
+              style: TextStyle(
+                fontSize: adaptive.space(14),
+                color: const Color(0xFF60758F),
+              ),
+            ),
+            SizedBox(height: adaptive.space(16)),
+            AudyAdaptiveGrid(
+              adaptive: adaptive,
+              phoneColumns: 2,
+              tabletColumns: 4,
+              desktopColumns: 4,
+              items: [
+                _StatCard(
+                  icon: Icons.sports_esports_outlined,
+                  value: '${analytics.totalSessions}',
+                  label: '7-Day Sessions',
                   color: const Color(0xFFBDD8F2),
-                );
-              },
+                ),
+                _StatCard(
+                  icon: Icons.timer_outlined,
+                  value: '${analytics.totalMinutes}',
+                  label: '7-Day Minutes',
+                  color: const Color(0xFFFFF2A8),
+                ),
+                _StatCard(
+                  icon: Icons.query_stats_rounded,
+                  value: analytics.averageScoredAccuracy == null
+                      ? '--'
+                      : _formatPercent(analytics.averageScoredAccuracy!),
+                  label: 'Scored Average',
+                  color: const Color(0xFFC9E8C1),
+                ),
+                _StatCard(
+                  icon: Icons.history_rounded,
+                  value: latest == null
+                      ? '--'
+                      : _shortFeatureName(latest.title),
+                  label: 'Latest Activity',
+                  color: const Color(0xFFF8C7DF),
+                ),
+              ],
+            ),
+            SizedBox(height: adaptive.space(24)),
+            _ChartCard(
+              title: 'Daily Activity',
+              subtitle: 'Completed learning sessions each day',
+              values: analytics.dailyActivityValues,
+              color: const Color(0xFFBDD8F2),
+            ),
+            SizedBox(height: adaptive.space(24)),
+            Text(
+              'Learning Features',
+              style: TextStyle(
+                fontSize: adaptive.space(20),
+                fontWeight: FontWeight.w800,
+                color: const Color(0xFF243A5A),
+              ),
+            ),
+            SizedBox(height: adaptive.space(16)),
+            AudyAdaptiveGrid(
+              adaptive: adaptive,
+              phoneColumns: 1,
+              tabletColumns: 2,
+              desktopColumns: 3,
+              items: analytics.features
+                  .map(
+                    (feature) => _FeatureAnalyticsCard(
+                      adaptive: adaptive,
+                      feature: feature,
+                    ),
+                  )
+                  .toList(),
+            ),
+            SizedBox(height: adaptive.space(24)),
+            Text(
+              'Recent Sessions',
+              style: TextStyle(
+                fontSize: adaptive.space(20),
+                fontWeight: FontWeight.w800,
+                color: const Color(0xFF243A5A),
+              ),
+            ),
+            SizedBox(height: adaptive.space(16)),
+            AudyPanel(
+              adaptive: adaptive,
+              child: analytics.recentSessions.isEmpty
+                  ? _EmptyDashboardState(adaptive: adaptive)
+                  : Column(
+                      children: analytics.recentSessions
+                          .map(
+                            (session) => _RecentSessionRow(
+                              adaptive: adaptive,
+                              session: session,
+                            ),
+                          )
+                          .toList(),
+                    ),
             ),
           ],
-        ),
-        SizedBox(height: adaptive.space(24)),
-
-        // Skill Analytics Section
-        Text(
-          'Skill Analytics',
-          style: TextStyle(
-            fontSize: adaptive.space(20),
-            fontWeight: FontWeight.w800,
-            color: const Color(0xFF243A5A),
-          ),
-        ),
-        SizedBox(height: adaptive.space(16)),
-        AudyPanel(
-          adaptive: adaptive,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              ...skills.map((skill) {
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        skill.key,
-                        style: const TextStyle(fontWeight: FontWeight.w700),
-                      ),
-                      const SizedBox(height: 6),
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(999),
-                        child: LinearProgressIndicator(
-                          value: skill.value,
-                          minHeight: 12,
-                          backgroundColor: const Color(0xFFE2E5EA),
-                          valueColor: const AlwaysStoppedAnimation(
-                            Color(0xFFD8C8F5),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '${(skill.value * 100).toInt()}%',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: const Color(0xFF60758F),
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              }),
-            ],
-          ),
-        ),
-        SizedBox(height: adaptive.space(24)),
-
-        // Weekly Report Section
-        Text(
-          'Recent Activity',
-          style: TextStyle(
-            fontSize: adaptive.space(20),
-            fontWeight: FontWeight.w800,
-            color: const Color(0xFF243A5A),
-          ),
-        ),
-        SizedBox(height: adaptive.space(16)),
-        AudyPanel(
-          adaptive: adaptive,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                '${report.weekStart.day}/${report.weekStart.month} - ${report.weekEnd.day}/${report.weekEnd.month}/${report.weekEnd.year}',
-                style: TextStyle(
-                  fontSize: adaptive.space(14),
-                  color: const Color(0xFF60758F),
-                ),
-              ),
-              SizedBox(height: adaptive.space(16)),
-              AudyAdaptiveGrid(
-                adaptive: adaptive,
-                phoneColumns: 2,
-                tabletColumns: 4,
-                desktopColumns: 4,
-                items: [
-                  _StatCard(
-                    icon: Icons.sports_esports_outlined,
-                    value: '${report.gamesPlayed}',
-                    label: '7-Day Sessions',
-                    color: const Color(0xFFBDD8F2),
-                  ),
-                  _StatCard(
-                    icon: Icons.timer_outlined,
-                    value: '${report.totalPlayTimeMinutes}',
-                    label: '7-Day Minutes',
-                    color: const Color(0xFFFFF2A8),
-                  ),
-                  _StatCard(
-                    icon: Icons.local_fire_department_outlined,
-                    value: '${report.currentStreak}',
-                    label: 'Current Streak',
-                    color: const Color(0xFFF8C7DF),
-                  ),
-                  _StatCard(
-                    icon: Icons.emoji_events_outlined,
-                    value: '${report.achievementsUnlocked}',
-                    label: 'All-Time Awards',
-                    color: const Color(0xFFC9E8C1),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
+        );
       },
     );
+  }
+
+  ParentAnalyticsData _emptyAnalytics() {
+    final now = DateTime.now();
+    const features = [
+      ParentFeatureAnalytics(
+        gameType: 'emotion_classify',
+        title: 'Emotion Classify',
+        sessions: 0,
+        totalSeconds: 0,
+        correctActions: 0,
+        totalActions: 0,
+      ),
+      ParentFeatureAnalytics(
+        gameType: 'emotion_mimic',
+        title: 'Emotion Mimic',
+        sessions: 0,
+        totalSeconds: 0,
+        correctActions: 0,
+        totalActions: 0,
+      ),
+      ParentFeatureAnalytics(
+        gameType: 'minipuzzle',
+        title: 'MiniPuzzle',
+        sessions: 0,
+        totalSeconds: 0,
+        correctActions: 0,
+        totalActions: 0,
+      ),
+      ParentFeatureAnalytics(
+        gameType: 'sorting',
+        title: 'Sorting',
+        sessions: 0,
+        totalSeconds: 0,
+        correctActions: 0,
+        totalActions: 0,
+      ),
+      ParentFeatureAnalytics(
+        gameType: 'reaction_time',
+        title: 'Reaction Time',
+        sessions: 0,
+        totalSeconds: 0,
+        correctActions: 0,
+        totalActions: 0,
+      ),
+      ParentFeatureAnalytics(
+        gameType: 'reading',
+        title: 'Read & Speak',
+        sessions: 0,
+        totalSeconds: 0,
+        correctActions: 0,
+        totalActions: 0,
+      ),
+      ParentFeatureAnalytics(
+        gameType: 'social_chat',
+        title: 'Social Chat',
+        sessions: 0,
+        totalSeconds: 0,
+        correctActions: 0,
+        totalActions: 0,
+      ),
+    ];
+
+    return ParentAnalyticsData(
+      rangeStart: now.subtract(const Duration(days: 7)),
+      rangeEnd: now,
+      totalSessions: 0,
+      totalMinutes: 0,
+      averageScoredAccuracy: null,
+      latestSession: null,
+      features: features,
+      dailyActivityValues: const [],
+      recentSessions: const [],
+    );
+  }
+
+  String _formatDate(DateTime date) {
+    return '${date.month}/${date.day}/${date.year}';
+  }
+
+  String _formatPercent(double value) {
+    return '${(value * 100).round()}%';
+  }
+
+  String _shortFeatureName(String title) {
+    if (title == 'Emotion Classify') return 'Classify';
+    if (title == 'Emotion Mimic') return 'Mimic';
+    if (title == 'Reaction Time') return 'Reaction';
+    if (title == 'Read & Speak') return 'Reading';
+    if (title == 'Social Chat') return 'Social';
+    return title;
   }
 }
 
@@ -1032,10 +1070,7 @@ class _InstitutionPanelTab extends StatelessWidget {
 }
 
 class _SettingsTabContent extends StatelessWidget {
-  const _SettingsTabContent({
-    required this.adaptive,
-    required this.controller,
-  });
+  const _SettingsTabContent({required this.adaptive, required this.controller});
 
   final AudyAdaptive adaptive;
   final AudyController controller;
@@ -1063,7 +1098,9 @@ class _SettingsTabContent extends StatelessWidget {
               // Communication Level Display
               _buildPreferenceRow(
                 'Communication',
-                _getCommunicationLabel(controller.userPreferences.communicationLevel),
+                _getCommunicationLabel(
+                  controller.userPreferences.communicationLevel,
+                ),
                 Icons.chat_bubble_outline,
                 const Color(0xFFE7D8FA),
               ),
@@ -1071,7 +1108,9 @@ class _SettingsTabContent extends StatelessWidget {
               // Sensory Sensitivity Display
               _buildPreferenceRow(
                 'Sensory Sensitivity',
-                _getSensitivityLabel(controller.userPreferences.sensorySensitivity),
+                _getSensitivityLabel(
+                  controller.userPreferences.sensorySensitivity,
+                ),
                 Icons.hearing_outlined,
                 const Color(0xFFF8C7DF),
               ),
@@ -1131,7 +1170,12 @@ class _SettingsTabContent extends StatelessWidget {
   }
 
   String _getCommunicationLabel(int level) {
-    const labels = ['Non-verbal', 'Single words', 'Short phrases', 'Full sentences'];
+    const labels = [
+      'Non-verbal',
+      'Single words',
+      'Short phrases',
+      'Full sentences',
+    ];
     return labels[level.clamp(0, 3)];
   }
 
@@ -1145,7 +1189,12 @@ class _SettingsTabContent extends StatelessWidget {
     return labels[level.clamp(0, 2)];
   }
 
-  Widget _buildPreferenceRow(String label, String value, IconData icon, Color color) {
+  Widget _buildPreferenceRow(
+    String label,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
     return Row(
       children: [
         Container(
@@ -1155,7 +1204,11 @@ class _SettingsTabContent extends StatelessWidget {
             color: color.withValues(alpha: 0.3),
             shape: BoxShape.circle,
           ),
-          child: Icon(icon, size: adaptive.space(22), color: const Color(0xFF243A5A)),
+          child: Icon(
+            icon,
+            size: adaptive.space(22),
+            color: const Color(0xFF243A5A),
+          ),
         ),
         SizedBox(width: adaptive.space(12)),
         Expanded(
@@ -1185,7 +1238,12 @@ class _SettingsTabContent extends StatelessWidget {
     );
   }
 
-  Widget _buildInterestsRow(String label, List<String> interests, IconData icon, Color color) {
+  Widget _buildInterestsRow(
+    String label,
+    List<String> interests,
+    IconData icon,
+    Color color,
+  ) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1196,7 +1254,11 @@ class _SettingsTabContent extends StatelessWidget {
             color: color.withValues(alpha: 0.3),
             shape: BoxShape.circle,
           ),
-          child: Icon(icon, size: adaptive.space(22), color: const Color(0xFF243A5A)),
+          child: Icon(
+            icon,
+            size: adaptive.space(22),
+            color: const Color(0xFF243A5A),
+          ),
         ),
         SizedBox(width: adaptive.space(12)),
         Expanded(
@@ -1749,7 +1811,9 @@ class _RewardsMyRewardsTab extends StatelessWidget {
         ],
 
         // Empty State
-        if (activeRewards.isEmpty && completedRewards.isEmpty && claimedRewards.isEmpty)
+        if (activeRewards.isEmpty &&
+            completedRewards.isEmpty &&
+            claimedRewards.isEmpty)
           _buildEmptyState(context),
       ],
     );
@@ -1779,13 +1843,17 @@ class _RewardsMyRewardsTab extends StatelessWidget {
           phoneColumns: 1,
           tabletColumns: 2,
           desktopColumns: 2,
-          items: rewards.map((reward) => _RewardCard(
-            reward: reward,
-            adaptive: adaptive,
-            isClaimable: isClaimable,
-            isClaimed: isClaimed,
-            onClaim: () => controller.claimReward(reward.id),
-          )).toList(),
+          items: rewards
+              .map(
+                (reward) => _RewardCard(
+                  reward: reward,
+                  adaptive: adaptive,
+                  isClaimable: isClaimable,
+                  isClaimed: isClaimed,
+                  onClaim: () => controller.claimReward(reward.id),
+                ),
+              )
+              .toList(),
         ),
       ],
     );
@@ -1838,6 +1906,423 @@ class _RewardsMyRewardsTab extends StatelessWidget {
           controller.addReward(prize, condition, target);
           Navigator.pop(context);
         },
+      ),
+    );
+  }
+}
+
+class _RewardsSkinsTab extends StatelessWidget {
+  const _RewardsSkinsTab({required this.adaptive, required this.controller});
+
+  final AudyAdaptive adaptive;
+  final AudyController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        AudyPanel(
+          adaptive: adaptive,
+          child: Row(
+            children: [
+              Container(
+                width: adaptive.space(56),
+                height: adaptive.space(56),
+                decoration: const BoxDecoration(
+                  color: Color(0xFFFFF2A8),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.stars_rounded,
+                  size: adaptive.space(30),
+                  color: const Color(0xFFF5C532),
+                ),
+              ),
+              SizedBox(width: adaptive.space(14)),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _tr(context, 'available_points'),
+                      style: TextStyle(
+                        fontSize: adaptive.space(14),
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF60758F),
+                      ),
+                    ),
+                    SizedBox(height: adaptive.space(4)),
+                    Text(
+                      '${controller.availableLearningPoints}',
+                      style: TextStyle(
+                        fontSize: adaptive.space(28),
+                        fontWeight: FontWeight.w800,
+                        color: const Color(0xFF243A5A),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: EdgeInsets.symmetric(
+                  horizontal: adaptive.space(12),
+                  vertical: adaptive.space(8),
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE7D8FA),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  _tr(
+                    context,
+                    'skin_price',
+                    params: {'points': '${AudyController.skinPrice}'},
+                  ),
+                  style: TextStyle(
+                    fontSize: adaptive.space(13),
+                    fontWeight: FontWeight.w800,
+                    color: const Color(0xFF243A5A),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        SizedBox(height: adaptive.space(18)),
+        Text(
+          _tr(context, 'skins'),
+          style: TextStyle(
+            fontSize: adaptive.space(22),
+            fontWeight: FontWeight.w800,
+            color: const Color(0xFF243A5A),
+          ),
+        ),
+        SizedBox(height: adaptive.space(12)),
+        AudyAdaptiveGrid(
+          adaptive: adaptive,
+          phoneColumns: 1,
+          tabletColumns: 2,
+          desktopColumns: 3,
+          items: AudyController.skinVariants.map((variant) {
+            return _SkinVariantCard(
+              variant: variant,
+              adaptive: adaptive,
+              isOwned: controller.isSkinOwned(variant.id),
+              isSelected: controller.selectedSkinId == variant.id,
+              canBuy: controller.availableLearningPoints >= variant.price,
+              onSelect: () async {
+                SoundService.instance.playTap();
+                await controller.selectSkin(variant.id);
+              },
+              onBuy: () async {
+                SoundService.instance.playTap();
+                final didBuy = await controller.buySkin(variant.id);
+                if (!didBuy && context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(_tr(context, 'need_points'))),
+                  );
+                }
+              },
+            );
+          }).toList(),
+        ),
+      ],
+    );
+  }
+}
+
+class _SkinVariantCard extends StatelessWidget {
+  const _SkinVariantCard({
+    required this.variant,
+    required this.adaptive,
+    required this.isOwned,
+    required this.isSelected,
+    required this.canBuy,
+    required this.onSelect,
+    required this.onBuy,
+  });
+
+  final SkinVariant variant;
+  final AudyAdaptive adaptive;
+  final bool isOwned;
+  final bool isSelected;
+  final bool canBuy;
+  final Future<void> Function() onSelect;
+  final Future<void> Function() onBuy;
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = _skinColor(variant.id);
+    final actionLabel = isSelected
+        ? _tr(context, 'selected')
+        : isOwned
+        ? _tr(context, 'select')
+        : canBuy
+        ? _tr(context, 'buy_skin')
+        : _tr(context, 'need_points');
+    final actionIcon = isSelected
+        ? Icons.check_circle_rounded
+        : isOwned
+        ? Icons.touch_app_rounded
+        : canBuy
+        ? Icons.shopping_bag_outlined
+        : Icons.lock_outline_rounded;
+
+    return Container(
+      padding: EdgeInsets.all(adaptive.space(18)),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(adaptive.space(22)),
+        border: Border.all(
+          color: isSelected ? accent : const Color(0xFFE2E5EA),
+          width: isSelected ? 3 : 1.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: accent.withValues(alpha: isSelected ? 0.22 : 0.10),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _SkinPreview(
+            adaptive: adaptive,
+            variantId: variant.id,
+            accent: accent,
+          ),
+          SizedBox(height: adaptive.space(14)),
+          Row(
+            children: [
+              Container(
+                width: adaptive.space(38),
+                height: adaptive.space(38),
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: accent.withValues(alpha: 0.18),
+                  shape: BoxShape.circle,
+                ),
+                child: Text(
+                  '${variant.id}',
+                  style: TextStyle(
+                    fontSize: adaptive.space(15),
+                    fontWeight: FontWeight.w900,
+                    color: const Color(0xFF243A5A),
+                  ),
+                ),
+              ),
+              SizedBox(width: adaptive.space(10)),
+              Expanded(
+                child: Text(
+                  variant.label,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: adaptive.space(16),
+                    fontWeight: FontWeight.w800,
+                    color: const Color(0xFF243A5A),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: adaptive.space(12)),
+          Text(
+            variant.price == 0
+                ? _tr(context, 'free_skin')
+                : _tr(
+                    context,
+                    'skin_cost',
+                    params: {'points': '${variant.price}'},
+                  ),
+            style: TextStyle(
+              fontSize: adaptive.space(14),
+              fontWeight: FontWeight.w700,
+              color: const Color(0xFF60758F),
+            ),
+          ),
+          SizedBox(height: adaptive.space(14)),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: isSelected
+                  ? null
+                  : isOwned
+                  ? onSelect
+                  : canBuy
+                  ? onBuy
+                  : null,
+              icon: Icon(actionIcon, size: adaptive.space(20)),
+              label: Text(
+                actionLabel,
+                style: TextStyle(
+                  fontSize: adaptive.space(14),
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: isOwned ? const Color(0xFFC9E8C1) : accent,
+                foregroundColor: const Color(0xFF243A5A),
+                disabledBackgroundColor: isSelected
+                    ? const Color(0xFFC9E8C1)
+                    : const Color(0xFFE2E5EA),
+                disabledForegroundColor: isSelected
+                    ? const Color(0xFF243A5A)
+                    : const Color(0xFF60758F),
+                minimumSize: const Size(48, 52),
+                padding: EdgeInsets.symmetric(
+                  horizontal: adaptive.space(12),
+                  vertical: adaptive.space(12),
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(999),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Color _skinColor(int id) {
+    const colors = [
+      Color(0xFFBDD8F2),
+      Color(0xFFFFB3B3),
+      Color(0xFFC9E8C1),
+      Color(0xFF9FC5F8),
+      Color(0xFFFFF2A8),
+      Color(0xFFA8F0F2),
+      Color(0xFFF8C7DF),
+      Color(0xFFF5F7FA),
+      Color(0xFFFFCBA8),
+      Color(0xFFB6E3D4),
+      Color(0xFFB7C8F6),
+      Color(0xFFF8E39B),
+      Color(0xFFAEEAE4),
+      Color(0xFFE6C4F5),
+      Color(0xFFE5EAF0),
+      Color(0xFFD4E4FF),
+      Color(0xFFD6F0C2),
+      Color(0xFFE9EEF5),
+      Color(0xFFE7D8FA),
+      Color(0xFFCFD7E2),
+    ];
+    return colors[id % colors.length];
+  }
+}
+
+class _SkinPreview extends StatelessWidget {
+  const _SkinPreview({
+    required this.adaptive,
+    required this.variantId,
+    required this.accent,
+  });
+
+  final AudyAdaptive adaptive;
+  final int variantId;
+  final Color accent;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: adaptive.space(98),
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: accent.withValues(alpha: 0.16),
+        borderRadius: BorderRadius.circular(adaptive.space(18)),
+      ),
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Container(
+            width: adaptive.space(62),
+            height: adaptive.space(62),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+              border: Border.all(color: accent, width: 3),
+            ),
+            child: Icon(
+              Icons.smart_toy_outlined,
+              size: adaptive.space(34),
+              color: const Color(0xFF243A5A),
+            ),
+          ),
+          Positioned(
+            left: adaptive.space(18),
+            child: _PreviewDot(color: accent, size: adaptive.space(18)),
+          ),
+          Positioned(
+            right: adaptive.space(18),
+            child: _PreviewDot(
+              color: _secondaryColor(variantId),
+              size: adaptive.space(18),
+            ),
+          ),
+          Positioned(
+            bottom: adaptive.space(14),
+            child: _PreviewDot(
+              color: _tummyColor(variantId),
+              size: adaptive.space(24),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Color _secondaryColor(int id) {
+    const colors = [
+      Color(0xFFFFFFFF),
+      Color(0xFFA8F0F2),
+      Color(0xFFF8C7DF),
+      Color(0xFFFFF2A8),
+      Color(0xFF9FC5F8),
+      Color(0xFFFFB3B3),
+      Color(0xFFC9E8C1),
+      Color(0xFFE2E5EA),
+      Color(0xFFC9E8C1),
+      Color(0xFF9FC5F8),
+    ];
+    return colors[id % colors.length];
+  }
+
+  Color _tummyColor(int id) {
+    const colors = [
+      Color(0xFFFFFFFF),
+      Color(0xFFA8F0F2),
+      Color(0xFFF8C7DF),
+      Color(0xFFFFF2A8),
+      Color(0xFF9FC5F8),
+      Color(0xFFFFB3B3),
+      Color(0xFFC9E8C1),
+      Color(0xFFE2E5EA),
+      Color(0xFFFFF2A8),
+      Color(0xFF9FC5F8),
+    ];
+    return colors[id % colors.length];
+  }
+}
+
+class _PreviewDot extends StatelessWidget {
+  const _PreviewDot({required this.color, required this.size});
+
+  final Color color;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: color,
+        shape: BoxShape.circle,
+        border: Border.all(color: const Color(0xFF243A5A), width: 1.5),
       ),
     );
   }
@@ -1944,6 +2429,282 @@ class _RewardsAchievementsTab extends StatelessWidget {
       ],
     );
   }
+}
+
+class _FeatureAnalyticsCard extends StatelessWidget {
+  const _FeatureAnalyticsCard({
+    required this.adaptive,
+    required this.feature,
+  });
+
+  final AudyAdaptive adaptive;
+  final ParentFeatureAnalytics feature;
+
+  @override
+  Widget build(BuildContext context) {
+    final accuracy = feature.averageAccuracy;
+    final color = _analyticsColor(feature.gameType);
+    final hasSessions = feature.sessions > 0;
+
+    return AudyPanel(
+      adaptive: adaptive,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: color,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Icon(
+                  _analyticsIcon(feature.gameType),
+                  color: const Color(0xFF243A5A),
+                  size: 26,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  feature.title,
+                  style: TextStyle(
+                    fontSize: adaptive.space(17),
+                    fontWeight: FontWeight.w800,
+                    color: const Color(0xFF243A5A),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: adaptive.space(16)),
+          Row(
+            children: [
+              Expanded(
+                child: _MiniMetric(
+                  label: 'Sessions',
+                  value: '${feature.sessions}',
+                ),
+              ),
+              Expanded(
+                child: _MiniMetric(
+                  label: 'Minutes',
+                  value: '${feature.minutes}',
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: adaptive.space(14)),
+          Text(
+            accuracy == null ? 'Participation' : 'Average Score',
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF60758F),
+            ),
+          ),
+          const SizedBox(height: 8),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(999),
+            child: LinearProgressIndicator(
+              value: accuracy ?? (hasSessions ? 1 : 0),
+              minHeight: 12,
+              backgroundColor: const Color(0xFFE2E5EA),
+              valueColor: AlwaysStoppedAnimation(color),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            accuracy == null
+                ? (hasSessions ? 'Recorded activity' : 'No sessions yet')
+                : '${(accuracy * 100).round()}% correct',
+            style: const TextStyle(fontSize: 13, color: Color(0xFF60758F)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MiniMetric extends StatelessWidget {
+  const _MiniMetric({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w800,
+            color: Color(0xFF243A5A),
+          ),
+        ),
+        const SizedBox(height: 3),
+        Text(
+          label,
+          style: const TextStyle(fontSize: 12, color: Color(0xFF60758F)),
+        ),
+      ],
+    );
+  }
+}
+
+class _RecentSessionRow extends StatelessWidget {
+  const _RecentSessionRow({
+    required this.adaptive,
+    required this.session,
+  });
+
+  final AudyAdaptive adaptive;
+  final ParentRecentSession session;
+
+  @override
+  Widget build(BuildContext context) {
+    final accuracy = session.accuracy;
+    final color = _analyticsColor(session.gameType);
+
+    return Padding(
+      padding: EdgeInsets.only(bottom: adaptive.space(12)),
+      child: Row(
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: color,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Icon(
+              _analyticsIcon(session.gameType),
+              color: const Color(0xFF243A5A),
+              size: 24,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  session.title,
+                  style: TextStyle(
+                    fontSize: adaptive.space(15),
+                    fontWeight: FontWeight.w800,
+                    color: const Color(0xFF243A5A),
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  '${_relativeSessionTime(session.endedAt)} - ${_formatDuration(session.durationSeconds)}',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Color(0xFF60758F),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            accuracy == null
+                ? 'Done'
+                : '${session.correctActions}/${session.totalActions}',
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w800,
+              color: Color(0xFF243A5A),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _EmptyDashboardState extends StatelessWidget {
+  const _EmptyDashboardState({required this.adaptive});
+
+  final AudyAdaptive adaptive;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(vertical: adaptive.space(20)),
+      child: const Text(
+        'No learning sessions recorded yet.',
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          fontSize: 15,
+          fontWeight: FontWeight.w700,
+          color: Color(0xFF60758F),
+        ),
+      ),
+    );
+  }
+}
+
+IconData _analyticsIcon(String gameType) {
+  switch (gameType) {
+    case 'emotion_classify':
+      return Icons.sentiment_satisfied_rounded;
+    case 'emotion_mimic':
+      return Icons.face_retouching_natural_rounded;
+    case 'minipuzzle':
+      return Icons.extension_rounded;
+    case 'sorting':
+      return Icons.category_rounded;
+    case 'reaction_time':
+      return Icons.flash_on_rounded;
+    case 'reading':
+      return Icons.menu_book_rounded;
+    case 'social_chat':
+      return Icons.chat_bubble_rounded;
+    default:
+      return Icons.analytics_rounded;
+  }
+}
+
+Color _analyticsColor(String gameType) {
+  switch (gameType) {
+    case 'emotion_classify':
+      return const Color(0xFFF8C7DF);
+    case 'emotion_mimic':
+      return const Color(0xFFE7D8FA);
+    case 'minipuzzle':
+      return const Color(0xFFBDD8F2);
+    case 'sorting':
+      return const Color(0xFFFFF2A8);
+    case 'reaction_time':
+      return const Color(0xFFFFDAC7);
+    case 'reading':
+      return const Color(0xFFC9E8C1);
+    case 'social_chat':
+      return const Color(0xFFBDEBE8);
+    default:
+      return const Color(0xFFE2E5EA);
+  }
+}
+
+String _relativeSessionTime(DateTime date) {
+  final difference = DateTime.now().difference(date);
+  if (difference.inMinutes < 1) return 'Just now';
+  if (difference.inHours < 1) return '${difference.inMinutes}m ago';
+  if (difference.inDays < 1) return '${difference.inHours}h ago';
+  return '${difference.inDays}d ago';
+}
+
+String _formatDuration(int seconds) {
+  if (seconds < 60) return '${seconds}s';
+  return '${(seconds / 60).ceil()}m';
 }
 
 class _StatCard extends StatelessWidget {
@@ -2066,7 +2827,7 @@ class _ChartCard extends StatelessWidget {
           const SizedBox(height: 18),
           SizedBox(
             height: 180,
-            child: values.length < 2
+            child: values.isEmpty
                 ? _EmptyChartState(color: color)
                 : CustomPaint(
                     painter: _LineChartPainter(values: values, color: color),
@@ -2131,6 +2892,12 @@ class _LineChartPainter extends CustomPainter {
       ..color = color
       ..strokeWidth = 3
       ..style = PaintingStyle.stroke;
+
+    if (values.length == 1) {
+      final y = size.height - (size.height * values.first);
+      canvas.drawCircle(Offset(size.width / 2, y), 5, dotPaint);
+      return;
+    }
 
     for (var i = 0; i < values.length; i++) {
       final x = i * (size.width / (values.length - 1));
@@ -2361,13 +3128,11 @@ class _RewardCard extends StatelessWidget {
 // ==================== ADD REWARD DIALOG ====================
 
 class _AddRewardDialog extends StatefulWidget {
-  const _AddRewardDialog({
-    required this.adaptive,
-    required this.onCreate,
-  });
+  const _AddRewardDialog({required this.adaptive, required this.onCreate});
 
   final AudyAdaptive adaptive;
-  final void Function(String prize, RewardCondition condition, int target) onCreate;
+  final void Function(String prize, RewardCondition condition, int target)
+  onCreate;
 
   @override
   State<_AddRewardDialog> createState() => _AddRewardDialogState();

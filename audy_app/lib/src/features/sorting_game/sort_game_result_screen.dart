@@ -51,6 +51,11 @@ class _SortGameResultScreenState extends State<SortGameResultScreen> {
   @override
   void initState() {
     super.initState();
+    SoundService.instance.playGameComplete();
+    SoundService.instance.playBearCompletionFeedback(
+      score: totalStarsEarned,
+      maxScore: maxStars,
+    );
     // Show celebration after widget is mounted
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
