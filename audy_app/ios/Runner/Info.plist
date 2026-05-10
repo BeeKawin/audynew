@@ -70,5 +70,7 @@
 	<string>This app needs Bluetooth to connect to your AUDY learning companion device</string>
 	<key>NSBluetoothPeripheralUsageDescription</key>
 	<string>This app needs Bluetooth to connect to your AUDY learning companion device</string>
+	<key>NSCameraUsageDescription</key>
+	<string>This app uses the camera to help children practice recognizing emotions.</string>
 </dict>
 </plist>

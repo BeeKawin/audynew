@@ -524,6 +524,7 @@ class _ParentDashboardTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final skills = controller.skillPercentages.entries.toList();
+    final skillTrendFuture = controller.getRealSkillTrends();
 
     return FutureBuilder<WeeklyReportData>(
       future: controller.getWeeklyReport(),
@@ -544,7 +545,7 @@ class _ParentDashboardTab extends StatelessWidget {
       children: [
         // Progress Tracking Section
         Text(
-          'Progress Tracking',
+          'Session Trends',
           style: TextStyle(
             fontSize: adaptive.space(20),
             fontWeight: FontWeight.w800,
@@ -558,15 +559,34 @@ class _ParentDashboardTab extends StatelessWidget {
           tabletColumns: 2,
           desktopColumns: 2,
           items: [
-            _ChartCard(
-              title: 'Emotion Recognition Progress',
-              values: controller.emotionProgressHistory,
-              color: const Color(0xFFF7BCD8),
+            FutureBuilder<Map<String, List<double>>>(
+              future: skillTrendFuture,
+              builder: (context, trendSnapshot) {
+                final trends =
+                    trendSnapshot.data ?? const <String, List<double>>{};
+                return _ChartCard(
+                  title: 'Emotion Sessions',
+                  subtitle: 'Based on recorded emotion game sessions',
+                  values:
+                      trends['emotion'] ??
+                      trends['emotion_classify'] ??
+                      const <double>[],
+                  color: const Color(0xFFF7BCD8),
+                );
+              },
             ),
-            _ChartCard(
-              title: 'MiniPuzzle Progress',
-              values: controller.puzzleProgressHistory,
-              color: const Color(0xFFBDD8F2),
+            FutureBuilder<Map<String, List<double>>>(
+              future: skillTrendFuture,
+              builder: (context, trendSnapshot) {
+                final trends =
+                    trendSnapshot.data ?? const <String, List<double>>{};
+                return _ChartCard(
+                  title: 'MiniPuzzle Sessions',
+                  subtitle: 'Based on recorded MiniPuzzle sessions',
+                  values: trends['minipuzzle'] ?? const <double>[],
+                  color: const Color(0xFFBDD8F2),
+                );
+              },
             ),
           ],
         ),
@@ -628,7 +648,7 @@ class _ParentDashboardTab extends StatelessWidget {
 
         // Weekly Report Section
         Text(
-          'Weekly Report',
+          'Recent Activity',
           style: TextStyle(
             fontSize: adaptive.space(20),
             fontWeight: FontWeight.w800,
@@ -658,25 +678,25 @@ class _ParentDashboardTab extends StatelessWidget {
                   _StatCard(
                     icon: Icons.sports_esports_outlined,
                     value: '${report.gamesPlayed}',
-                    label: 'Games Played',
+                    label: '7-Day Sessions',
                     color: const Color(0xFFBDD8F2),
                   ),
                   _StatCard(
-                    icon: Icons.star_outline_rounded,
-                    value: '${report.pointsEarned}',
-                    label: 'Points Earned',
+                    icon: Icons.timer_outlined,
+                    value: '${report.totalPlayTimeMinutes}',
+                    label: '7-Day Minutes',
                     color: const Color(0xFFFFF2A8),
                   ),
                   _StatCard(
                     icon: Icons.local_fire_department_outlined,
                     value: '${report.currentStreak}',
-                    label: 'Day Streak',
+                    label: 'Current Streak',
                     color: const Color(0xFFF8C7DF),
                   ),
                   _StatCard(
                     icon: Icons.emoji_events_outlined,
                     value: '${report.achievementsUnlocked}',
-                    label: 'Achievements',
+                    label: 'All-Time Awards',
                     color: const Color(0xFFC9E8C1),
                   ),
                 ],
@@ -708,9 +728,9 @@ class _InstitutionPanelTab extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Manage Kids Section
+        // Current Child Section
         Text(
-          'Manage Kids',
+          'Current Child Overview',
           style: TextStyle(
             fontSize: adaptive.space(20),
             fontWeight: FontWeight.w800,
@@ -805,7 +825,7 @@ class _InstitutionPanelTab extends StatelessWidget {
 
         // Group Performance Section
         Text(
-          'Group Performance Overview',
+          'Single Child Summary',
           style: TextStyle(
             fontSize: adaptive.space(20),
             fontWeight: FontWeight.w800,
@@ -819,7 +839,7 @@ class _InstitutionPanelTab extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Group Statistics',
+                'Current Child Statistics',
                 style: TextStyle(
                   fontSize: adaptive.space(16),
                   fontWeight: FontWeight.w700,
@@ -828,24 +848,24 @@ class _InstitutionPanelTab extends StatelessWidget {
               ),
               SizedBox(height: adaptive.space(12)),
               _InstitutionStatRow(
-                label: 'Total Children',
+                label: 'Children Shown',
                 value: '${group.totalChildren}',
               ),
               _InstitutionStatRow(
-                label: 'Avg Games per Child',
+                label: 'Games Completed',
                 value: group.averageGamesPerChild.toStringAsFixed(1),
               ),
               _InstitutionStatRow(
-                label: 'Avg Points per Child',
+                label: 'Learning Points',
                 value: group.averagePointsPerChild.toStringAsFixed(0),
               ),
               _InstitutionStatRow(
-                label: 'Avg Streak',
+                label: 'Current Streak',
                 value: group.averageStreak.toStringAsFixed(1),
               ),
               SizedBox(height: adaptive.space(16)),
               Text(
-                'Average Skill Progress',
+                'Skill Progress',
                 style: TextStyle(
                   fontSize: adaptive.space(16),
                   fontWeight: FontWeight.w700,
@@ -2012,11 +2032,13 @@ class _ChartCard extends StatelessWidget {
     required this.title,
     required this.values,
     required this.color,
+    this.subtitle,
   });
 
   final String title;
   final List<double> values;
   final Color color;
+  final String? subtitle;
 
   @override
   Widget build(BuildContext context) {
@@ -2034,15 +2056,53 @@ class _ChartCard extends StatelessWidget {
             title,
             style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
           ),
+          if (subtitle != null) ...[
+            const SizedBox(height: 6),
+            Text(
+              subtitle!,
+              style: const TextStyle(fontSize: 13, color: Color(0xFF60758F)),
+            ),
+          ],
           const SizedBox(height: 18),
           SizedBox(
             height: 180,
-            child: CustomPaint(
-              painter: _LineChartPainter(values: values, color: color),
-              child: Container(),
-            ),
+            child: values.length < 2
+                ? _EmptyChartState(color: color)
+                : CustomPaint(
+                    painter: _LineChartPainter(values: values, color: color),
+                    child: Container(),
+                  ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _EmptyChartState extends StatelessWidget {
+  const _EmptyChartState({required this.color});
+
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.14),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: color.withValues(alpha: 0.5)),
+      ),
+      child: const Center(
+        child: Text(
+          'Not enough session data yet',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w700,
+            color: Color(0xFF60758F),
+          ),
+        ),
       ),
     );
   }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/app_routes.dart';
+import '../../data/models/game_session_model.dart';
 import '../../services/sound_service.dart';
 import '../../state/audy_controller.dart';
 import '../../widgets/point_celebration_dialog.dart';
@@ -30,7 +31,7 @@ class _ReadPronounceResultScreenState extends State<ReadPronounceResultScreen> {
   void initState() {
     super.initState();
     // Track quest completion for reading
-    widget.controller.trackReadingCompleted();
+    _trackReadingCompletion();
     // Play game complete sound
     SoundService.instance.playGameComplete();
     // Show celebration after first frame is built
@@ -39,6 +40,26 @@ class _ReadPronounceResultScreenState extends State<ReadPronounceResultScreen> {
         _showCelebrationIfNeeded();
       }
     });
+  }
+
+  Future<void> _trackReadingCompletion() async {
+    await widget.controller.trackReadingCompleted();
+
+    final endedAt = widget.result.completedAt;
+    final durationMs = widget.result.sessionDurationMs
+        .clamp(1000, 600000)
+        .toInt();
+    final session = GameSessionData.fromTimes(
+      gameType: 'reading',
+      levelId: widget.moduleName,
+      difficulty: widget.result.module.name,
+      correctActions: widget.result.correctAttempts,
+      totalActions: widget.result.totalAttempts,
+      starsEarned: widget.result.stars,
+      sessionStartedAt: endedAt.subtract(Duration(milliseconds: durationMs)),
+      sessionEndedAt: endedAt,
+    );
+    await widget.controller.recordAnalyticsSession(session);
   }
 
   Future<void> _showCelebrationIfNeeded() async {

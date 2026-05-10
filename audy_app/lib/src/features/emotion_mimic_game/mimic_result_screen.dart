@@ -67,7 +67,6 @@ class _MimicResultScreenState extends State<MimicResultScreen> {
       await controller.addPoints(5);
     }
 
-    controller.gamesPlayed += 1;
     await _sendRoundBleSignal(isFinalRound: isFinalRound);
     controller.advanceMimicRound();
     navigator.pop();

@@ -312,8 +312,6 @@ class AudyController extends ChangeNotifier {
       classifyScore += 1;
     }
     await addPoints(isCorrect ? 5 : 0);
-    classifyQuestionIndex =
-        (classifyQuestionIndex + 1) % _classifyQuestions.length;
     notifyListeners();
   }
 
@@ -429,19 +427,35 @@ class AudyController extends ChangeNotifier {
   // Thai voice messages
   final List<SocialMessage> thaiSocialMessages = [];
 
+  // Persisted in ProgressData.learningPoints.
   int learningPoints = 0;
+
+  // Persisted in ProgressData.gamesPlayed.
   int gamesPlayed = 0;
+
+  // Persisted in ProgressData.dayStreak.
   int dayStreak = 1;
   int totalStars = 3;
 
-  // Achievement tracking
+  // Persisted in ProgressData.puzzleGamesCompleted.
   int puzzleGamesCompleted = 0;
+
+  // Persisted in ProgressData.readingExercisesCompleted.
   int readingExercisesCompleted = 0;
+
+  // Persisted in ProgressData.chatMessagesSent.
   int chatMessagesSent = 0;
-  int sortingGamesCompleted =
-      0; // NEW Sorting Game (replaced old color sorting)
+
+  // Persisted in ProgressData.sortingGamesCompleted.
+  int sortingGamesCompleted = 0;
+
+  // Persisted in ProgressData.emotionsRecognized.
   int emotionsRecognized = 0;
+
+  // Persisted in ProgressData.gamesInCurrentSession.
   int gamesInCurrentSession = 0;
+
+  // Runtime-only session timestamp. ProgressData persists lastPlayedAt instead.
   DateTime? sessionStartTime;
 
   // Meltdown protection constants
@@ -468,7 +482,8 @@ class AudyController extends ChangeNotifier {
     await _saveProgress();
   }
 
-  // Sorting game level unlock progress (0 = only first level unlocked)
+  // Persisted in ProgressData.sortGameUnlockedLevel.
+  // 0 means only the first sorting level is unlocked.
   int sortGameUnlockedLevel = 0;
 
   // User preferences for autism-related personalization
@@ -869,22 +884,14 @@ class AudyController extends ChangeNotifier {
     int daysBack = 7,
   }) async {
     if (storage == null) {
-      // Return simulated data if no storage
-      return {
-        'emotion_classify': emotionProgressHistory,
-        'minipuzzle': puzzleProgressHistory,
-      };
+      return {};
     }
 
     try {
       return await storage!.getSkillTrends(daysBack: daysBack);
     } catch (e) {
       debugPrint('Failed to get skill trends: $e');
-      // Fallback to simulated data
-      return {
-        'emotion_classify': emotionProgressHistory,
-        'minipuzzle': puzzleProgressHistory,
-      };
+      return {};
     }
   }
 
@@ -928,9 +935,12 @@ class AudyController extends ChangeNotifier {
     final weekStart = now.subtract(const Duration(days: 7));
 
     int totalPlayTimeMinutes = gamesPlayed * 5; // Fallback estimate
+    int weeklyGamesPlayed = gamesPlayed;
 
     if (storage != null) {
       try {
+        final sessions = await storage!.getGameSessions(daysBack: 7);
+        weeklyGamesPlayed = sessions.length;
         final totalSeconds = await storage!.getTotalPlayTimeSeconds(
           daysBack: 7,
         );
@@ -941,7 +951,7 @@ class AudyController extends ChangeNotifier {
     }
 
     return WeeklyReportData(
-      gamesPlayed: gamesPlayed,
+      gamesPlayed: weeklyGamesPlayed,
       pointsEarned: learningPoints,
       currentStreak: dayStreak,
       achievementsUnlocked: unlockedAchievementCount,
@@ -1016,6 +1026,7 @@ class AudyController extends ChangeNotifier {
       // Load progress (keep learning points across sessions)
       final progress = await storage!.getProgress();
       if (progress != null) {
+        // ProgressData fields mapped back into controller runtime state.
         learningPoints = progress.learningPoints;
         gamesPlayed = progress.gamesPlayed;
         dayStreak = progress.dayStreak;
@@ -1083,6 +1094,7 @@ class AudyController extends ChangeNotifier {
 
     try {
       await storage!.saveProgress(
+        // Controller runtime state persisted through ProgressData.
         ProgressData(
           learningPoints: learningPoints,
           gamesPlayed: gamesPlayed,
@@ -1133,6 +1145,20 @@ class AudyController extends ChangeNotifier {
       notifyListeners();
     } catch (e) {
       debugPrint('Failed to record game session: $e');
+    }
+  }
+
+  /// Record analytics only.
+  ///
+  /// Progress counters such as gamesPlayed, quests, achievements, and meltdown
+  /// session count are handled by the trackXCompleted methods.
+  Future<void> recordAnalyticsSession(GameSessionData session) async {
+    if (storage == null) return;
+
+    try {
+      await storage!.saveGameSession(session);
+    } catch (e) {
+      debugPrint('Failed to record analytics session: $e');
     }
   }
 

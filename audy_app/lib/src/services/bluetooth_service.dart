@@ -68,7 +68,7 @@ class AudyBleMessage {
 ///   Flutter -> ESP32:
 ///     arms characteristic: 0-4
 ///     emotion characteristic: 0-3
-///     led characteristic: 0-17
+///     led characteristic: 0-19
 ///
 ///   ESP32 -> Flutter:
 ///     tummy characteristic: 0-1
@@ -432,9 +432,9 @@ class AudyBluetoothService {
   }
 
   /// LED channel:
-  /// 0-17 = LED color cases
+  /// 0-19 = LED color cases
   Future<void> setLed(int value) async {
-    _validateOutgoingValue('led', value, min: 0, max: 17);
+    _validateOutgoingValue('led', value, min: 0, max: 19);
     await _writeNumericCommand('led', _ledCharacteristic, value);
   }
 

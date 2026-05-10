@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/audy_ui.dart';
+import '../../../services/sound_service.dart';
 import '../../../state/audy_controller.dart';
 import '../minipuzzle_controller.dart';
 import '../minipuzzle_models.dart';
@@ -80,7 +81,7 @@ class _PuzzleGameWidgetState extends State<PuzzleGameWidget> {
                       _selectedPieceId == null ||
                       placedPiece != null
                   ? null
-                  : () => _placeSelectedPiece(slot.id),
+                  : () => _placeSelectedPiece(slot.id, puzzleData),
               child: _SlotCard(
                 slot: slot,
                 placedPiece: placedPiece,
@@ -101,6 +102,7 @@ class _PuzzleGameWidgetState extends State<PuzzleGameWidget> {
               onTap: widget.controller.showingFeedback
                   ? null
                   : () {
+                      SoundService.instance.playTap();
                       setState(() {
                         _selectedPieceId = isSelected ? null : piece.id;
                       });
@@ -117,9 +119,18 @@ class _PuzzleGameWidgetState extends State<PuzzleGameWidget> {
     );
   }
 
-  void _placeSelectedPiece(String slotId) {
+  void _placeSelectedPiece(String slotId, PuzzleData puzzleData) {
     final pieceId = _selectedPieceId;
     if (pieceId == null) return;
+
+    final selectedPiece = puzzleData.pieces.firstWhere(
+      (piece) => piece.id == pieceId,
+    );
+    if (selectedPiece.targetSlotId == slotId) {
+      SoundService.instance.playCorrect();
+    } else {
+      SoundService.instance.playWrong();
+    }
 
     widget.controller.placePuzzlePiece(pieceId, slotId);
     if (mounted) {

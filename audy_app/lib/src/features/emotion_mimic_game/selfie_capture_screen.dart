@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:ui' as ui;
 
@@ -10,6 +11,7 @@ import '../../core/audy_theme.dart';
 import '../../core/audy_ui.dart';
 import '../../core/emotion_character_widget.dart';
 import '../../services/emotion_service.dart';
+import '../../services/face_guidance_service.dart';
 import '../../services/sound_service.dart';
 import 'mimic_result_screen.dart';
 
@@ -23,10 +25,21 @@ class SelfieCaptureScreen extends StatefulWidget {
 }
 
 class _SelfieCaptureScreenState extends State<SelfieCaptureScreen> {
+  static const Duration _faceAnalysisInterval = Duration(milliseconds: 600);
+
+  final FaceGuidanceService _faceGuidance = FaceGuidanceService();
+
   CameraController? _cameraController;
+  CameraDescription? _selectedCamera;
+  FaceGuidanceResult _faceGuidanceResult = const FaceGuidanceResult(
+    status: FaceGuidanceStatus.unsupported,
+  );
+  DateTime _lastFaceAnalysis = DateTime.fromMillisecondsSinceEpoch(0);
   bool _isCameraReady = false;
+  bool _isAnalyzingFrame = false;
   bool _isProcessing = false;
   String? _errorMessage;
+  String? _captureHintMessage;
 
   @override
   void initState() {
@@ -44,26 +57,28 @@ class _SelfieCaptureScreenState extends State<SelfieCaptureScreen> {
         return;
       }
 
-      CameraDescription selectedCamera;
-      if (!kIsWeb && Platform.isAndroid || Platform.isIOS) {
-        selectedCamera = cameras.firstWhere(
+      if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
+        _selectedCamera = cameras.firstWhere(
           (c) => c.lensDirection == CameraLensDirection.front,
           orElse: () => cameras.first,
         );
       } else {
-        selectedCamera = cameras.first;
+        _selectedCamera = cameras.first;
       }
 
       _cameraController = CameraController(
-        selectedCamera,
-        ResolutionPreset.low,
+        _selectedCamera!,
+        ResolutionPreset.medium,
         enableAudio: false,
+        imageFormatGroup: _cameraImageFormatGroup(),
       );
 
       await _cameraController!.initialize();
       if (mounted) {
         setState(() => _isCameraReady = true);
       }
+
+      await _startFaceGuidanceStream();
     } catch (e) {
       if (mounted) {
         final msg = e.toString().toLowerCase();
@@ -88,23 +103,35 @@ class _SelfieCaptureScreenState extends State<SelfieCaptureScreen> {
 
     SoundService.instance.playCameraShutter();
 
-    setState(() => _isProcessing = true);
+    setState(() {
+      _isProcessing = true;
+      _captureHintMessage = null;
+    });
 
     try {
+      await _stopFaceGuidanceStream();
+
       final image = await _cameraController!.takePicture();
       final rawFile = File(image.path);
 
-      final compressedFile = await _compressImage(rawFile);
+      final preparedFile = await _prepareImageForDetection(rawFile);
+      if (preparedFile == null) {
+        if (mounted) {
+          setState(() => _isProcessing = false);
+          await _startFaceGuidanceStream();
+        }
+        return;
+      }
 
       if (mounted) {
-        final result = await EmotionService.detectEmotion(compressedFile);
+        final result = await EmotionService.detectEmotion(preparedFile);
 
         if (mounted) {
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
               builder: (_) => MimicResultScreen(
-                capturedImage: compressedFile,
+                capturedImage: preparedFile,
                 expectedEmotion: widget.targetEmotion,
                 detectedEmotion: result.detectedEmotion,
                 confidence: result.confidence,
@@ -119,6 +146,7 @@ class _SelfieCaptureScreenState extends State<SelfieCaptureScreen> {
           _isProcessing = false;
           _errorMessage = 'Emotion detection unavailable: ${e.message}';
         });
+        await _startFaceGuidanceStream();
       }
     } catch (e) {
       if (mounted) {
@@ -126,17 +154,113 @@ class _SelfieCaptureScreenState extends State<SelfieCaptureScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Could not take photo. Try again.')),
         );
+        await _startFaceGuidanceStream();
       }
     }
+  }
+
+  ImageFormatGroup? _cameraImageFormatGroup() {
+    if (kIsWeb) return null;
+    if (Platform.isAndroid) return ImageFormatGroup.nv21;
+    if (Platform.isIOS) return ImageFormatGroup.bgra8888;
+    return null;
+  }
+
+  Future<void> _startFaceGuidanceStream() async {
+    final controller = _cameraController;
+    if (!_faceGuidance.isSupported ||
+        controller == null ||
+        !controller.value.isInitialized ||
+        controller.value.isStreamingImages ||
+        _isProcessing) {
+      return;
+    }
+
+    try {
+      await controller.startImageStream(_handleCameraImage);
+    } catch (e) {
+      debugPrint('SelfieCaptureScreen: face guidance stream skipped - $e');
+    }
+  }
+
+  Future<void> _stopFaceGuidanceStream() async {
+    final controller = _cameraController;
+    if (controller == null ||
+        !controller.value.isInitialized ||
+        !controller.value.isStreamingImages) {
+      return;
+    }
+
+    try {
+      await controller.stopImageStream();
+    } catch (e) {
+      debugPrint('SelfieCaptureScreen: face guidance stream stop skipped - $e');
+    }
+  }
+
+  Future<void> _handleCameraImage(CameraImage image) async {
+    final controller = _cameraController;
+    final selectedCamera = _selectedCamera;
+    if (!mounted ||
+        _isProcessing ||
+        _isAnalyzingFrame ||
+        controller == null ||
+        selectedCamera == null) {
+      return;
+    }
+
+    final now = DateTime.now();
+    if (now.difference(_lastFaceAnalysis) < _faceAnalysisInterval) {
+      return;
+    }
+
+    _lastFaceAnalysis = now;
+    _isAnalyzingFrame = true;
+
+    final result = await _faceGuidance.analyzeCameraImage(
+      image: image,
+      camera: selectedCamera,
+      deviceOrientation: controller.value.deviceOrientation,
+    );
+
+    if (mounted && !_isProcessing) {
+      setState(() {
+        _faceGuidanceResult = result;
+        _captureHintMessage = null;
+      });
+    }
+
+    _isAnalyzingFrame = false;
+  }
+
+  Future<File?> _prepareImageForDetection(File rawFile) async {
+    final faceResult = await _faceGuidance.analyzeImageFile(rawFile);
+
+    if (faceResult.isReady) {
+      final croppedFile = await _faceGuidance.cropFaceFromFile(
+        rawFile,
+        faceResult.faceBox!,
+      );
+      return croppedFile ?? _compressImage(rawFile);
+    }
+
+    if (faceResult.canRetryCapture) {
+      if (mounted) {
+        setState(() {
+          _faceGuidanceResult = faceResult;
+          _captureHintMessage = _messageForStatus(faceResult.status);
+        });
+      }
+      return null;
+    }
+
+    return _compressImage(rawFile);
   }
 
   Future<File> _compressImage(File imageFile) async {
     try {
       final bytes = await imageFile.readAsBytes();
-      final codec = await ui.instantiateImageCodec(
-        bytes,
-        targetWidth: 480,
-      );
+      final codec = await ui.instantiateImageCodec(bytes, targetWidth: 640);
       final frame = await codec.getNextFrame();
       final resizedImage = frame.image;
 
@@ -163,7 +287,9 @@ class _SelfieCaptureScreenState extends State<SelfieCaptureScreen> {
 
   @override
   void dispose() {
-    _cameraController?.dispose();
+    unawaited(_stopFaceGuidanceStream());
+    unawaited(_faceGuidance.dispose());
+    unawaited(_cameraController?.dispose() ?? Future<void>.value());
     super.dispose();
   }
 
@@ -211,6 +337,8 @@ class _SelfieCaptureScreenState extends State<SelfieCaptureScreen> {
                 ),
               ),
             ),
+            const SizedBox(height: AudySpacing.smallGap),
+            _buildGuidanceMessage(),
             const SizedBox(height: AudySpacing.sectionGap),
             if (_errorMessage != null)
               Text(
@@ -315,5 +443,60 @@ class _SelfieCaptureScreenState extends State<SelfieCaptureScreen> {
         ],
       ),
     );
+  }
+
+  Widget _buildGuidanceMessage() {
+    final message =
+        _captureHintMessage ?? _messageForStatus(_faceGuidanceResult.status);
+
+    if (_errorMessage != null || message == null) {
+      return const SizedBox(height: 36);
+    }
+
+    final isReady =
+        _faceGuidanceResult.status == FaceGuidanceStatus.ready &&
+        _captureHintMessage == null;
+    final color = isReady ? AudyColors.mintGreen : AudyColors.warning;
+
+    return SizedBox(
+      height: 36,
+      child: Center(
+        child: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 180),
+          child: Row(
+            key: ValueKey<String>(message),
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.face_rounded, size: 24, color: color),
+              const SizedBox(width: 8),
+              Text(
+                message,
+                style: AudyTypography.bodyMedium.copyWith(
+                  color: color,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  String? _messageForStatus(FaceGuidanceStatus status) {
+    switch (status) {
+      case FaceGuidanceStatus.unsupported:
+        return null;
+      case FaceGuidanceStatus.noFace:
+        return 'Show your face';
+      case FaceGuidanceStatus.tooFar:
+        return 'Move closer';
+      case FaceGuidanceStatus.notCentered:
+        return 'Center your face';
+      case FaceGuidanceStatus.multipleFaces:
+        return 'One face only';
+      case FaceGuidanceStatus.ready:
+        return 'Ready';
+    }
   }
 }

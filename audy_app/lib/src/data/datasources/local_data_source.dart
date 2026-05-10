@@ -596,6 +596,12 @@ class LocalDataSource {
         dailyAccuracies
             .putIfAbsent(session.gameType, () => [])
             .add(session.accuracyPercent);
+        if (session.gameType == 'emotion_classify' ||
+            session.gameType == 'emotion_mimic') {
+          dailyAccuracies
+              .putIfAbsent('emotion', () => [])
+              .add(session.accuracyPercent);
+        }
       }
 
       dailyAccuracies.forEach((type, accuracies) {
@@ -605,8 +611,8 @@ class LocalDataSource {
       });
     }
 
-    // Reverse lists so oldest is first
-    results.forEach((key, value) => value.reversed.toList());
+    // Reverse lists so oldest data appears first in dashboard charts.
+    results.updateAll((key, value) => value.reversed.toList());
 
     return results;
   }

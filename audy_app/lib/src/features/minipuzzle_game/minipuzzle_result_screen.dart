@@ -106,7 +106,7 @@ class _MiniPuzzleResultScreenState extends State<MiniPuzzleResultScreen> {
         sessionStartedAt: widget.sessionData.startTime,
         sessionEndedAt: widget.sessionData.endTime,
       );
-      await widget.controller.recordGameSession(session);
+      await widget.controller.recordAnalyticsSession(session);
     }
   }
 

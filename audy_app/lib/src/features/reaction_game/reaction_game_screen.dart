@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../core/app_routes.dart';
 import '../../core/audy_theme.dart';
 import '../../core/audy_ui.dart';
+import '../../data/models/game_session_model.dart';
 import '../../services/bluetooth_service.dart';
 import '../../services/sound_service.dart';
 import '../../state/audy_controller.dart';
@@ -250,6 +251,7 @@ class ReactionTimeResultPage extends StatefulWidget {
 
 class _ReactionTimeResultPageState extends State<ReactionTimeResultPage> {
   bool _celebrationShown = false;
+  bool _analyticsRecorded = false;
 
   late AudyController controller;
 
@@ -288,6 +290,7 @@ class _ReactionTimeResultPageState extends State<ReactionTimeResultPage> {
 
       // Add points
       await controller.addPoints(pointsEarned);
+      await _recordAnalyticsSession();
 
       // Show celebration dialog
       if (mounted) {
@@ -311,6 +314,27 @@ class _ReactionTimeResultPageState extends State<ReactionTimeResultPage> {
         );
       }
     }
+  }
+
+  Future<void> _recordAnalyticsSession() async {
+    if (_analyticsRecorded) return;
+    _analyticsRecorded = true;
+
+    final endedAt = DateTime.now();
+    final reactionDurationMs = controller.reactionTimes.fold<int>(
+      0,
+      (sum, time) => sum + time,
+    );
+    final session = GameSessionData.fromTimes(
+      gameType: 'reaction_time',
+      correctActions: controller.reactionTimes.length,
+      totalActions: controller.reactionTimes.length + controller.reactionMisses,
+      sessionStartedAt: endedAt.subtract(
+        Duration(milliseconds: reactionDurationMs.clamp(1000, 600000).toInt()),
+      ),
+      sessionEndedAt: endedAt,
+    );
+    await controller.recordAnalyticsSession(session);
   }
 
   int _getLevelFromPoints(int points) {

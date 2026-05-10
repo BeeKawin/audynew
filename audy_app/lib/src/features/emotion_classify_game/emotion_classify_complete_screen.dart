@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/app_routes.dart';
 import '../../core/audy_theme.dart';
 import '../../core/audy_ui.dart';
+import '../../data/models/game_session_model.dart';
 import '../../services/sound_service.dart';
 import '../../state/audy_controller.dart';
 import '../../widgets/point_celebration_dialog.dart';
@@ -92,13 +93,28 @@ class _EmotionClassifyCompleteScreenState
 
       // Track quest completion AFTER dialog to avoid notifyListeners disrupting the celebration
       if (mounted) {
-        await widget.controller.trackClassifyGameCompleted(durationSeconds: 0);
+        await _trackCompletionAndAnalytics();
       }
     } else {
       setState(() => _hasShownCelebration = true);
       // Track quest completion even when no points earned
-      await widget.controller.trackClassifyGameCompleted(durationSeconds: 0);
+      await _trackCompletionAndAnalytics();
     }
+  }
+
+  Future<void> _trackCompletionAndAnalytics() async {
+    await widget.controller.trackClassifyGameCompleted(durationSeconds: 0);
+
+    final endedAt = DateTime.now();
+    final session = GameSessionData.fromTimes(
+      gameType: 'emotion_classify',
+      correctActions: widget.controller.classifyScore,
+      totalActions: widget.controller.classifyTotalRounds,
+      starsEarned: stars,
+      sessionStartedAt: endedAt.subtract(const Duration(seconds: 1)),
+      sessionEndedAt: endedAt,
+    );
+    await widget.controller.recordAnalyticsSession(session);
   }
 
   @override

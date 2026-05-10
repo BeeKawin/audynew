@@ -527,7 +527,7 @@ class _SortGameScreenState extends State<SortGameScreen> {
           sessionStartedAt: sessionData.sessionStartedAt,
           sessionEndedAt: sessionData.sessionEndedAt,
         );
-        controller.recordGameSession(gameSession);
+        controller.recordAnalyticsSession(gameSession);
       });
     }
 

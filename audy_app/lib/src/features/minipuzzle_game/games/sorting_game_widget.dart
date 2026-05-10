@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/audy_ui.dart';
+import '../../../services/sound_service.dart';
 import '../../../state/audy_controller.dart';
 import '../minipuzzle_controller.dart';
 import '../minipuzzle_models.dart';
@@ -55,7 +56,14 @@ class OddOneOutGameWidget extends StatelessWidget {
                 (item) => GestureDetector(
                   onTap: controller.showingFeedback
                       ? null
-                      : () => controller.submitOddOneOutAnswer(item.id),
+                      : () {
+                          if (item.id == data.correctItemId) {
+                            SoundService.instance.playCorrect();
+                          } else {
+                            SoundService.instance.playWrong();
+                          }
+                          controller.submitOddOneOutAnswer(item.id);
+                        },
                   child: _OddItemCard(item: item, size: _cardSize),
                 ),
               )

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/audy_ui.dart';
+import '../../../services/sound_service.dart';
 import '../../../state/audy_controller.dart';
 import '../minipuzzle_controller.dart';
 import '../minipuzzle_models.dart';
@@ -73,7 +74,14 @@ class PatternGameWidget extends StatelessWidget {
                 (token) => GestureDetector(
                   onTap: controller.showingFeedback
                       ? null
-                      : () => controller.submitPatternAnswer(token),
+                      : () {
+                          if (token.id == patternData.correctAnswer.id) {
+                            SoundService.instance.playCorrect();
+                          } else {
+                            SoundService.instance.playWrong();
+                          }
+                          controller.submitPatternAnswer(token);
+                        },
                   child: _PatternItem(
                     token: token,
                     size: _choiceSize,
