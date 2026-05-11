@@ -81,6 +81,7 @@ class _DeviceConnectionPageState extends State<DeviceConnectionPage> {
     17: '17 - Ears split / Arms off / Tummy white',
     18: '18 - Rainbow',
     19: '19 - All off',
+    20: '20 - Nose lights',
   };
   double _space(dynamic adaptive, num value) {
     return (adaptive.space(value.toDouble()) as num).toDouble();

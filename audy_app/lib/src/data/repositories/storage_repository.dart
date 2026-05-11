@@ -74,8 +74,6 @@ class StorageRepository {
   Future<int> saveGameSession(GameSessionData session) =>
       local.saveGameSession(session);
 
-  Future<void> clearGameSessions() => local.clearGameSessions();
-
   Future<List<GameSessionData>> getGameSessions({int? daysBack}) =>
       local.getGameSessions(daysBack: daysBack);
 

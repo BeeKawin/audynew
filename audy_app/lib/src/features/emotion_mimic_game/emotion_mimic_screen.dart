@@ -1,10 +1,14 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../core/audy_theme.dart';
 import '../../core/audy_ui.dart';
 import '../../core/emotion_character_widget.dart';
+import '../../services/bluetooth_service.dart';
 import '../../services/sound_service.dart';
 import '../../state/audy_controller.dart';
+import '../../widgets/game_guide_box.dart';
 import 'mimic_complete_screen.dart';
 import 'selfie_capture_screen.dart';
 
@@ -19,6 +23,31 @@ class EmotionMimicScreen extends StatefulWidget {
 
 class _EmotionMimicScreenState extends State<EmotionMimicScreen> {
   final DateTime _sessionStartedAt = DateTime.now();
+  StreamSubscription<AudyBleMessage>? _bleInputSub;
+  bool _isCaptureRouteOpen = false;
+  bool _showGuide = true;
+
+  @override
+  void initState() {
+    super.initState();
+    SoundService.instance.playInstructionEmotionMimic();
+    _bleInputSub = AudyBluetoothService.instance.incomingMessages.listen(
+      _handleBleInput,
+    );
+  }
+
+  void _handleBleInput(AudyBleMessage message) {
+    if (!mounted) return;
+    if (ModalRoute.of(context)?.isCurrent != true) return;
+    if (message.channel != 'tummy' || message.value != 1) return;
+
+    final controller = AudyScope.of(context);
+    if (controller.isMimicGameComplete) return;
+    if (_isCaptureRouteOpen) return;
+
+    SoundService.instance.playTap();
+    unawaited(_startSelfieCapture(controller.currentMimicTarget));
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -82,6 +111,13 @@ class _EmotionMimicScreenState extends State<EmotionMimicScreen> {
               ],
             ),
             const SizedBox(height: AudySpacing.sectionGap),
+            if (_showGuide) ...[
+              GameGuideBox(
+                message: controller.tr('guide_emotion_mimic'),
+                onDismissed: () => setState(() => _showGuide = false),
+              ),
+              const SizedBox(height: AudySpacing.elementGap),
+            ],
             Center(
               child: Text(
                 controller.tr('make_this_face'),
@@ -108,7 +144,7 @@ class _EmotionMimicScreenState extends State<EmotionMimicScreen> {
               child: ElevatedButton(
                 onPressed: () {
                   SoundService.instance.playTap();
-                  _startSelfieCapture(targetEmotion);
+                  unawaited(_startSelfieCapture(targetEmotion));
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AudyColors.mintGreen,
@@ -140,12 +176,27 @@ class _EmotionMimicScreenState extends State<EmotionMimicScreen> {
     );
   }
 
-  void _startSelfieCapture(String targetEmotion) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => SelfieCaptureScreen(targetEmotion: targetEmotion),
-      ),
-    );
+  Future<void> _startSelfieCapture(String targetEmotion) async {
+    if (_isCaptureRouteOpen) return;
+
+    _isCaptureRouteOpen = true;
+    try {
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => SelfieCaptureScreen(targetEmotion: targetEmotion),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        _isCaptureRouteOpen = false;
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _bleInputSub?.cancel();
+    super.dispose();
   }
 }

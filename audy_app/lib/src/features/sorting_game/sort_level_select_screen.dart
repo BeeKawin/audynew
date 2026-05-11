@@ -108,7 +108,7 @@ class _SortLevelSelectScreenState extends State<SortLevelSelectScreen> {
                         ? null
                         : () {
                             SoundService.instance.playTap();
-                            _startLevel(level);
+                            _startLevel(level, index);
                           },
                   );
                 },
@@ -120,22 +120,28 @@ class _SortLevelSelectScreenState extends State<SortLevelSelectScreen> {
     );
   }
 
-  void _startLevel(SortGameLevel level) {
+  void _startLevel(SortGameLevel level, int levelIndex) {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => SortGameScreen(level: level)),
     ).then((result) async {
       if (result != null && result is Map<String, dynamic>) {
-        final starsEarned = result['stars'] as int? ?? 0;
-        if (starsEarned >= level.starsRequired) {
-          if (!mounted) return;
-          final controller = AudyScope.of(context);
-          final newUnlockedLevel = controller.sortGameUnlockedLevel + 1;
-          controller.sortGameUnlockedLevel = newUnlockedLevel;
-          await controller.saveProgress();
-          if (mounted) {
-            setState(() {});
-          }
+        final completionStatus = result['completion_status'] as String?;
+        if (completionStatus != 'completed') return;
+
+        final starsEarned =
+            result['total_stars'] as int? ?? result['stars'] as int? ?? 0;
+        if (!mounted) return;
+
+        final controller = AudyScope.of(context);
+        final didUnlock = await controller.unlockSortingLevelAfterCompletion(
+          levelId: level.id,
+          completedLevelIndex: levelIndex,
+          starsEarned: starsEarned,
+          starsRequired: level.starsRequired,
+        );
+        if (didUnlock && mounted) {
+          setState(() {});
         }
       }
     });

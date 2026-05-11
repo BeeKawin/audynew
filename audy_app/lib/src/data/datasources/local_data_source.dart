@@ -498,11 +498,6 @@ class LocalDataSource {
         );
   }
 
-  /// Clear all game session analytics records.
-  Future<void> clearGameSessions() async {
-    await db.delete(db.gameSessions).go();
-  }
-
   /// Get game sessions with optional date filter
   Future<List<GameSessionData>> getGameSessions({int? daysBack}) async {
     var query = db.select(db.gameSessions);

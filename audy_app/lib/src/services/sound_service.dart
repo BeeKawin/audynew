@@ -178,6 +178,49 @@ class SoundService {
   /// Play try again sound
   void playTryAgain() => play(AppSounds.tryAgain);
 
+  bool _playInstruction(String soundPath) {
+    if (!AudyBluetoothService.instance.isConnected) {
+      debugPrint(
+        'SoundService: Bluetooth disconnected, not playing instruction sound',
+      );
+      return false;
+    }
+
+    return play(soundPath);
+  }
+
+  /// Play emotion classify instruction sound
+  void playInstructionEmotionClassify() =>
+      _playInstruction(AppSounds.instructionEmotionClassify);
+
+  /// Play emotion mimic instruction sound
+  void playInstructionEmotionMimic() =>
+      _playInstruction(AppSounds.instructionEmotionMimic);
+
+  /// Play reaction time instruction sound
+  void playInstructionReactionTime() =>
+      _playInstruction(AppSounds.instructionReactionTime);
+
+  /// Play sorting game instruction sound
+  void playInstructionSortingGame() =>
+      _playInstruction(AppSounds.instructionSortingGame);
+
+  /// Play MiniPuzzle pattern instruction sound
+  void playInstructionMiniPuzzlePattern() =>
+      _playInstruction(AppSounds.instructionMiniPuzzlePattern);
+
+  /// Play MiniPuzzle odd-one-out instruction sound
+  void playInstructionMiniPuzzleOddOneOut() =>
+      _playInstruction(AppSounds.instructionMiniPuzzleOddOneOut);
+
+  /// Play MiniPuzzle puzzle instruction sound
+  void playInstructionMiniPuzzlePuzzle() =>
+      _playInstruction(AppSounds.instructionMiniPuzzlePuzzle);
+
+  /// Play read and speak instruction sound
+  void playInstructionReadPronounce() =>
+      _playInstruction(AppSounds.instructionReadPronounce);
+
   /// Play background music (soundtrack) on loop at low volume
   void playBGM() {
     if (!_initialized) {

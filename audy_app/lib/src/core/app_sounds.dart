@@ -26,6 +26,24 @@ class AppSounds {
   // Reading/pronunciation sounds
   static const String tryAgain = 'assets/sounds/try_again.mp3';
 
+  // Game instruction sounds
+  static const String instructionEmotionClassify =
+      'assets/sounds/instruction_emotion_classify.mp3';
+  static const String instructionEmotionMimic =
+      'assets/sounds/instruction_emotion_mimic.mp3';
+  static const String instructionReactionTime =
+      'assets/sounds/instruction_reaction_time.mp3';
+  static const String instructionSortingGame =
+      'assets/sounds/instruction_sorting_game.mp3';
+  static const String instructionMiniPuzzlePattern =
+      'assets/sounds/instruction_minipuzzle_pattern.mp3';
+  static const String instructionMiniPuzzleOddOneOut =
+      'assets/sounds/instruction_minipuzzle_odd_one_out.mp3';
+  static const String instructionMiniPuzzlePuzzle =
+      'assets/sounds/instruction_minipuzzle_puzzle.mp3';
+  static const String instructionReadPronounce =
+      'assets/sounds/instruction_read_pronounce.mp3';
+
   // Achievement sounds
   static const String achievement = 'assets/sounds/achievement.mp3';
   static const String levelUp = 'assets/sounds/level_up.mp3';
@@ -48,6 +66,14 @@ class AppSounds {
     go,
     error,
     tryAgain,
+    instructionEmotionClassify,
+    instructionEmotionMimic,
+    instructionReactionTime,
+    instructionSortingGame,
+    instructionMiniPuzzlePattern,
+    instructionMiniPuzzleOddOneOut,
+    instructionMiniPuzzlePuzzle,
+    instructionReadPronounce,
     achievement,
     levelUp,
     soundtrack,

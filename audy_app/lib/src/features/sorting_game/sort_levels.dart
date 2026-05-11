@@ -5,17 +5,19 @@ import 'sorting_game_models.dart';
 /// All predefined sorting levels for the game.
 /// Levels follow ABA principles: repetition with variation, gradual difficulty progression.
 class SortLevelDefinitions {
+  static const List<SortGameLevel> _levelOrder = [
+    _animalsEasy,
+    _shapesEasy,
+    _animalsMedium,
+    _foodMedium,
+    _emotionsHard,
+    _dailyObjectsHard,
+  ];
+
   /// Returns all available levels.
   /// [unlockedLevelIndex] controls which levels are accessible.
   static List<SortGameLevel> allLevels({int unlockedLevelIndex = 0}) {
-    return [
-      _animalsEasy,
-      _shapesEasy,
-      _animalsMedium,
-      _foodMedium,
-      _emotionsHard,
-      _dailyObjectsHard,
-    ].asMap().entries.map((entry) {
+    return _levelOrder.asMap().entries.map((entry) {
       return SortGameLevel(
         id: entry.value.id,
         name: entry.value.name,
@@ -26,6 +28,10 @@ class SortLevelDefinitions {
         isLocked: entry.key > unlockedLevelIndex,
       );
     }).toList();
+  }
+
+  static int indexForLevelId(String levelId) {
+    return _levelOrder.indexWhere((level) => level.id == levelId);
   }
 
   /// Level 1: Animals (Easy) - 2 categories, 3 items, hints on

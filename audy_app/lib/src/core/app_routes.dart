@@ -6,7 +6,6 @@ final class AppRoutes {
   static const login = '/login';
   static const dashboard = '/';
   static const games = '/games';
-  static const emotionGame = '/games/emotion';
   static const emotionClassify = '/games/emotion-classify';
   static const emotionMimic = '/games/emotion-mimic';
   static const miniPuzzle = '/games/mini-puzzle';

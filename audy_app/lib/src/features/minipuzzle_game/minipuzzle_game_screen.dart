@@ -1,9 +1,13 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import '../../core/app_routes.dart';
 import '../../core/audy_theme.dart';
 import '../../core/audy_ui.dart';
+import '../../services/bluetooth_service.dart';
 import '../../services/sound_service.dart';
 import '../../state/audy_controller.dart';
+import '../../widgets/game_guide_box.dart';
 import 'minipuzzle_controller.dart';
 import 'minipuzzle_models.dart';
 import 'games/pattern_game_widget.dart';
@@ -34,6 +38,8 @@ class MiniPuzzleGameScreen extends StatefulWidget {
 class _MiniPuzzleGameScreenState extends State<MiniPuzzleGameScreen> {
   late MiniPuzzleController _controller;
   bool _isNavigating = false;
+  int _lastBleCorrectCount = 0;
+  bool _showGuide = true;
 
   @override
   void initState() {
@@ -41,6 +47,7 @@ class _MiniPuzzleGameScreenState extends State<MiniPuzzleGameScreen> {
     _controller = MiniPuzzleController();
     _controller.startGame(widget.gameType, widget.difficulty);
     _controller.addListener(_onControllerUpdate);
+    _playInstructionSound();
   }
 
   @override
@@ -51,7 +58,32 @@ class _MiniPuzzleGameScreenState extends State<MiniPuzzleGameScreen> {
   }
 
   void _onControllerUpdate() {
+    final correctCount = _controller.totalCorrect;
+    if (correctCount > _lastBleCorrectCount) {
+      final isFinalRound = _controller.currentRound >= _controller.totalRounds;
+      _lastBleCorrectCount = correctCount;
+      unawaited(
+        _sendCorrectMiniPuzzleBleSignal(isFinalRound: isFinalRound),
+      );
+    }
+
     setState(() {}); // Just rebuild UI, no auto-navigation
+  }
+
+  Future<void> _sendCorrectMiniPuzzleBleSignal({
+    required bool isFinalRound,
+  }) async {
+    try {
+      final bluetooth = AudyBluetoothService.instance;
+      await bluetooth.pulseEmotion(isFinalRound ? 2 : 1);
+      if (isFinalRound) {
+        await bluetooth.setArms(4);
+      }
+    } catch (e) {
+      debugPrint(
+        'MiniPuzzleGameScreen: Correct answer BLE signal skipped - $e',
+      );
+    }
   }
 
   Color _getGameColor() {
@@ -62,6 +94,31 @@ class _MiniPuzzleGameScreenState extends State<MiniPuzzleGameScreen> {
         return const Color(0xFFF6B9D7);
       case MiniPuzzleType.puzzle:
         return const Color(0xFFB8E8C4);
+    }
+  }
+
+  void _playInstructionSound() {
+    switch (widget.gameType) {
+      case MiniPuzzleType.pattern:
+        SoundService.instance.playInstructionMiniPuzzlePattern();
+        break;
+      case MiniPuzzleType.oddOneOut:
+        SoundService.instance.playInstructionMiniPuzzleOddOneOut();
+        break;
+      case MiniPuzzleType.puzzle:
+        SoundService.instance.playInstructionMiniPuzzlePuzzle();
+        break;
+    }
+  }
+
+  String _guideKey() {
+    switch (widget.gameType) {
+      case MiniPuzzleType.pattern:
+        return 'guide_minipuzzle_pattern';
+      case MiniPuzzleType.oddOneOut:
+        return 'guide_minipuzzle_odd_one_out';
+      case MiniPuzzleType.puzzle:
+        return 'guide_minipuzzle_puzzle';
     }
   }
 
@@ -131,6 +188,13 @@ class _MiniPuzzleGameScreenState extends State<MiniPuzzleGameScreen> {
               ),
             ),
             SizedBox(height: adaptive.space(32)),
+            if (_showGuide) ...[
+              GameGuideBox(
+                message: _tr(context, _guideKey()),
+                onDismissed: () => setState(() => _showGuide = false),
+              ),
+              SizedBox(height: adaptive.space(16)),
+            ],
 
             // Game content
             SingleChildScrollView(

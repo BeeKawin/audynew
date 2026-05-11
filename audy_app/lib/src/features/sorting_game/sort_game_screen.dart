@@ -9,8 +9,10 @@ import '../../data/models/game_session_model.dart';
 import '../../services/bluetooth_service.dart';
 import '../../services/sound_service.dart';
 import '../../state/audy_controller.dart';
+import '../../widgets/game_guide_box.dart';
 import 'sorting_game_models.dart';
 import 'sort_game_engine.dart';
+import 'sort_levels.dart';
 import 'sort_game_widgets.dart';
 import 'sort_game_result_screen.dart';
 
@@ -33,12 +35,15 @@ class _SortGameScreenState extends State<SortGameScreen> {
   String? _selectedItemId;
   bool _sessionRecorded = false;
   bool _sessionBleSignalSent = false;
+  bool _unlockRecorded = false;
+  bool _showGuide = true;
 
   @override
   void initState() {
     super.initState();
     _engine = SortGameEngine();
     _engine.startSession(widget.level);
+    SoundService.instance.playInstructionSortingGame();
   }
 
   @override
@@ -67,6 +72,13 @@ class _SortGameScreenState extends State<SortGameScreen> {
               children: [
                 _buildHeader(adaptive),
                 SizedBox(height: adaptive.space(12)),
+                if (_showGuide) ...[
+                  GameGuideBox(
+                    message: _tr(context, 'guide_sorting_game'),
+                    onDismissed: () => setState(() => _showGuide = false),
+                  ),
+                  SizedBox(height: adaptive.space(12)),
+                ],
                 _buildInstruction(),
                 SizedBox(height: adaptive.space(12)),
                 SortGameProgress(
@@ -257,7 +269,7 @@ class _SortGameScreenState extends State<SortGameScreen> {
 
   Future<void> _sendCorrectSortBleSignal() async {
     try {
-      await AudyBluetoothService.instance.setEmotion(1);
+      await AudyBluetoothService.instance.pulseEmotion(1);
     } catch (e) {
       debugPrint('SortGameScreen: Correct sort BLE signal skipped - $e');
     }
@@ -268,7 +280,9 @@ class _SortGameScreenState extends State<SortGameScreen> {
     _sessionBleSignalSent = true;
 
     try {
-      await AudyBluetoothService.instance.setArms(4);
+      final bluetooth = AudyBluetoothService.instance;
+      await bluetooth.setArms(4);
+      await bluetooth.pulseEmotion(2);
     } catch (e) {
       debugPrint('SortGameScreen: Session complete BLE signal skipped - $e');
     }
@@ -512,6 +526,22 @@ class _SortGameScreenState extends State<SortGameScreen> {
   Widget _buildResultScreen() {
     final sessionData = _engine.getSessionData();
 
+    if (!_unlockRecorded) {
+      _unlockRecorded = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        if (!mounted) return;
+        final controller = AudyScope.of(context);
+        await controller.unlockSortingLevelAfterCompletion(
+          levelId: widget.level.id,
+          completedLevelIndex: SortLevelDefinitions.indexForLevelId(
+            widget.level.id,
+          ),
+          starsEarned: sessionData.totalStars,
+          starsRequired: widget.level.starsRequired,
+        );
+      });
+    }
+
     // Record the session to analytics database (guard against duplicate calls)
     if (!_sessionRecorded) {
       _sessionRecorded = true;
@@ -542,6 +572,7 @@ class _SortGameScreenState extends State<SortGameScreen> {
           _selectedItemId = null;
           _sessionRecorded = false;
           _sessionBleSignalSent = false;
+          _unlockRecorded = false;
         });
       },
       onDone: () {

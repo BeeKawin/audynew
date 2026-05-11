@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import '../../services/bluetooth_service.dart';
 import '../../services/sound_service.dart';
 import '../../state/audy_controller.dart';
+import '../../widgets/game_guide_box.dart';
 import 'read_pronounce_controller.dart';
 import 'read_pronounce_result.dart';
 import 'read_pronounce_service.dart';
@@ -45,6 +46,7 @@ class _ReadPronouncePracticeScreenState
   String _latestRecognizedText = '';
   bool _isManualStopSubmitting = false;
   bool _hasPendingSpeechSubmission = false;
+  bool _showGuide = true;
 
   @override
   void initState() {
@@ -53,6 +55,7 @@ class _ReadPronouncePracticeScreenState
     _service = ReadPronounceService();
     _controller.startSession(widget.module);
     _controller.addListener(_onControllerChanged);
+    SoundService.instance.playInstructionReadPronounce();
     _bleMicSub = AudyBluetoothService.instance.incomingMessages.listen(
       _handleBleInput,
     );
@@ -60,7 +63,7 @@ class _ReadPronouncePracticeScreenState
 
   void _handleBleInput(AudyBleMessage message) {
     if (!mounted) return;
-    if (message.channel != 'tummy' || message.value != 1) return;
+    if (message.channel != 'nose' || message.value != 1) return;
 
     unawaited(_handleVoiceButtonTap());
   }
@@ -218,6 +221,9 @@ class _ReadPronouncePracticeScreenState
     }
     if (outcome == ReadPronounceAttemptOutcome.correct) {
       SoundService.instance.playRoundComplete();
+      final isFinalRound =
+          _controller.currentPromptIndex + 1 >= _controller.totalPrompts;
+      unawaited(_sendCorrectReadSpeakBleSignal(isFinalRound: isFinalRound));
       setState(() => _isAdvancingRound = true);
       await Future.delayed(const Duration(milliseconds: 900));
       if (!mounted) return;
@@ -225,6 +231,24 @@ class _ReadPronouncePracticeScreenState
       if (mounted) {
         setState(() => _isAdvancingRound = false);
       }
+    }
+  }
+
+  Future<void> _sendCorrectReadSpeakBleSignal({
+    required bool isFinalRound,
+  }) async {
+    try {
+      final bluetooth = AudyBluetoothService.instance;
+      if (isFinalRound) {
+        await bluetooth.setArms(4);
+        await bluetooth.pulseEmotion(2);
+      } else {
+        await bluetooth.pulseEmotion(1);
+      }
+    } catch (e) {
+      debugPrint(
+        'ReadPronouncePracticeScreen: Correct answer BLE signal skipped - $e',
+      );
     }
   }
 
@@ -310,6 +334,15 @@ class _ReadPronouncePracticeScreenState
                     ),
                   ),
                   SizedBox(height: adaptive.space(28)),
+                  if (_showGuide) ...[
+                    GameGuideBox(
+                      message: AudyScope.of(context).tr(
+                        'guide_read_pronounce',
+                      ),
+                      onDismissed: () => setState(() => _showGuide = false),
+                    ),
+                    SizedBox(height: adaptive.space(18)),
+                  ],
                   _ProgressIndicator(
                     adaptive: adaptive,
                     current: state.progressCurrent,

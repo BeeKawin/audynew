@@ -67,7 +67,9 @@ class _MimicResultScreenState extends State<MimicResultScreen> {
       await controller.addPoints(5);
     }
 
-    await _sendRoundBleSignal(isFinalRound: isFinalRound);
+    if (isFinalRound || isMatch) {
+      await _sendRoundBleSignal(isFinalRound: isFinalRound);
+    }
     controller.advanceMimicRound();
     navigator.pop();
   }
@@ -77,8 +79,9 @@ class _MimicResultScreenState extends State<MimicResultScreen> {
       final bluetooth = AudyBluetoothService.instance;
       if (isFinalRound) {
         await bluetooth.setArms(4);
+        await bluetooth.pulseEmotion(2);
       } else {
-        await bluetooth.setEmotion(1);
+        await bluetooth.pulseEmotion(1);
       }
     } catch (e) {
       debugPrint('MimicResultScreen: BLE round signal skipped - $e');

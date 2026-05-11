@@ -464,8 +464,6 @@ class _ProfileTabContent extends StatelessWidget {
           ),
         ),
         SizedBox(height: adaptive.space(20)),
-        _RequestSummaryCard(controller: controller),
-        SizedBox(height: adaptive.space(20)),
         _buildLogoutButton(context, adaptive),
       ],
     );
@@ -2741,46 +2739,6 @@ class _StatCard extends StatelessWidget {
             label,
             textAlign: TextAlign.center,
             style: const TextStyle(fontSize: 14, color: Color(0xFF243A5A)),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _RequestSummaryCard extends StatelessWidget {
-  const _RequestSummaryCard({required this.controller});
-
-  final AudyController controller;
-
-  @override
-  Widget build(BuildContext context) {
-    final adaptive = AudyAdaptive(
-      width: MediaQuery.of(context).size.width,
-      height: MediaQuery.of(context).size.height,
-    );
-    final latest = controller.preparedRequests.isEmpty
-        ? null
-        : controller.preparedRequests.first;
-
-    return AudyPanel(
-      adaptive: adaptive,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Placeholder',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            'Placeholder',
-            style: const TextStyle(fontSize: 15, color: Color(0xFF60758F)),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            latest == null ? 'Placeholder' : 'Placeholder',
-            style: const TextStyle(fontSize: 15, color: Color(0xFF60758F)),
           ),
         ],
       ),

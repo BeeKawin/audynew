@@ -21,8 +21,6 @@ enum SortShape { circle, square, triangle }
 typedef AchievementUnlockCallback = void Function(AchievementItem achievement);
 typedef LevelUpCallback = void Function(int newLevel);
 
-enum RequestMethod { get, post, put }
-
 enum ReactionGameState { idle, waiting, ready, tooEarly, result }
 
 enum RewardCondition {
@@ -86,22 +84,6 @@ class SkinVariant {
     required this.label,
     required this.price,
   });
-}
-
-class PreparedRequest {
-  const PreparedRequest({
-    required this.feature,
-    required this.endpoint,
-    required this.method,
-    required this.payload,
-    required this.createdAt,
-  });
-
-  final String feature;
-  final String endpoint;
-  final RequestMethod method;
-  final Map<String, dynamic> payload;
-  final DateTime createdAt;
 }
 
 class DailyQuest {
@@ -298,8 +280,6 @@ class AudyController extends ChangeNotifier {
   }
 
   final Random _random = Random();
-
-  final List<PreparedRequest> preparedRequests = [];
 
   // ==================== EMOTION CLASSIFY GAME ====================
   late final List<EmotionQuestion> _classifyQuestionPool;
@@ -502,6 +482,28 @@ class AudyController extends ChangeNotifier {
   // Persisted in ProgressData.sortGameUnlockedLevel.
   // 0 means only the first sorting level is unlocked.
   int sortGameUnlockedLevel = 0;
+
+  Future<bool> unlockSortingLevelAfterCompletion({
+    required String levelId,
+    required int completedLevelIndex,
+    required int starsEarned,
+    required int starsRequired,
+  }) async {
+    if (completedLevelIndex < 0) {
+      debugPrint('Unknown sorting level for unlock: $levelId');
+      return false;
+    }
+
+    if (starsEarned < starsRequired) return false;
+
+    final nextUnlockedLevel = completedLevelIndex + 1;
+    if (nextUnlockedLevel <= sortGameUnlockedLevel) return false;
+
+    sortGameUnlockedLevel = nextUnlockedLevel;
+    await _saveProgress();
+    notifyListeners();
+    return true;
+  }
 
   // User preferences for autism-related personalization
   UserPreferences userPreferences = const UserPreferences();
@@ -715,23 +717,11 @@ class AudyController extends ChangeNotifier {
         reactionState = ReactionGameState.result;
       }
 
-      _prepareRequest(
-        feature: 'reaction_time',
-        endpoint: '/api/games/reaction-time/round',
-        method: RequestMethod.post,
-        payload: {'round': reactionRound, 'reactionTimeMs': elapsed},
-      );
       notifyListeners();
     } else if (reactionState == ReactionGameState.waiting) {
       reactionMisses += 1;
       reactionState = ReactionGameState.tooEarly;
       reactionFeedback = 'Too early!';
-      _prepareRequest(
-        feature: 'reaction_time',
-        endpoint: '/api/games/reaction-time/round',
-        method: RequestMethod.post,
-        payload: {'round': reactionRound, 'result': 'too_early'},
-      );
       notifyListeners();
     } else if (reactionState == ReactionGameState.tooEarly) {
       reactionState = ReactionGameState.waiting;
@@ -788,16 +778,6 @@ class AudyController extends ChangeNotifier {
       await storage!.addReward(prize, condition.name, targetCount);
     }
 
-    _prepareRequest(
-      feature: 'rewards',
-      endpoint: '/api/rewards/create',
-      method: RequestMethod.post,
-      payload: {
-        'prize': prize,
-        'condition': condition.name,
-        'targetCount': targetCount,
-      },
-    );
     notifyListeners();
   }
 
@@ -815,7 +795,6 @@ class AudyController extends ChangeNotifier {
             currentProgress: newProgress,
             isCompleted: true,
           );
-          _onRewardCompleted(reward);
         } else {
           userRewards[i] = reward.copyWith(currentProgress: newProgress);
         }
@@ -836,20 +815,6 @@ class AudyController extends ChangeNotifier {
     }
   }
 
-  void _onRewardCompleted(UserReward reward) {
-    _prepareRequest(
-      feature: 'rewards',
-      endpoint: '/api/rewards/completed',
-      method: RequestMethod.post,
-      payload: {
-        'rewardId': reward.id,
-        'prize': reward.prize,
-        'condition': reward.condition.name,
-        'targetCount': reward.targetCount,
-      },
-    );
-  }
-
   /// Claim a completed reward
   Future<void> claimReward(int rewardId) async {
     final index = userRewards.indexWhere((r) => r.id == rewardId);
@@ -865,12 +830,6 @@ class AudyController extends ChangeNotifier {
       await storage!.claimReward(rewardId);
     }
 
-    _prepareRequest(
-      feature: 'rewards',
-      endpoint: '/api/rewards/claim',
-      method: RequestMethod.post,
-      payload: {'rewardId': rewardId, 'prize': reward.prize},
-    );
     notifyListeners();
   }
 
@@ -883,12 +842,6 @@ class AudyController extends ChangeNotifier {
       await storage!.deleteReward(rewardId);
     }
 
-    _prepareRequest(
-      feature: 'rewards',
-      endpoint: '/api/rewards/delete',
-      method: RequestMethod.post,
-      payload: {'rewardId': rewardId},
-    );
     notifyListeners();
   }
 
@@ -917,17 +870,6 @@ class AudyController extends ChangeNotifier {
     await _saveProgress();
     await _saveSkinPreferences();
 
-    _prepareRequest(
-      feature: 'skins',
-      endpoint: '/api/rewards/skins/buy',
-      method: RequestMethod.post,
-      payload: {
-        'skinId': skinId,
-        'price': variant.price,
-        'spentLearningPoints': spentLearningPoints,
-        'availableLearningPoints': availableLearningPoints,
-      },
-    );
     notifyListeners();
     return true;
   }
@@ -941,12 +883,6 @@ class AudyController extends ChangeNotifier {
     userPreferences = userPreferences.copyWith(selectedSkinId: skinId);
     await _saveSkinPreferences();
 
-    _prepareRequest(
-      feature: 'skins',
-      endpoint: '/api/rewards/skins/select',
-      method: RequestMethod.post,
-      payload: {'skinId': skinId},
-    );
     notifyListeners();
     return true;
   }
@@ -1224,40 +1160,6 @@ class AudyController extends ChangeNotifier {
     return counts.map((count) => count / maxCount).toList();
   }
 
-  /// Emotion recognition progress history (simulated fallback data)
-  /// Returns list of accuracy values for the past 7 sessions/weeks
-  List<double> get emotionProgressHistory {
-    if (classifyScore == 0) return [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6];
-    final current = emotionAccuracy;
-    // Simulate progression from lower to current
-    return [
-      current * 0.5,
-      current * 0.6,
-      current * 0.7,
-      current * 0.8,
-      current * 0.9,
-      current * 0.95,
-      current,
-    ];
-  }
-
-  /// Puzzle progress history (simulated fallback data)
-  List<double> get puzzleProgressHistory {
-    if (puzzleGamesCompleted == 0) {
-      return [0.0, 0.1, 0.15, 0.25, 0.35, 0.4, 0.45];
-    }
-    final current = puzzleProgress;
-    return [
-      current * 0.3,
-      current * 0.4,
-      current * 0.5,
-      current * 0.65,
-      current * 0.8,
-      current * 0.9,
-      current,
-    ];
-  }
-
   /// Generate weekly report data using real database data
   Future<WeeklyReportData> getWeeklyReport() async {
     final now = DateTime.now();
@@ -1473,20 +1375,6 @@ class AudyController extends ChangeNotifier {
     }
   }
 
-  /// Record a completed game session to the database
-  Future<void> recordGameSession(GameSessionData session) async {
-    if (storage == null) return;
-
-    try {
-      await storage!.saveGameSession(session);
-      gamesPlayed++;
-      await _saveProgress();
-      notifyListeners();
-    } catch (e) {
-      debugPrint('Failed to record game session: $e');
-    }
-  }
-
   /// Record analytics only.
   ///
   /// Progress counters such as gamesPlayed, quests, achievements, and meltdown
@@ -1499,17 +1387,6 @@ class AudyController extends ChangeNotifier {
       notifyListeners();
     } catch (e) {
       debugPrint('Failed to record analytics session: $e');
-    }
-  }
-
-  Future<void> clearAnalyticsSessions() async {
-    if (storage == null) return;
-
-    try {
-      await storage!.clearGameSessions();
-      notifyListeners();
-    } catch (e) {
-      debugPrint('Failed to clear analytics sessions: $e');
     }
   }
 
@@ -1965,24 +1842,6 @@ class AudyController extends ChangeNotifier {
       ..stop()
       ..reset();
     notifyListeners();
-  }
-
-  void _prepareRequest({
-    required String feature,
-    required String endpoint,
-    required RequestMethod method,
-    required Map<String, dynamic> payload,
-  }) {
-    preparedRequests.insert(
-      0,
-      PreparedRequest(
-        feature: feature,
-        endpoint: endpoint,
-        method: method,
-        payload: payload,
-        createdAt: DateTime.now(),
-      ),
-    );
   }
 
   List<EmotionQuestion> _buildShuffledClassifyQuestions() {

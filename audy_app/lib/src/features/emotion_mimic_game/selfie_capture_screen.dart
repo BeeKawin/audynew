@@ -10,6 +10,7 @@ import 'package:path_provider/path_provider.dart';
 import '../../core/audy_theme.dart';
 import '../../core/audy_ui.dart';
 import '../../core/emotion_character_widget.dart';
+import '../../services/bluetooth_service.dart';
 import '../../services/emotion_service.dart';
 import '../../services/face_guidance_service.dart';
 import '../../services/sound_service.dart';
@@ -31,6 +32,7 @@ class _SelfieCaptureScreenState extends State<SelfieCaptureScreen> {
 
   CameraController? _cameraController;
   CameraDescription? _selectedCamera;
+  StreamSubscription<AudyBleMessage>? _bleInputSub;
   FaceGuidanceResult _faceGuidanceResult = const FaceGuidanceResult(
     status: FaceGuidanceStatus.unsupported,
   );
@@ -44,7 +46,19 @@ class _SelfieCaptureScreenState extends State<SelfieCaptureScreen> {
   @override
   void initState() {
     super.initState();
+    _bleInputSub = AudyBluetoothService.instance.incomingMessages.listen(
+      _handleBleInput,
+    );
     _initCamera();
+  }
+
+  void _handleBleInput(AudyBleMessage message) {
+    if (!mounted) return;
+    if (ModalRoute.of(context)?.isCurrent != true) return;
+    if (message.channel != 'tummy' || message.value != 1) return;
+    if (_isProcessing || !_isCameraReady) return;
+
+    unawaited(_takePhoto());
   }
 
   Future<void> _initCamera() async {
@@ -287,6 +301,7 @@ class _SelfieCaptureScreenState extends State<SelfieCaptureScreen> {
 
   @override
   void dispose() {
+    _bleInputSub?.cancel();
     unawaited(_stopFaceGuidanceStream());
     unawaited(_faceGuidance.dispose());
     unawaited(_cameraController?.dispose() ?? Future<void>.value());

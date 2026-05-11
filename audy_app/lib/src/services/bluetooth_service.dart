@@ -68,7 +68,7 @@ class AudyBleMessage {
 ///   Flutter -> ESP32:
 ///     arms characteristic: 0-4
 ///     emotion characteristic: 0-3
-///     led characteristic: 0-19
+///     led characteristic: 0-20
 ///
 ///   ESP32 -> Flutter:
 ///     tummy characteristic: 0-1
@@ -330,9 +330,7 @@ class AudyBluetoothService {
     final parsedValue = int.tryParse(decoded);
 
     if (parsedValue == null) {
-      debugPrint(
-        'AudyBluetoothService: Invalid $channel value: $decoded',
-      );
+      debugPrint('AudyBluetoothService: Invalid $channel value: $decoded');
       return;
     }
 
@@ -431,10 +429,22 @@ class AudyBluetoothService {
     await _writeNumericCommand('emotion', _emotionCharacteristic, value);
   }
 
+  Future<void> pulseEmotion(
+    int value, {
+    Duration resetDelay = const Duration(milliseconds: 1500),
+  }) async {
+    await setEmotion(value);
+    unawaited(
+      Future<void>.delayed(resetDelay, () => setEmotion(0)).catchError((e) {
+        debugPrint('AudyBluetoothService: Emotion reset failed - $e');
+      }),
+    );
+  }
+
   /// LED channel:
-  /// 0-19 = LED color cases
+  /// 0-20 = LED color cases
   Future<void> setLed(int value) async {
-    _validateOutgoingValue('led', value, min: 0, max: 19);
+    _validateOutgoingValue('led', value, min: 0, max: 20);
     await _writeNumericCommand('led', _ledCharacteristic, value);
   }
 
@@ -450,10 +460,7 @@ class AudyBluetoothService {
     final payload = value.toString();
     debugPrint('AudyBluetoothService: Sending $channel=$payload');
 
-    await characteristic.write(
-      utf8.encode(payload),
-      withoutResponse: false,
-    );
+    await characteristic.write(utf8.encode(payload), withoutResponse: false);
   }
 
   void _validateOutgoingValue(

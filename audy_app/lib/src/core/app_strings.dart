@@ -40,6 +40,40 @@ class AppStrings {
       'th': 'เล่นและเรียนรู้ด้วยกิจกรรมสนุก!',
     },
 
+    // Game Entry Guides
+    'guide_emotion_classify': {
+      'en': 'Look at the face. Tap the matching emotion.',
+      'th': 'Look at the face. Tap the matching emotion.',
+    },
+    'guide_emotion_mimic': {
+      'en': 'Make the same face. Then take a photo.',
+      'th': 'Make the same face. Then take a photo.',
+    },
+    'guide_reaction_time': {
+      'en': 'Wait for green. Then tap fast.',
+      'th': 'Wait for green. Then tap fast.',
+    },
+    'guide_sorting_game': {
+      'en': 'Tap a piece. Then tap the matching basket.',
+      'th': 'Tap a piece. Then tap the matching basket.',
+    },
+    'guide_minipuzzle_pattern': {
+      'en': 'Look at the pattern. Tap what comes next.',
+      'th': 'Look at the pattern. Tap what comes next.',
+    },
+    'guide_minipuzzle_odd_one_out': {
+      'en': 'Find the one that is different.',
+      'th': 'Find the one that is different.',
+    },
+    'guide_minipuzzle_puzzle': {
+      'en': 'Match each shape to its place.',
+      'th': 'Match each shape to its place.',
+    },
+    'guide_read_pronounce': {
+      'en': 'Tap the mic. Say what you see.',
+      'th': 'Tap the mic. Say what you see.',
+    },
+
     // Reaction Game
     'tap_to_start': {'en': 'Tap to start', 'th': 'แตะเพื่อเริ่ม'},
     'wait': {'en': 'Wait...', 'th': 'รอสักครู่...'},

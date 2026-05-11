@@ -40,7 +40,7 @@ class _SocialPracticePageState extends State<SocialPracticePage> {
 
   void _handleBleInput(AudyBleMessage message) {
     if (!mounted) return;
-    if (message.channel != 'tummy' || message.value != 1) return;
+    if (message.channel != 'nose' || message.value != 1) return;
 
     _listen();
   }

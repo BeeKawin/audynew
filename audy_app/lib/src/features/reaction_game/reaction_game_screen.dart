@@ -9,6 +9,7 @@ import '../../data/models/game_session_model.dart';
 import '../../services/bluetooth_service.dart';
 import '../../services/sound_service.dart';
 import '../../state/audy_controller.dart';
+import '../../widgets/game_guide_box.dart';
 import '../../widgets/point_celebration_dialog.dart';
 
 // Helper function to get localized string
@@ -26,13 +27,24 @@ class ReactionTimePage extends StatefulWidget {
 class _ReactionTimePageState extends State<ReactionTimePage> {
   StreamSubscription<AudyBleMessage>? _bleInputSub;
   bool _isHandlingTap = false;
+  bool _showGuide = true;
 
   @override
   void initState() {
     super.initState();
+    unawaited(_sendGameEnterBleState());
+    SoundService.instance.playInstructionReactionTime();
     _bleInputSub = AudyBluetoothService.instance.incomingMessages.listen(
       _handleBleInput,
     );
+  }
+
+  Future<void> _sendGameEnterBleState() async {
+    try {
+      await AudyBluetoothService.instance.setLed(19);
+    } catch (e) {
+      debugPrint('ReactionTimePage: Entry LED BLE state skipped - $e');
+    }
   }
 
   void _handleBleInput(AudyBleMessage message) {
@@ -81,11 +93,20 @@ class _ReactionTimePageState extends State<ReactionTimePage> {
       final bluetooth = AudyBluetoothService.instance;
       if (isFinalRound) {
         await bluetooth.setArms(4);
+        await bluetooth.pulseEmotion(2);
       } else {
-        await bluetooth.setEmotion(2);
+        await bluetooth.pulseEmotion(1);
       }
     } catch (e) {
       debugPrint('ReactionTimePage: BLE feedback skipped - $e');
+    }
+  }
+
+  Future<void> _resetGameBleState() async {
+    try {
+      await AudyBluetoothService.instance.setLed(0);
+    } catch (e) {
+      debugPrint('ReactionTimePage: Exit LED BLE reset skipped - $e');
     }
   }
 
@@ -153,6 +174,14 @@ class _ReactionTimePageState extends State<ReactionTimePage> {
                 },
               ),
             ),
+            SizedBox(height: adaptive.space(12)),
+            if (_showGuide) ...[
+              GameGuideBox(
+                message: _tr(context, 'guide_reaction_time'),
+                onDismissed: () => setState(() => _showGuide = false),
+              ),
+              SizedBox(height: adaptive.space(12)),
+            ],
             SizedBox(height: adaptive.space(24)),
             Center(
               child: Column(
@@ -237,6 +266,7 @@ class _ReactionTimePageState extends State<ReactionTimePage> {
 
   @override
   void dispose() {
+    unawaited(_resetGameBleState());
     _bleInputSub?.cancel();
     super.dispose();
   }

@@ -9,6 +9,7 @@ import '../../core/emotion_images.dart';
 import '../../services/bluetooth_service.dart';
 import '../../services/sound_service.dart';
 import '../../state/audy_controller.dart';
+import '../../widgets/game_guide_box.dart';
 import 'emotion_classify_complete_screen.dart';
 
 /// "What is this emotion?" - Classification game
@@ -24,6 +25,7 @@ class _EmotionClassifyScreenState extends State<EmotionClassifyScreen> {
   String? _selectedAnswer;
   bool _showingFeedback = false;
   bool _isCorrect = false;
+  bool _showGuide = true;
   final Map<int, String> _roundImagePaths = {};
   final DateTime _sessionStartedAt = DateTime.now();
 
@@ -32,9 +34,21 @@ class _EmotionClassifyScreenState extends State<EmotionClassifyScreen> {
   void initState() {
     super.initState();
 
+    unawaited(_sendGameEnterBleState());
+    SoundService.instance.playInstructionEmotionClassify();
     _bleInputSub = AudyBluetoothService.instance.incomingMessages.listen(
       _handleBleInput,
     );
+  }
+
+  Future<void> _sendGameEnterBleState() async {
+    try {
+      final bluetooth = AudyBluetoothService.instance;
+      await bluetooth.setArms(3);
+      await bluetooth.setLed(15);
+    } catch (e) {
+      debugPrint('EmotionClassifyScreen: Entry BLE state skipped - $e');
+    }
   }
 
   void _handleBleInput(AudyBleMessage message) {
@@ -157,6 +171,13 @@ class _EmotionClassifyScreenState extends State<EmotionClassifyScreen> {
               ],
             ),
             const SizedBox(height: AudySpacing.sectionGap),
+            if (_showGuide) ...[
+              GameGuideBox(
+                message: controller.tr('guide_emotion_classify'),
+                onDismissed: () => setState(() => _showGuide = false),
+              ),
+              const SizedBox(height: AudySpacing.elementGap),
+            ],
             Center(
               child: Text(
                 controller.tr('what_emotion'),
@@ -267,6 +288,9 @@ class _EmotionClassifyScreenState extends State<EmotionClassifyScreen> {
     // Play sound for correct/wrong answer
     if (isCorrect) {
       SoundService.instance.playCorrect();
+      final isFinalRound =
+          controller.classifyCurrentRound >= controller.classifyTotalRounds;
+      unawaited(_sendCorrectAnswerBleSignal(isFinalRound: isFinalRound));
     } else {
       SoundService.instance.playWrong();
     }
@@ -295,8 +319,31 @@ class _EmotionClassifyScreenState extends State<EmotionClassifyScreen> {
     );
   }
 
+  Future<void> _sendCorrectAnswerBleSignal({
+    required bool isFinalRound,
+  }) async {
+    try {
+      await AudyBluetoothService.instance.pulseEmotion(isFinalRound ? 2 : 1);
+    } catch (e) {
+      debugPrint(
+        'EmotionClassifyScreen: Correct answer BLE signal skipped - $e',
+      );
+    }
+  }
+
+  Future<void> _resetGameBleState() async {
+    try {
+      final bluetooth = AudyBluetoothService.instance;
+      await bluetooth.setArms(0);
+      await bluetooth.setLed(0);
+    } catch (e) {
+      debugPrint('EmotionClassifyScreen: Exit BLE reset skipped - $e');
+    }
+  }
+
   @override
   void dispose() {
+    unawaited(_resetGameBleState());
     _bleInputSub?.cancel();
     super.dispose();
   }
