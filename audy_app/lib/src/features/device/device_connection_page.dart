@@ -7,6 +7,11 @@ import '../../core/audy_ui.dart';
 import '../../core/bluetooth_uuids.dart';
 import '../../services/bluetooth_service.dart';
 import '../../services/sound_service.dart';
+import '../../state/audy_controller.dart';
+
+String _tr(BuildContext context, String key, {Map<String, String>? params}) {
+  return AudyScope.of(context).tr(key, params: params);
+}
 
 /// Bluetooth test page for AUDY device.
 ///
@@ -46,42 +51,42 @@ class _DeviceConnectionPageState extends State<DeviceConnectionPage> {
   AudyBleMessage? _lastIncoming;
 
   static const Map<int, String> _armsOptions = {
-    0: '0 - Normal',
-    1: '1 - Left hand raised',
-    2: '2 - Right hand raised',
-    3: '3 - Both hands raised',
-    4: '4 - Pose and back to normal',
+    0: 'device_normal',
+    1: 'left_hand_raised',
+    2: 'right_hand_raised',
+    3: 'both_hands_raised',
+    4: 'pose_back_normal',
   };
 
   static const Map<int, String> _emotionOptions = {
-    0: '0 - Normal eyes',
-    1: '1 - Heart eyes',
-    2: '2 - Glittering eyes',
-    3: '3 - Sad eyes',
+    0: 'normal_eyes',
+    1: 'heart_eyes',
+    2: 'glittering_eyes',
+    3: 'sad_eyes',
   };
 
   static const Map<int, String> _ledOptions = {
-    0: '0 - Ears off / Arms off / Tummy white',
-    1: '1 - All red / Tummy cyan',
-    2: '2 - All green / Tummy magenta',
-    3: '3 - All blue / Tummy yellow',
-    4: '4 - All yellow / Tummy blue',
-    5: '5 - All cyan / Tummy red',
-    6: '6 - All magenta / Tummy green',
-    7: '7 - All white / Tummy off',
-    8: '8 - Ears dim red / Arms green / Tummy yellow',
-    9: '9 - Ears dim green / Arms blue / Tummy blue',
-    10: '10 - Ears dim blue / Arms yellow / Tummy red',
-    11: '11 - Ears dim yellow / Arms cyan / Tummy green',
-    12: '12 - Ears dim cyan / Arms magenta / Tummy off',
-    13: '13 - Ears dim magenta / Arms white / Tummy cyan',
-    14: '14 - Ears dim white / Arms red / Tummy magenta',
-    15: '15 - Split ears / Split arms / Tummy white',
-    16: '16 - Ears split / Arms off / Tummy green',
-    17: '17 - Ears split / Arms off / Tummy white',
-    18: '18 - Rainbow',
-    19: '19 - All off',
-    20: '20 - Nose lights',
+    0: 'ears_off_arms_off_tummy_white',
+    1: 'all_red_tummy_cyan',
+    2: 'all_green_tummy_magenta',
+    3: 'all_blue_tummy_yellow',
+    4: 'all_yellow_tummy_blue',
+    5: 'all_cyan_tummy_red',
+    6: 'all_magenta_tummy_green',
+    7: 'all_white_tummy_off',
+    8: 'ears_dim_red_arms_green_tummy_yellow',
+    9: 'ears_dim_green_arms_blue_tummy_blue',
+    10: 'ears_dim_blue_arms_yellow_tummy_red',
+    11: 'ears_dim_yellow_arms_cyan_tummy_green',
+    12: 'ears_dim_cyan_arms_magenta_tummy_off',
+    13: 'ears_dim_magenta_arms_white_tummy_cyan',
+    14: 'ears_dim_white_arms_red_tummy_magenta',
+    15: 'split_ears_split_arms_tummy_white',
+    16: 'ears_split_arms_off_tummy_green',
+    17: 'ears_split_arms_off_tummy_white',
+    18: 'rainbow',
+    19: 'all_off',
+    20: 'nose_lights',
   };
   double _space(dynamic adaptive, num value) {
     return (adaptive.space(value.toDouble()) as num).toDouble();
@@ -126,7 +131,7 @@ class _DeviceConnectionPageState extends State<DeviceConnectionPage> {
       if (device == null) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(const SnackBar(content: Text('Device not found')));
+        ).showSnackBar(SnackBar(content: Text(_tr(context, 'device_not_found'))));
         return;
       }
 
@@ -140,13 +145,19 @@ class _DeviceConnectionPageState extends State<DeviceConnectionPage> {
 
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Connected to AUDY!')));
+      ).showSnackBar(SnackBar(content: Text(_tr(context, 'connected_to_audy'))));
     } catch (e) {
       if (!mounted) return;
 
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('Connection failed: $e')));
+      ).showSnackBar(
+        SnackBar(
+          content: Text(
+            _tr(context, 'connection_failed', params: {'error': e.toString()}),
+          ),
+        ),
+      );
     } finally {
       if (mounted) {
         setState(() {
@@ -201,13 +212,21 @@ class _DeviceConnectionPageState extends State<DeviceConnectionPage> {
 
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('Sent: $payload')));
+      ).showSnackBar(
+        SnackBar(
+          content: Text(_tr(context, 'sent_format', params: {'payload': payload})),
+        ),
+      );
     } catch (e) {
       if (!mounted) return;
 
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('Send failed: $e')));
+      ).showSnackBar(
+        SnackBar(
+          content: Text(_tr(context, 'send_failed', params: {'error': e.toString()})),
+        ),
+      );
     } finally {
       if (mounted) {
         setState(() {
@@ -230,39 +249,43 @@ class _DeviceConnectionPageState extends State<DeviceConnectionPage> {
 
     ScaffoldMessenger.of(
       context,
-    ).showSnackBar(const SnackBar(content: Text('Disconnected')));
+    ).showSnackBar(SnackBar(content: Text(_tr(context, 'disconnected'))));
   }
 
   String _describeIncoming(AudyBleMessage message) {
     switch (message.channel) {
       case 'tummy':
-        return message.value == 1 ? 'Tummy clicked' : 'Tummy not clicked';
+        return message.value == 1
+            ? _tr(context, 'tummy_clicked')
+            : _tr(context, 'tummy_not_clicked');
 
       case 'nose':
-        return message.value == 1 ? 'Nose clicked' : 'Nose not clicked';
+        return message.value == 1
+            ? _tr(context, 'nose_clicked')
+            : _tr(context, 'nose_not_clicked');
 
       case 'force':
         switch (message.value) {
           case 0:
-            return 'Not squeezed';
+            return _tr(context, 'not_squeezed');
           case 1:
-            return 'Squeeze left';
+            return _tr(context, 'squeeze_left');
           case 2:
-            return 'Squeeze right';
+            return _tr(context, 'squeeze_right');
         }
 
       case 'ears':
         switch (message.value) {
           case 0:
-            return 'No ear clicked';
+            return _tr(context, 'no_ear_clicked');
           case 1:
-            return 'Left ear clicked';
+            return _tr(context, 'left_ear_clicked');
           case 2:
-            return 'Right ear clicked';
+            return _tr(context, 'right_ear_clicked');
         }
     }
 
-    return 'Unknown message';
+    return _tr(context, 'unknown_message');
   }
 
   @override
@@ -278,17 +301,24 @@ class _DeviceConnectionPageState extends State<DeviceConnectionPage> {
                 // Header
                 Row(
                   children: [
-                    AudyBackButton(
-                      label: 'Back',
-                      onPressed: () {
-                        SoundService.instance.playTap();
-                        Navigator.pop(context);
-                      },
+                    Expanded(
+                      child: AudyBackButton(
+                        label: _tr(context, 'back'),
+                        onPressed: () {
+                          SoundService.instance.playTap();
+                          Navigator.pop(context);
+                        },
+                      ),
                     ),
-                    const Spacer(),
-                    Text('Bluetooth Test', style: AudyTypography.headingMedium),
-                    const Spacer(),
-                    const SizedBox(width: 80),
+                    Expanded(
+                      child: Text(
+                        _tr(context, 'bluetooth_test'),
+                        textAlign: TextAlign.right,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AudyTypography.headingMedium,
+                      ),
+                    ),
                   ],
                 ),
                 SizedBox(height: adaptive.space(32)),
@@ -318,7 +348,9 @@ class _DeviceConnectionPageState extends State<DeviceConnectionPage> {
                       ),
                       SizedBox(height: adaptive.space(20)),
                       Text(
-                        isConnected ? 'CONNECTED' : 'NOT CONNECTED',
+                        isConnected
+                            ? _tr(context, 'connected')
+                            : _tr(context, 'not_connected'),
                         style: TextStyle(
                           fontSize: adaptive.space(24),
                           fontWeight: FontWeight.w800,
@@ -330,8 +362,16 @@ class _DeviceConnectionPageState extends State<DeviceConnectionPage> {
                       SizedBox(height: adaptive.space(8)),
                       Text(
                         isConnected
-                            ? 'Device: ${BluetoothUuids.deviceName}'
-                            : 'Looking for: ${BluetoothUuids.deviceName}',
+                            ? _tr(
+                                context,
+                                'device_format',
+                                params: {'device': BluetoothUuids.deviceName},
+                              )
+                            : _tr(
+                                context,
+                                'looking_for_device',
+                                params: {'device': BluetoothUuids.deviceName},
+                              ),
                         style: TextStyle(
                           fontSize: adaptive.space(14),
                           color: AudyColors.textLight,
@@ -349,8 +389,8 @@ class _DeviceConnectionPageState extends State<DeviceConnectionPage> {
                   _buildMessageStatusCard(),
                   SizedBox(height: adaptive.space(16)),
                   _buildCommandCard(
-                    title: 'Arms Channel',
-                    subtitle: 'Flutter → ESP32',
+                    title: _tr(context, 'arms_channel'),
+                    subtitle: _tr(context, 'flutter_to_esp32'),
                     value: _armsValue,
                     options: _armsOptions,
                     onChanged: (value) {
@@ -361,8 +401,8 @@ class _DeviceConnectionPageState extends State<DeviceConnectionPage> {
                   ),
                   SizedBox(height: adaptive.space(16)),
                   _buildCommandCard(
-                    title: 'Emotion Channel',
-                    subtitle: 'Flutter → ESP32',
+                    title: _tr(context, 'emotion_channel'),
+                    subtitle: _tr(context, 'flutter_to_esp32'),
                     value: _emotionValue,
                     options: _emotionOptions,
                     onChanged: (value) {
@@ -373,8 +413,8 @@ class _DeviceConnectionPageState extends State<DeviceConnectionPage> {
                   ),
                   SizedBox(height: adaptive.space(16)),
                   _buildCommandCard(
-                    title: 'LED Channel',
-                    subtitle: 'Flutter → ESP32',
+                    title: _tr(context, 'led_channel'),
+                    subtitle: _tr(context, 'flutter_to_esp32'),
                     value: _ledValue,
                     options: _ledOptions,
                     onChanged: (value) {
@@ -389,7 +429,7 @@ class _DeviceConnectionPageState extends State<DeviceConnectionPage> {
                     child: ElevatedButton.icon(
                       onPressed: _disconnect,
                       icon: const Icon(Icons.bluetooth_disabled),
-                      label: const Text('Disconnect'),
+                      label: Text(_tr(context, 'disconnect')),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFFFF8D91),
                         padding: const EdgeInsets.symmetric(vertical: 16),
@@ -429,13 +469,15 @@ class _DeviceConnectionPageState extends State<DeviceConnectionPage> {
                       ),
                       const SizedBox(width: 12.0),
                       Text(
-                        _isScanning ? 'Scanning...' : 'Connecting...',
+                        _isScanning
+                            ? _tr(context, 'scanning')
+                            : _tr(context, 'connecting'),
                         style: TextStyle(fontSize: _space(adaptive, 20)),
                       ),
                     ],
                   )
                 : Text(
-                    'Scan & Connect',
+                    _tr(context, 'scan_connect'),
                     style: TextStyle(fontSize: _space(adaptive, 20)),
                   ),
           ),
@@ -443,7 +485,11 @@ class _DeviceConnectionPageState extends State<DeviceConnectionPage> {
         SizedBox(height: _space(adaptive, 16)),
         Center(
           child: Text(
-            'Looking for: ${BluetoothUuids.deviceName}',
+            _tr(
+              context,
+              'looking_for_device',
+              params: {'device': BluetoothUuids.deviceName},
+            ),
             style: TextStyle(
               fontSize: _space(adaptive, 14),
               color: AudyColors.textLight,
@@ -468,8 +514,8 @@ class _DeviceConnectionPageState extends State<DeviceConnectionPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'BLE Messages',
+          Text(
+            _tr(context, 'ble_messages'),
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w800,
@@ -478,14 +524,23 @@ class _DeviceConnectionPageState extends State<DeviceConnectionPage> {
           ),
           const SizedBox(height: 12),
           Text(
-            _lastSent == null ? 'Last sent: -' : 'Last sent: $_lastSent',
+            _lastSent == null
+                ? _tr(context, 'last_sent_empty')
+                : _tr(context, 'last_sent', params: {'value': _lastSent!}),
             style: const TextStyle(fontSize: 14),
           ),
           const SizedBox(height: 6),
           Text(
             incoming == null
-                ? 'Last received: -'
-                : 'Last received: ${incoming.raw} (${_describeIncoming(incoming)})',
+                ? _tr(context, 'last_received_empty')
+                : _tr(
+                    context,
+                    'last_received',
+                    params: {
+                      'raw': incoming.raw,
+                      'description': _describeIncoming(incoming),
+                    },
+                  ),
             style: const TextStyle(fontSize: 14),
           ),
         ],
@@ -535,14 +590,14 @@ class _DeviceConnectionPageState extends State<DeviceConnectionPage> {
           const SizedBox(height: 14),
           DropdownButtonFormField<int>(
             initialValue: value,
-            decoration: const InputDecoration(
-              labelText: 'Command value',
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              labelText: _tr(context, 'command_value'),
+              border: const OutlineInputBorder(),
             ),
             items: options.entries.map((entry) {
               return DropdownMenuItem<int>(
                 value: entry.key,
-                child: Text(entry.value),
+                child: Text('${entry.key} - ${_tr(context, entry.value)}'),
               );
             }).toList(),
             onChanged: _isSending ? null : onChanged,
@@ -553,7 +608,9 @@ class _DeviceConnectionPageState extends State<DeviceConnectionPage> {
             child: ElevatedButton.icon(
               onPressed: _isSending ? null : () => onSend(),
               icon: const Icon(Icons.send),
-              label: Text(_isSending ? 'Sending...' : 'Send'),
+              label: Text(
+                _isSending ? _tr(context, 'sending') : _tr(context, 'send'),
+              ),
             ),
           ),
         ],

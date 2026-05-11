@@ -11,6 +11,10 @@ import 'read_pronounce_controller.dart';
 import 'read_pronounce_result.dart';
 import 'read_pronounce_service.dart';
 
+String _tr(BuildContext context, String key, {Map<String, String>? params}) {
+  return AudyScope.of(context).tr(key, params: params);
+}
+
 class ReadPronouncePracticeScreen extends StatefulWidget {
   const ReadPronouncePracticeScreen({
     super.key,
@@ -46,6 +50,7 @@ class _ReadPronouncePracticeScreenState
   String _latestRecognizedText = '';
   bool _isManualStopSubmitting = false;
   bool _hasPendingSpeechSubmission = false;
+  bool _discardNextListenResult = false;
   bool _showGuide = true;
 
   @override
@@ -81,7 +86,7 @@ class _ReadPronouncePracticeScreenState
           MaterialPageRoute(
             builder: (_) => ReadPronounceResultScreen(
               result: result,
-              moduleName: title,
+              moduleName: controller.tr(title),
               controller: controller,
             ),
           ),
@@ -122,12 +127,34 @@ class _ReadPronouncePracticeScreenState
     await _startListening();
   }
 
+  Future<void> _handlePromptImageTap() async {
+    if (_isAdvancingRound || _controller.isSessionComplete) return;
+
+    final promptText = _controller.currentPrompt?.text.trim();
+    if (promptText == null || promptText.isEmpty) return;
+
+    SoundService.instance.playTap();
+
+    if (_isSttListening) {
+      await _cancelListeningForPromptAudio();
+    }
+
+    if (!mounted) return;
+    setState(() {
+      _hasPendingSpeechSubmission = false;
+      _sttDebugStatus = 'speaking prompt';
+      _latestRecognizedText = '';
+      _sttDebugText = '';
+    });
+
+    await _service.speak(promptText);
+  }
+
   Future<void> _startListening() async {
     final sttAvailable = await _service.ensureSTTAvailable();
     if (!sttAvailable) {
       setState(() {
-        _sttUnavailableMessage =
-            'This feature is not available on your device.';
+        _sttUnavailableMessage = _tr(context, 'stt_unavailable');
       });
       return;
     }
@@ -159,6 +186,10 @@ class _ReadPronouncePracticeScreenState
       },
     );
 
+    if (_discardNextListenResult) {
+      _discardNextListenResult = false;
+      return;
+    }
     if (!mounted || _isManualStopSubmitting) return;
     _stopRecordingTimer();
     final finalText = result?.trim();
@@ -196,6 +227,25 @@ class _ReadPronouncePracticeScreenState
         }
       });
       await _handleListeningResult(submittedText);
+    } finally {
+      _isManualStopSubmitting = false;
+    }
+  }
+
+  Future<void> _cancelListeningForPromptAudio() async {
+    _isManualStopSubmitting = true;
+    _discardNextListenResult = true;
+    try {
+      await _service.stopListening();
+      _stopRecordingTimer();
+      if (!mounted) return;
+      setState(() {
+        _isSttListening = false;
+        _hasPendingSpeechSubmission = false;
+        _sttDebugStatus = 'stopped for prompt audio';
+        _latestRecognizedText = '';
+        _sttDebugText = '';
+      });
     } finally {
       _isManualStopSubmitting = false;
     }
@@ -280,6 +330,25 @@ class _ReadPronouncePracticeScreenState
         '${seconds.toString().padLeft(2, '0')}';
   }
 
+  String _localizedFeedback(BuildContext context, String feedback) {
+    switch (feedback) {
+      case 'Tap the microphone and say it clearly.':
+        return _tr(context, 'tap_mic_say_clearly');
+      case 'I did not hear it. Try again.':
+        return _tr(context, 'did_not_hear');
+      case 'Try a shorter answer.':
+        return _tr(context, 'try_shorter_answer');
+      case 'Correct':
+        return _tr(context, 'correct');
+      case 'Good try. You can skip this one.':
+        return _tr(context, 'can_skip');
+      case 'Close. Try saying it again.':
+        return _tr(context, 'close_try_again');
+      default:
+        return feedback;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
@@ -303,7 +372,7 @@ class _ReadPronouncePracticeScreenState
                 children: [
                   _TopRow(
                     adaptive: adaptive,
-                    label: 'Back to Home',
+                    label: _tr(context, 'back_home'),
                     onBack: () {
                       SoundService.instance.playTap();
                       Navigator.pop(context);
@@ -314,7 +383,7 @@ class _ReadPronouncePracticeScreenState
                     child: Column(
                       children: [
                         Text(
-                          widget.title,
+                          _tr(context, widget.title),
                           style: TextStyle(
                             fontSize: adaptive.space(28),
                             fontWeight: FontWeight.w800,
@@ -323,7 +392,7 @@ class _ReadPronouncePracticeScreenState
                         ),
                         SizedBox(height: adaptive.space(8)),
                         Text(
-                          widget.subtitle,
+                          _tr(context, widget.subtitle),
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             fontSize: adaptive.space(15),
@@ -353,16 +422,21 @@ class _ReadPronouncePracticeScreenState
                     adaptive: adaptive,
                     prompt: state.prompt,
                     imagePath: _controller.getCurrentImagePath(),
+                    onImageTap: () => unawaited(_handlePromptImageTap()),
                   ),
                   SizedBox(height: adaptive.space(22)),
                   _RecordingStatus(
                     adaptive: adaptive,
                     isRecording: _isSttListening,
                     label: _isSttListening
-                        ? 'Recording ${_formatRecordingTime()}'
+                        ? _tr(
+                            context,
+                            'recording_time',
+                            params: {'time': _formatRecordingTime()},
+                          )
                         : _hasPendingSpeechSubmission
-                            ? 'Tap mic to check'
-                            : 'Ready',
+                            ? _tr(context, 'tap_mic_to_check')
+                            : _tr(context, 'ready'),
                   ),
                   // Temporarily hidden; keep the STT debug panel ready for later.
                   // SizedBox(height: adaptive.space(12)),
@@ -400,7 +474,7 @@ class _ReadPronouncePracticeScreenState
                   SizedBox(height: adaptive.space(18)),
                   _FeedbackCard(
                     adaptive: adaptive,
-                    feedback: state.feedback,
+                    feedback: _localizedFeedback(context, state.feedback),
                     isCorrect: state.isCorrect,
                   ),
                 ],
@@ -474,11 +548,13 @@ class _PromptCard extends StatelessWidget {
   const _PromptCard({
     required this.adaptive,
     required this.prompt,
+    required this.onImageTap,
     this.imagePath,
   });
 
   final _AudyAdaptive adaptive;
   final String prompt;
+  final VoidCallback onImageTap;
   final String? imagePath;
 
   @override
@@ -502,22 +578,32 @@ class _PromptCard extends StatelessWidget {
       ),
       child: Column(
         children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(adaptive.space(24)),
-            child: imagePath != null
-                ? Image.asset(
-                    imagePath!,
-                    width: imageSize,
-                    height: imageSize,
-                    fit: BoxFit.contain,
-                    errorBuilder: (context, error, stackTrace) {
-                      return _ImageFallback(
-                        adaptive: adaptive,
-                        size: imageSize,
-                      );
-                    },
-                  )
-                : _ImageFallback(adaptive: adaptive, size: imageSize),
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: onImageTap,
+              borderRadius: BorderRadius.circular(adaptive.space(24)),
+              child: Padding(
+                padding: EdgeInsets.all(adaptive.space(6)),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(adaptive.space(24)),
+                  child: imagePath != null
+                      ? Image.asset(
+                          imagePath!,
+                          width: imageSize,
+                          height: imageSize,
+                          fit: BoxFit.contain,
+                          errorBuilder: (context, error, stackTrace) {
+                            return _ImageFallback(
+                              adaptive: adaptive,
+                              size: imageSize,
+                            );
+                          },
+                        )
+                      : _ImageFallback(adaptive: adaptive, size: imageSize),
+                ),
+              ),
+            ),
           ),
           SizedBox(height: adaptive.space(18)),
           Text(
@@ -738,7 +824,7 @@ class _CorrectBadge extends StatelessWidget {
           ),
           SizedBox(width: adaptive.space(8)),
           Text(
-            'Correct',
+            _tr(context, 'correct'),
             style: TextStyle(
               color: const Color(0xFF2E7D32),
               fontSize: adaptive.space(18),
@@ -765,7 +851,7 @@ class _SkipButton extends StatelessWidget {
         onPressed: onPressed,
         icon: Icon(Icons.skip_next_rounded, size: adaptive.space(24)),
         label: Text(
-          'Skip',
+          _tr(context, 'skip'),
           style: TextStyle(
             fontSize: adaptive.space(17),
             fontWeight: FontWeight.w800,

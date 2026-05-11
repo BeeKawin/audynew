@@ -13,6 +13,44 @@ String _tr(BuildContext context, String key, {Map<String, String>? params}) {
   return AudyScope.of(context).tr(key, params: params);
 }
 
+String _localizedLevelName(BuildContext context, String levelName) {
+  switch (levelName.toLowerCase()) {
+    case 'beginner':
+      return _tr(context, 'beginner');
+    case 'learner':
+      return _tr(context, 'learner');
+    case 'explorer':
+      return _tr(context, 'explorer');
+    case 'expert':
+      return _tr(context, 'expert');
+    case 'master':
+      return _tr(context, 'master');
+    default:
+      return levelName;
+  }
+}
+
+String _localizedFeatureTitle(BuildContext context, String gameType, String title) {
+  switch (gameType) {
+    case 'emotion_classify':
+      return _tr(context, 'emotion_classify');
+    case 'emotion_mimic':
+      return _tr(context, 'emotion_mimic');
+    case 'minipuzzle':
+      return _tr(context, 'mini_puzzle');
+    case 'sorting':
+      return _tr(context, 'sorting_game');
+    case 'reaction_time':
+      return _tr(context, 'reaction_time');
+    case 'reading':
+      return _tr(context, 'read_speak');
+    case 'social_chat':
+      return _tr(context, 'social_chat');
+    default:
+      return title;
+  }
+}
+
 class RewardsPage extends StatefulWidget {
   const RewardsPage({super.key});
 
@@ -188,9 +226,9 @@ class _RewardsPageState extends State<RewardsPage> {
                   color: Color(0xFFF5C532),
                 ),
                 const SizedBox(height: 16),
-                const Text(
-                  'Level Up!',
-                  style: TextStyle(
+                Text(
+                  _tr(context, 'level_up'),
+                  style: const TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.w800,
                     color: Color(0xFF243A5A),
@@ -198,7 +236,16 @@ class _RewardsPageState extends State<RewardsPage> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'You reached ${levelNames[level]}!',
+                  _tr(
+                    context,
+                    'you_are_now',
+                    params: {
+                      'levelName': _localizedLevelName(
+                        context,
+                        levelNames[level],
+                      ),
+                    },
+                  ),
                   style: const TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w600,
@@ -207,7 +254,7 @@ class _RewardsPageState extends State<RewardsPage> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Keep up the great work!',
+                  _tr(context, 'good_job'),
                   style: TextStyle(
                     fontSize: 16,
                     color: const Color(0xFF60758F).withValues(alpha: 0.8),
@@ -231,7 +278,7 @@ class _RewardsPageState extends State<RewardsPage> {
                       borderRadius: BorderRadius.circular(999),
                     ),
                   ),
-                  child: const Text('Awesome!'),
+                  child: Text(_tr(context, 'awesome')),
                 ),
               ],
             ),
@@ -267,7 +314,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   Align(
                     alignment: Alignment.centerLeft,
                     child: AudyBackButton(
-                      label: 'Back to Home',
+                      label: _tr(context, 'back_home'),
                       onPressed: () {
                         SoundService.instance.playTap();
                         Navigator.pop(context);
@@ -278,7 +325,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   const AudyMascot(size: 120),
                   SizedBox(height: adaptive.space(16)),
                   Text(
-                    'Profile',
+                    _tr(context, 'profile'),
                     style: TextStyle(
                       fontSize: adaptive.space(30),
                       fontWeight: FontWeight.w800,
@@ -287,7 +334,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   ),
                   SizedBox(height: adaptive.space(8)),
                   Text(
-                    'Your learning journey',
+                    _tr(context, 'your_learning_journey'),
                     style: TextStyle(
                       fontSize: adaptive.space(16),
                       color: const Color(0xFF60758F),
@@ -304,7 +351,7 @@ class _ProfilePageState extends State<ProfilePage> {
               runSpacing: adaptive.space(12),
               children: [
                 _RewardTabChip(
-                  label: 'Profile',
+                  label: _tr(context, 'profile'),
                   icon: Icons.person_outline_rounded,
                   selected: selectedTab == 0,
                   color: const Color(0xFFE7D8FA),
@@ -314,7 +361,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   },
                 ),
                 _RewardTabChip(
-                  label: 'Parent Dashboard',
+                  label: _tr(context, 'parent_dashboard'),
                   icon: Icons.family_restroom_outlined,
                   selected: selectedTab == 1,
                   color: const Color(0xFFBDD8F2),
@@ -324,7 +371,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   },
                 ),
                 _RewardTabChip(
-                  label: 'Institution Panel',
+                  label: _tr(context, 'institution_panel'),
                   icon: Icons.school_outlined,
                   selected: selectedTab == 2,
                   color: const Color(0xFFC9E8C1),
@@ -334,7 +381,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   },
                 ),
                 _RewardTabChip(
-                  label: 'Settings',
+                  label: _tr(context, 'settings'),
                   icon: Icons.settings_outlined,
                   selected: selectedTab == 3,
                   color: const Color(0xFFF8C7DF),
@@ -372,7 +419,7 @@ class _ProfileTabContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final user = controller.currentUser;
-    final profileName = user?.name ?? 'User';
+    final profileName = user?.name ?? _tr(context, 'user');
     final profileAge = user?.age ?? 10;
     final joinedDate = user?.createdAt ?? DateTime.now();
     final formattedDate =
@@ -409,14 +456,22 @@ class _ProfileTabContent extends StatelessWidget {
                         ),
                         SizedBox(height: adaptive.space(6)),
                         Text(
-                          'Age: $profileAge',
+                          _tr(
+                            context,
+                            'age_format',
+                            params: {'age': '$profileAge'},
+                          ),
                           style: TextStyle(
                             fontSize: adaptive.space(15),
                             color: const Color(0xFF60758F),
                           ),
                         ),
                         Text(
-                          'Member since $formattedDate',
+                          _tr(
+                            context,
+                            'member_since',
+                            params: {'date': formattedDate},
+                          ),
                           style: TextStyle(
                             fontSize: adaptive.space(15),
                             color: const Color(0xFF60758F),
@@ -437,25 +492,25 @@ class _ProfileTabContent extends StatelessWidget {
                   _StatCard(
                     icon: Icons.star_outline_rounded,
                     value: '${controller.learningPoints}',
-                    label: 'Points',
+                    label: _tr(context, 'points'),
                     color: const Color(0xFFFFF2A8),
                   ),
                   _StatCard(
                     icon: Icons.workspace_premium_outlined,
                     value: '${controller.gamesPlayed}',
-                    label: 'Games Played',
+                    label: _tr(context, 'games_played'),
                     color: const Color(0xFFBDD8F2),
                   ),
                   _StatCard(
                     icon: Icons.bar_chart_rounded,
                     value: '${controller.unlockedAchievementCount}',
-                    label: 'Achievements',
+                    label: _tr(context, 'achievements'),
                     color: const Color(0xFFC9E8C1),
                   ),
                   _StatCard(
                     icon: Icons.calendar_today_outlined,
                     value: '${controller.dayStreak}',
-                    label: 'Day Streak',
+                    label: _tr(context, 'day_streak'),
                     color: const Color(0xFFF8C7DF),
                   ),
                 ],
@@ -498,7 +553,7 @@ class _ProfileTabContent extends StatelessWidget {
         },
         icon: const Icon(Icons.logout_rounded, size: 24),
         label: Text(
-          'Log Out',
+          _tr(context, 'log_out'),
           style: TextStyle(
             fontSize: adaptive.space(16),
             fontWeight: FontWeight.w800,
@@ -540,7 +595,7 @@ class _ParentDashboardTab extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Learning Analytics',
+              _tr(context, 'learning_analytics'),
               style: TextStyle(
                 fontSize: adaptive.space(20),
                 fontWeight: FontWeight.w800,
@@ -566,13 +621,13 @@ class _ParentDashboardTab extends StatelessWidget {
                 _StatCard(
                   icon: Icons.sports_esports_outlined,
                   value: '${analytics.totalSessions}',
-                  label: '7-Day Sessions',
+                  label: _tr(context, 'seven_day_sessions'),
                   color: const Color(0xFFBDD8F2),
                 ),
                 _StatCard(
                   icon: Icons.timer_outlined,
                   value: '${analytics.totalMinutes}',
-                  label: '7-Day Minutes',
+                  label: _tr(context, 'seven_day_minutes'),
                   color: const Color(0xFFFFF2A8),
                 ),
                 _StatCard(
@@ -580,29 +635,33 @@ class _ParentDashboardTab extends StatelessWidget {
                   value: analytics.averageScoredAccuracy == null
                       ? '--'
                       : _formatPercent(analytics.averageScoredAccuracy!),
-                  label: 'Scored Average',
+                  label: _tr(context, 'scored_average'),
                   color: const Color(0xFFC9E8C1),
                 ),
                 _StatCard(
                   icon: Icons.history_rounded,
                   value: latest == null
                       ? '--'
-                      : _shortFeatureName(latest.title),
-                  label: 'Latest Activity',
+                      : _localizedFeatureTitle(
+                          context,
+                          latest.gameType,
+                          latest.title,
+                        ),
+                  label: _tr(context, 'latest_activity'),
                   color: const Color(0xFFF8C7DF),
                 ),
               ],
             ),
             SizedBox(height: adaptive.space(24)),
             _ChartCard(
-              title: 'Daily Activity',
-              subtitle: 'Completed learning sessions each day',
+              title: _tr(context, 'daily_activity'),
+              subtitle: _tr(context, 'daily_activity_desc'),
               values: analytics.dailyActivityValues,
               color: const Color(0xFFBDD8F2),
             ),
             SizedBox(height: adaptive.space(24)),
             Text(
-              'Learning Features',
+              _tr(context, 'learning_features'),
               style: TextStyle(
                 fontSize: adaptive.space(20),
                 fontWeight: FontWeight.w800,
@@ -626,7 +685,7 @@ class _ParentDashboardTab extends StatelessWidget {
             ),
             SizedBox(height: adaptive.space(24)),
             Text(
-              'Recent Sessions',
+              _tr(context, 'recent_sessions'),
               style: TextStyle(
                 fontSize: adaptive.space(20),
                 fontWeight: FontWeight.w800,
@@ -737,14 +796,6 @@ class _ParentDashboardTab extends StatelessWidget {
     return '${(value * 100).round()}%';
   }
 
-  String _shortFeatureName(String title) {
-    if (title == 'Emotion Classify') return 'Classify';
-    if (title == 'Emotion Mimic') return 'Mimic';
-    if (title == 'Reaction Time') return 'Reaction';
-    if (title == 'Read & Speak') return 'Reading';
-    if (title == 'Social Chat') return 'Social';
-    return title;
-  }
 }
 
 class _InstitutionPanelTab extends StatelessWidget {
@@ -766,7 +817,7 @@ class _InstitutionPanelTab extends StatelessWidget {
       children: [
         // Current Child Section
         Text(
-          'Current Child Overview',
+          _tr(context, 'current_child_overview'),
           style: TextStyle(
             fontSize: adaptive.space(20),
             fontWeight: FontWeight.w800,
@@ -803,14 +854,25 @@ class _InstitutionPanelTab extends StatelessWidget {
                         ),
                         SizedBox(height: adaptive.space(4)),
                         Text(
-                          'Age: ${child.age}',
+                          _tr(
+                            context,
+                            'age_format',
+                            params: {'age': '${child.age}'},
+                          ),
                           style: TextStyle(
                             fontSize: adaptive.space(14),
                             color: const Color(0xFF60758F),
                           ),
                         ),
                         Text(
-                          'Joined: ${child.joinedDate.day}/${child.joinedDate.month}/${child.joinedDate.year}',
+                          _tr(
+                            context,
+                            'joined_format',
+                            params: {
+                              'date':
+                                  '${child.joinedDate.day}/${child.joinedDate.month}/${child.joinedDate.year}',
+                            },
+                          ),
                           style: TextStyle(
                             fontSize: adaptive.space(14),
                             color: const Color(0xFF60758F),
@@ -831,25 +893,25 @@ class _InstitutionPanelTab extends StatelessWidget {
                   _StatCard(
                     icon: Icons.sports_esports_outlined,
                     value: '${child.gamesPlayed}',
-                    label: 'Games',
+                    label: _tr(context, 'games_label'),
                     color: const Color(0xFFBDD8F2),
                   ),
                   _StatCard(
                     icon: Icons.star_outline_rounded,
                     value: '${child.learningPoints}',
-                    label: 'Points',
+                    label: _tr(context, 'points'),
                     color: const Color(0xFFFFF2A8),
                   ),
                   _StatCard(
                     icon: Icons.local_fire_department_outlined,
                     value: '${child.dayStreak}',
-                    label: 'Streak',
+                    label: _tr(context, 'streak'),
                     color: const Color(0xFFF8C7DF),
                   ),
                   _StatCard(
                     icon: Icons.emoji_events_outlined,
                     value: '${child.achievementsUnlocked}',
-                    label: 'Achievements',
+                    label: _tr(context, 'achievements'),
                     color: const Color(0xFFC9E8C1),
                   ),
                 ],
@@ -861,7 +923,7 @@ class _InstitutionPanelTab extends StatelessWidget {
 
         // Group Performance Section
         Text(
-          'Single Child Summary',
+          _tr(context, 'single_child_summary'),
           style: TextStyle(
             fontSize: adaptive.space(20),
             fontWeight: FontWeight.w800,
@@ -875,7 +937,7 @@ class _InstitutionPanelTab extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Current Child Statistics',
+                _tr(context, 'current_child_statistics'),
                 style: TextStyle(
                   fontSize: adaptive.space(16),
                   fontWeight: FontWeight.w700,
@@ -884,24 +946,24 @@ class _InstitutionPanelTab extends StatelessWidget {
               ),
               SizedBox(height: adaptive.space(12)),
               _InstitutionStatRow(
-                label: 'Children Shown',
+                label: _tr(context, 'children_shown'),
                 value: '${group.totalChildren}',
               ),
               _InstitutionStatRow(
-                label: 'Games Completed',
+                label: _tr(context, 'games_completed'),
                 value: group.averageGamesPerChild.toStringAsFixed(1),
               ),
               _InstitutionStatRow(
-                label: 'Learning Points',
+                label: _tr(context, 'learning_points'),
                 value: group.averagePointsPerChild.toStringAsFixed(0),
               ),
               _InstitutionStatRow(
-                label: 'Current Streak',
+                label: _tr(context, 'current_streak'),
                 value: group.averageStreak.toStringAsFixed(1),
               ),
               SizedBox(height: adaptive.space(16)),
               Text(
-                'Skill Progress',
+                _tr(context, 'skill_progress'),
                 style: TextStyle(
                   fontSize: adaptive.space(16),
                   fontWeight: FontWeight.w700,
@@ -954,7 +1016,7 @@ class _InstitutionPanelTab extends StatelessWidget {
 
         // Export Report Section
         Text(
-          'Export Report',
+          _tr(context, 'export_report'),
           style: TextStyle(
             fontSize: adaptive.space(20),
             fontWeight: FontWeight.w800,
@@ -968,7 +1030,7 @@ class _InstitutionPanelTab extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Generate and export progress reports for documentation and sharing with parents or therapists.',
+                _tr(context, 'export_report_desc'),
                 style: TextStyle(
                   fontSize: adaptive.space(14),
                   color: const Color(0xFF60758F),
@@ -983,7 +1045,7 @@ class _InstitutionPanelTab extends StatelessWidget {
                     _showExportDialog(context);
                   },
                   icon: const Icon(Icons.download_outlined),
-                  label: const Text('Export Report'),
+                  label: Text(_tr(context, 'export_report')),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFC9E8C1),
                     foregroundColor: const Color(0xFF243A5A),
@@ -1025,9 +1087,9 @@ class _InstitutionPanelTab extends StatelessWidget {
                 color: Color(0xFF22B860),
               ),
               const SizedBox(height: 16),
-              const Text(
-                'Report Exported!',
-                style: TextStyle(
+              Text(
+                _tr(context, 'report_exported'),
+                style: const TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.w800,
                   color: Color(0xFF243A5A),
@@ -1035,7 +1097,7 @@ class _InstitutionPanelTab extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                'The report has been generated and saved to your device.',
+                _tr(context, 'report_saved'),
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 16, color: const Color(0xFF60758F)),
               ),
@@ -1057,7 +1119,7 @@ class _InstitutionPanelTab extends StatelessWidget {
                     borderRadius: BorderRadius.circular(999),
                   ),
                 ),
-                child: const Text('Great!'),
+                child: Text(_tr(context, 'great')),
               ),
             ],
           ),
@@ -1080,7 +1142,7 @@ class _SettingsTabContent extends StatelessWidget {
       children: [
         // Preferences Card
         Text(
-          'Your Preferences',
+          _tr(context, 'your_preferences'),
           style: TextStyle(
             fontSize: adaptive.space(20),
             fontWeight: FontWeight.w800,
@@ -1095,8 +1157,9 @@ class _SettingsTabContent extends StatelessWidget {
             children: [
               // Communication Level Display
               _buildPreferenceRow(
-                'Communication',
+                _tr(context, 'communication'),
                 _getCommunicationLabel(
+                  context,
                   controller.userPreferences.communicationLevel,
                 ),
                 Icons.chat_bubble_outline,
@@ -1105,8 +1168,9 @@ class _SettingsTabContent extends StatelessWidget {
               const Divider(height: 24),
               // Sensory Sensitivity Display
               _buildPreferenceRow(
-                'Sensory Sensitivity',
+                _tr(context, 'sensory_sensitivity'),
                 _getSensitivityLabel(
+                  context,
                   controller.userPreferences.sensorySensitivity,
                 ),
                 Icons.hearing_outlined,
@@ -1115,15 +1179,16 @@ class _SettingsTabContent extends StatelessWidget {
               const Divider(height: 24),
               // Learning Pace Display
               _buildPreferenceRow(
-                'Learning Pace',
-                _getPaceLabel(controller.userPreferences.learningPace),
+                _tr(context, 'learning_pace'),
+                _getPaceLabel(context, controller.userPreferences.learningPace),
                 Icons.timer_outlined,
                 const Color(0xFFC9E8C1),
               ),
               const Divider(height: 24),
               // Favorite Interests Display
               _buildInterestsRow(
-                'Favorite Interests',
+                context,
+                _tr(context, 'favorite_interests'),
                 controller.userPreferences.interestsList,
                 Icons.favorite_outline,
                 const Color(0xFFFFF2A8),
@@ -1142,7 +1207,7 @@ class _SettingsTabContent extends StatelessWidget {
             },
             icon: Icon(Icons.edit_outlined, size: adaptive.space(24)),
             label: Text(
-              'Edit Preferences',
+              _tr(context, 'edit_preferences'),
               style: TextStyle(
                 fontSize: adaptive.space(16),
                 fontWeight: FontWeight.w800,
@@ -1167,24 +1232,24 @@ class _SettingsTabContent extends StatelessWidget {
     );
   }
 
-  String _getCommunicationLabel(int level) {
+  String _getCommunicationLabel(BuildContext context, int level) {
     const labels = [
-      'Non-verbal',
-      'Single words',
-      'Short phrases',
-      'Full sentences',
+      'non_verbal',
+      'single_words',
+      'short_phrases',
+      'full_sentences',
     ];
-    return labels[level.clamp(0, 3)];
+    return _tr(context, labels[level.clamp(0, 3)]);
   }
 
-  String _getSensitivityLabel(int level) {
-    const labels = ['Low', 'Medium', 'High'];
-    return labels[level.clamp(0, 2)];
+  String _getSensitivityLabel(BuildContext context, int level) {
+    const labels = ['low', 'medium', 'high'];
+    return _tr(context, labels[level.clamp(0, 2)]);
   }
 
-  String _getPaceLabel(int level) {
-    const labels = ['Slower', 'Standard', 'Faster'];
-    return labels[level.clamp(0, 2)];
+  String _getPaceLabel(BuildContext context, int level) {
+    const labels = ['slower', 'standard', 'faster'];
+    return _tr(context, labels[level.clamp(0, 2)]);
   }
 
   Widget _buildPreferenceRow(
@@ -1237,6 +1302,7 @@ class _SettingsTabContent extends StatelessWidget {
   }
 
   Widget _buildInterestsRow(
+    BuildContext context,
     String label,
     List<String> interests,
     IconData icon,
@@ -1273,7 +1339,7 @@ class _SettingsTabContent extends StatelessWidget {
               SizedBox(height: adaptive.space(4)),
               if (interests.isEmpty)
                 Text(
-                  'None selected',
+                  _tr(context, 'none_selected'),
                   style: TextStyle(
                     fontSize: adaptive.space(14),
                     color: const Color(0xFF60758F).withValues(alpha: 0.6),
@@ -1294,7 +1360,7 @@ class _SettingsTabContent extends StatelessWidget {
                         borderRadius: BorderRadius.circular(999),
                       ),
                       child: Text(
-                        _capitalizeFirst(interest),
+                        _tr(context, interest),
                         style: TextStyle(
                           fontSize: adaptive.space(12),
                           fontWeight: FontWeight.w600,
@@ -1311,10 +1377,6 @@ class _SettingsTabContent extends StatelessWidget {
     );
   }
 
-  String _capitalizeFirst(String text) {
-    if (text.isEmpty) return text;
-    return text[0].toUpperCase() + text.substring(1);
-  }
 }
 
 class _InstitutionStatRow extends StatelessWidget {
@@ -1393,7 +1455,7 @@ class _PointsBanner extends StatelessWidget {
                 ),
               ),
               Text(
-                'Learning Points',
+                _tr(context, 'learning_points'),
                 style: TextStyle(
                   fontSize: adaptive.space(16),
                   fontWeight: FontWeight.w600,
@@ -1547,7 +1609,7 @@ class _RewardsProgressTabState extends State<_RewardsProgressTab>
         children: [
           // Title
           Text(
-            'Your Learning Journey',
+            _tr(context, 'your_learning_journey'),
             style: TextStyle(
               fontSize: widget.adaptive.space(22),
               fontWeight: FontWeight.w800,
@@ -1587,7 +1649,7 @@ class _RewardsProgressTabState extends State<_RewardsProgressTab>
                       ),
                       SizedBox(width: widget.adaptive.space(12)),
                       Text(
-                        levelName,
+                        _localizedLevelName(context, levelName),
                         style: TextStyle(
                           fontSize: widget.adaptive.space(20),
                           fontWeight: FontWeight.w800,
@@ -1628,7 +1690,11 @@ class _RewardsProgressTabState extends State<_RewardsProgressTab>
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                '$points / $levelMax points',
+                _tr(
+                  context,
+                  'points_count',
+                  params: {'points': '$points / $levelMax'},
+                ),
                 style: TextStyle(
                   fontSize: widget.adaptive.space(16),
                   fontWeight: FontWeight.w700,
@@ -1637,7 +1703,11 @@ class _RewardsProgressTabState extends State<_RewardsProgressTab>
               ),
               if (currentLevel < levels.length - 1)
                 Text(
-                  '$pointsToNext to next level',
+                  _tr(
+                    context,
+                    'points_to_next_level',
+                    params: {'points': '$pointsToNext'},
+                  ),
                   style: TextStyle(
                     fontSize: widget.adaptive.space(14),
                     color: const Color(0xFF60758F),
@@ -1645,7 +1715,7 @@ class _RewardsProgressTabState extends State<_RewardsProgressTab>
                 )
               else
                 Text(
-                  'Max Level!',
+                  _tr(context, 'max_level_exclamation'),
                   style: TextStyle(
                     fontSize: widget.adaptive.space(14),
                     fontWeight: FontWeight.w700,
@@ -2341,7 +2411,7 @@ class _RewardsAchievementsTab extends StatelessWidget {
       children: [
         Center(
           child: Text(
-            'Your Achievements',
+            _tr(context, 'your_achievements'),
             style: TextStyle(
               fontSize: adaptive.space(22),
               fontWeight: FontWeight.w800,
@@ -2407,7 +2477,9 @@ class _RewardsAchievementsTab extends StatelessWidget {
                         ),
                         SizedBox(height: adaptive.space(6)),
                         Text(
-                          locked ? 'Locked' : 'Unlocked',
+                          locked
+                              ? _tr(context, 'locked')
+                              : _tr(context, 'unlocked'),
                           style: TextStyle(
                             fontSize: adaptive.space(13),
                             fontWeight: FontWeight.w700,
@@ -2467,7 +2539,7 @@ class _FeatureAnalyticsCard extends StatelessWidget {
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  feature.title,
+                  _localizedFeatureTitle(context, feature.gameType, feature.title),
                   style: TextStyle(
                     fontSize: adaptive.space(17),
                     fontWeight: FontWeight.w800,
@@ -2482,13 +2554,13 @@ class _FeatureAnalyticsCard extends StatelessWidget {
             children: [
               Expanded(
                 child: _MiniMetric(
-                  label: 'Sessions',
+                  label: _tr(context, 'sessions'),
                   value: '${feature.sessions}',
                 ),
               ),
               Expanded(
                 child: _MiniMetric(
-                  label: 'Minutes',
+                  label: _tr(context, 'minutes'),
                   value: '${feature.minutes}',
                 ),
               ),
@@ -2496,7 +2568,9 @@ class _FeatureAnalyticsCard extends StatelessWidget {
           ),
           SizedBox(height: adaptive.space(14)),
           Text(
-            accuracy == null ? 'Participation' : 'Average Score',
+            accuracy == null
+                ? _tr(context, 'participation')
+                : _tr(context, 'average_score'),
             style: const TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w700,
@@ -2516,8 +2590,14 @@ class _FeatureAnalyticsCard extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             accuracy == null
-                ? (hasSessions ? 'Recorded activity' : 'No sessions yet')
-                : '${(accuracy * 100).round()}% correct',
+                ? (hasSessions
+                    ? _tr(context, 'recorded_activity')
+                    : _tr(context, 'no_sessions_yet'))
+                : _tr(
+                    context,
+                    'percent_correct',
+                    params: {'percent': '${(accuracy * 100).round()}'},
+                  ),
             style: const TextStyle(fontSize: 13, color: Color(0xFF60758F)),
           ),
         ],
@@ -2592,7 +2672,7 @@ class _RecentSessionRow extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  session.title,
+                  _localizedFeatureTitle(context, session.gameType, session.title),
                   style: TextStyle(
                     fontSize: adaptive.space(15),
                     fontWeight: FontWeight.w800,
@@ -2601,7 +2681,7 @@ class _RecentSessionRow extends StatelessWidget {
                 ),
                 const SizedBox(height: 3),
                 Text(
-                  '${_relativeSessionTime(session.endedAt)} - ${_formatDuration(session.durationSeconds)}',
+                  '${_relativeSessionTime(context, session.endedAt)} - ${_formatDuration(session.durationSeconds)}',
                   style: const TextStyle(
                     fontSize: 12,
                     color: Color(0xFF60758F),
@@ -2613,7 +2693,7 @@ class _RecentSessionRow extends StatelessWidget {
           const SizedBox(width: 8),
           Text(
             accuracy == null
-                ? 'Done'
+                ? _tr(context, 'done')
                 : '${session.correctActions}/${session.totalActions}',
             style: const TextStyle(
               fontSize: 14,
@@ -2637,10 +2717,10 @@ class _EmptyDashboardState extends StatelessWidget {
     return Container(
       width: double.infinity,
       padding: EdgeInsets.symmetric(vertical: adaptive.space(20)),
-      child: const Text(
-        'No learning sessions recorded yet.',
+      child: Text(
+        _tr(context, 'no_learning_sessions'),
         textAlign: TextAlign.center,
-        style: TextStyle(
+        style: const TextStyle(
           fontSize: 15,
           fontWeight: FontWeight.w700,
           color: Color(0xFF60758F),
@@ -2692,12 +2772,24 @@ Color _analyticsColor(String gameType) {
   }
 }
 
-String _relativeSessionTime(DateTime date) {
+String _relativeSessionTime(BuildContext context, DateTime date) {
   final difference = DateTime.now().difference(date);
-  if (difference.inMinutes < 1) return 'Just now';
-  if (difference.inHours < 1) return '${difference.inMinutes}m ago';
-  if (difference.inDays < 1) return '${difference.inHours}h ago';
-  return '${difference.inDays}d ago';
+  if (difference.inMinutes < 1) return _tr(context, 'just_now');
+  if (difference.inHours < 1) {
+    return _tr(
+      context,
+      'minutes_ago',
+      params: {'count': '${difference.inMinutes}'},
+    );
+  }
+  if (difference.inDays < 1) {
+    return _tr(
+      context,
+      'hours_ago',
+      params: {'count': '${difference.inHours}'},
+    );
+  }
+  return _tr(context, 'days_ago', params: {'count': '${difference.inDays}'});
 }
 
 String _formatDuration(int seconds) {
@@ -2812,11 +2904,11 @@ class _EmptyChartState extends StatelessWidget {
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: color.withValues(alpha: 0.5)),
       ),
-      child: const Center(
+      child: Center(
         child: Text(
-          'Not enough session data yet',
+          _tr(context, 'not_enough_session_data'),
           textAlign: TextAlign.center,
-          style: TextStyle(
+          style: const TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w700,
             color: Color(0xFF60758F),

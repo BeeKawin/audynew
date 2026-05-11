@@ -2,6 +2,11 @@ import 'package:flutter/material.dart';
 
 import '../../core/app_routes.dart';
 import '../../services/sound_service.dart';
+import '../../state/audy_controller.dart';
+
+String _tr(BuildContext context, String key, {Map<String, String>? params}) {
+  return AudyScope.of(context).tr(key, params: params);
+}
 
 class ReadPronounceHub extends StatelessWidget {
   const ReadPronounceHub({super.key});
@@ -37,7 +42,7 @@ class ReadPronounceHub extends StatelessWidget {
                     child: Column(
                       children: [
                         Text(
-                          'Read & Pronounce',
+                          _tr(context, 'read_pronounce'),
                           style: TextStyle(
                             fontSize: adaptive.space(28),
                             fontWeight: FontWeight.w800,
@@ -46,7 +51,7 @@ class ReadPronounceHub extends StatelessWidget {
                         ),
                         SizedBox(height: adaptive.space(8)),
                         Text(
-                          'Choose your learning level.',
+                          _tr(context, 'choose_learning_level'),
                           style: TextStyle(
                             fontSize: adaptive.space(15),
                             color: const Color(0xFF617691),
@@ -58,8 +63,8 @@ class ReadPronounceHub extends StatelessWidget {
                   SizedBox(height: adaptive.space(28)),
                   _ModuleCard(
                     adaptive: adaptive,
-                    title: 'Letters',
-                    subtitle: 'A B C sounds',
+                    title: _tr(context, 'letters'),
+                    subtitle: _tr(context, 'abc_sounds'),
                     icon: Icons.abc_rounded,
                     color: const Color(0xFFFF8D91),
                     onTap: () {
@@ -70,8 +75,8 @@ class ReadPronounceHub extends StatelessWidget {
                   SizedBox(height: adaptive.space(16)),
                   _ModuleCard(
                     adaptive: adaptive,
-                    title: 'Words',
-                    subtitle: 'Simple vocabulary',
+                    title: _tr(context, 'words'),
+                    subtitle: _tr(context, 'simple_vocabulary'),
                     icon: Icons.menu_book_rounded,
                     color: const Color(0xFF8FBCEC),
                     onTap: () {
@@ -82,8 +87,8 @@ class ReadPronounceHub extends StatelessWidget {
                   SizedBox(height: adaptive.space(16)),
                   _ModuleCard(
                     adaptive: adaptive,
-                    title: 'Sentences',
-                    subtitle: 'Short phrases',
+                    title: _tr(context, 'sentences'),
+                    subtitle: _tr(context, 'short_phrases'),
                     icon: Icons.chat_bubble_rounded,
                     color: const Color(0xFF90F48A),
                     onTap: () {
@@ -251,7 +256,7 @@ class _TopRow extends StatelessWidget {
             ),
             SizedBox(width: adaptive.space(8)),
             Text(
-              'Back to Home',
+              _tr(context, 'back_home'),
               style: TextStyle(
                 fontSize: adaptive.space(15),
                 fontWeight: FontWeight.w600,

@@ -30,28 +30,32 @@ class _PreferencesPageState extends State<PreferencesPage> {
   final Set<String> _selectedInterests = {};
   bool _isSaving = false;
 
+  String _tr(String key, {Map<String, String>? params}) {
+    return AudyScope.of(context).tr(key, params: params);
+  }
+
   final List<_PreferenceOption> _communicationOptions = const [
     _PreferenceOption(
       value: 0,
-      label: 'Non-verbal',
+      label: 'non_verbal',
       icon: Icons.volume_off_outlined,
       color: Color(0xFFFFA07A),
     ),
     _PreferenceOption(
       value: 1,
-      label: 'Single words',
+      label: 'single_words',
       icon: Icons.chat_bubble_outline,
       color: Color(0xFF98D8C8),
     ),
     _PreferenceOption(
       value: 2,
-      label: 'Short phrases',
+      label: 'short_phrases',
       icon: Icons.short_text,
       color: Color(0xFFF7DC6F),
     ),
     _PreferenceOption(
       value: 3,
-      label: 'Full sentences',
+      label: 'full_sentences',
       icon: Icons.record_voice_over_outlined,
       color: Color(0xFFBB8FCE),
     ),
@@ -60,19 +64,19 @@ class _PreferencesPageState extends State<PreferencesPage> {
   final List<_PreferenceOption> _sensitivityOptions = const [
     _PreferenceOption(
       value: 0,
-      label: 'Low',
+      label: 'low',
       icon: Icons.volume_down_outlined,
       color: Color(0xFF85C1E2),
     ),
     _PreferenceOption(
       value: 1,
-      label: 'Medium',
+      label: 'medium',
       icon: Icons.volume_mute_outlined,
       color: Color(0xFFF8C471),
     ),
     _PreferenceOption(
       value: 2,
-      label: 'High',
+      label: 'high',
       icon: Icons.hearing_outlined,
       color: Color(0xFFE74C3C),
     ),
@@ -81,19 +85,19 @@ class _PreferencesPageState extends State<PreferencesPage> {
   final List<_PreferenceOption> _paceOptions = const [
     _PreferenceOption(
       value: 0,
-      label: 'Slower',
+      label: 'slower',
       icon: Icons.snooze_outlined,
       color: Color(0xFF82E0AA),
     ),
     _PreferenceOption(
       value: 1,
-      label: 'Standard',
+      label: 'standard',
       icon: Icons.timer_outlined,
       color: Color(0xFF85C1E2),
     ),
     _PreferenceOption(
       value: 2,
-      label: 'Faster',
+      label: 'faster',
       icon: Icons.flash_on_outlined,
       color: Color(0xFFF4D03F),
     ),
@@ -102,37 +106,37 @@ class _PreferencesPageState extends State<PreferencesPage> {
   final List<_InterestOption> _interestOptions = const [
     _InterestOption(
       value: 'animals',
-      label: 'Animals',
+      label: 'animals',
       icon: Icons.pets_outlined,
       color: Color(0xFF82E0AA),
     ),
     _InterestOption(
       value: 'vehicles',
-      label: 'Vehicles',
+      label: 'vehicles',
       icon: Icons.directions_car_outlined,
       color: Color(0xFF85C1E2),
     ),
     _InterestOption(
       value: 'music',
-      label: 'Music',
+      label: 'music',
       icon: Icons.music_note_outlined,
       color: Color(0xFFF8B500),
     ),
     _InterestOption(
       value: 'nature',
-      label: 'Nature',
+      label: 'nature',
       icon: Icons.eco_outlined,
       color: Color(0xFF27AE60),
     ),
     _InterestOption(
       value: 'colors',
-      label: 'Colors',
+      label: 'colors',
       icon: Icons.palette_outlined,
       color: Color(0xFFE91E63),
     ),
     _InterestOption(
       value: 'numbers',
-      label: 'Numbers',
+      label: 'numbers',
       icon: Icons.calculate_outlined,
       color: Color(0xFF9B59B6),
     ),
@@ -169,7 +173,7 @@ class _PreferencesPageState extends State<PreferencesPage> {
                     Align(
                       alignment: Alignment.centerLeft,
                       child: AudyBackButton(
-                        label: 'Back',
+                        label: _tr('back'),
                         onPressed: () {
                           SoundService.instance.playTap();
                           Navigator.pop(context);
@@ -181,8 +185,8 @@ class _PreferencesPageState extends State<PreferencesPage> {
                   SizedBox(height: adaptive.space(20)),
                   Text(
                     widget.isOnboarding
-                        ? "Let's Personalize!"
-                        : 'Your Preferences',
+                        ? _tr('lets_personalize')
+                        : _tr('your_preferences'),
                     style: AudyTypography.displayMedium.copyWith(
                       color: AudyColors.skyBlue,
                       fontSize: adaptive.space(36),
@@ -192,8 +196,8 @@ class _PreferencesPageState extends State<PreferencesPage> {
                   SizedBox(height: adaptive.space(8)),
                   Text(
                     widget.isOnboarding
-                        ? 'Help us make AUDY perfect for you!'
-                        : 'Customize your experience',
+                        ? _tr('personalize_help')
+                        : _tr('customize_experience'),
                     style: TextStyle(
                       fontSize: adaptive.space(16),
                       color: AudyColors.textLight,
@@ -208,7 +212,7 @@ class _PreferencesPageState extends State<PreferencesPage> {
             // Communication Level
             _buildSectionTitle(
               adaptive,
-              'How do you communicate?',
+              _tr('communication_question'),
               Icons.chat_bubble_outline,
             ),
             SizedBox(height: adaptive.space(16)),
@@ -218,7 +222,7 @@ class _PreferencesPageState extends State<PreferencesPage> {
             // Sensory Sensitivity
             _buildSectionTitle(
               adaptive,
-              'Sound sensitivity?',
+              _tr('sound_sensitivity'),
               Icons.hearing_outlined,
             ),
             SizedBox(height: adaptive.space(16)),
@@ -228,7 +232,7 @@ class _PreferencesPageState extends State<PreferencesPage> {
             // Learning Pace
             _buildSectionTitle(
               adaptive,
-              'Learning pace?',
+              _tr('learning_pace'),
               Icons.timer_outlined,
             ),
             SizedBox(height: adaptive.space(16)),
@@ -238,7 +242,7 @@ class _PreferencesPageState extends State<PreferencesPage> {
             // Favorite Interests
             _buildSectionTitle(
               adaptive,
-              'Favorite things?',
+              _tr('favorite_things'),
               Icons.favorite_outline,
             ),
             SizedBox(height: adaptive.space(16)),
@@ -267,10 +271,10 @@ class _PreferencesPageState extends State<PreferencesPage> {
                       ),
                 label: Text(
                   _isSaving
-                      ? 'Saving...'
+                      ? _tr('saving')
                       : (widget.isOnboarding
-                          ? 'Start Learning!'
-                          : 'Save Changes'),
+                          ? _tr('start_learning')
+                          : _tr('save_changes')),
                   style: TextStyle(
                     fontSize: adaptive.space(18),
                     fontWeight: FontWeight.w800,
@@ -532,7 +536,7 @@ class _CommunicationCard extends StatelessWidget {
             ),
             SizedBox(height: adaptive.space(12)),
             Text(
-              option.label,
+              AudyScope.of(context).tr(option.label),
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: adaptive.space(14),
@@ -596,7 +600,7 @@ class _PillButton extends StatelessWidget {
             ),
             SizedBox(height: adaptive.space(8)),
             Text(
-              option.label,
+              AudyScope.of(context).tr(option.label),
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: adaptive.space(13),
@@ -670,7 +674,7 @@ class _InterestCard extends StatelessWidget {
             ),
             SizedBox(height: adaptive.space(8)),
             Text(
-              option.label,
+              AudyScope.of(context).tr(option.label),
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: adaptive.space(12),

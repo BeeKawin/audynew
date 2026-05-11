@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../services/sound_service.dart';
+import '../state/audy_controller.dart';
 
 /// Callback type for point celebration events
 typedef PointCelebrationCallback =
@@ -40,6 +41,10 @@ class PointCelebrationDialog extends StatefulWidget {
 class _PointCelebrationDialogState extends State<PointCelebrationDialog>
     with SingleTickerProviderStateMixin {
   late AnimationController _sparkleController;
+
+  String _tr(String key, {Map<String, String>? params}) {
+    return AudyScope.of(context).tr(key, params: params);
+  }
 
   @override
   void initState() {
@@ -144,7 +149,7 @@ class _PointCelebrationDialogState extends State<PointCelebrationDialog>
               ),
               const SizedBox(height: 16),
               Text(
-                'LEVEL UP!',
+                _tr('level_up'),
                 style: GoogleFonts.fredoka(
                   fontSize: 28,
                   fontWeight: FontWeight.w800,
@@ -153,7 +158,14 @@ class _PointCelebrationDialogState extends State<PointCelebrationDialog>
               ),
               const SizedBox(height: 8),
               Text(
-                'You reached ${widget.newLevelName ?? widget.nextLevelName}!',
+                _tr(
+                  'you_are_now',
+                  params: {
+                    'levelName': _localizedLevelName(
+                      widget.newLevelName ?? widget.nextLevelName,
+                    ),
+                  },
+                ),
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
@@ -172,7 +184,7 @@ class _PointCelebrationDialogState extends State<PointCelebrationDialog>
               ),
             ] else ...[
               Text(
-                '+${widget.points} Points!',
+                _tr('points_earned', params: {'points': '${widget.points}'}),
                 style: GoogleFonts.fredoka(
                   fontSize: 36,
                   fontWeight: FontWeight.w800,
@@ -189,7 +201,7 @@ class _PointCelebrationDialogState extends State<PointCelebrationDialog>
                         _getLevelThreshold(widget.currentLevel)),
                 currentPoints: widget.totalPoints,
                 nextLevelThreshold: widget.nextLevelThreshold,
-                nextLevelName: widget.nextLevelName,
+                nextLevelName: _localizedLevelName(widget.nextLevelName),
               ),
             ],
             const SizedBox(height: 24),
@@ -210,7 +222,7 @@ class _PointCelebrationDialogState extends State<PointCelebrationDialog>
                   elevation: 2,
                 ),
                 child: Text(
-                  widget.isLevelUp ? 'Awesome!' : 'Continue',
+                  widget.isLevelUp ? _tr('awesome') : _tr('continue'),
                   style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w700,
@@ -242,8 +254,25 @@ class _PointCelebrationDialogState extends State<PointCelebrationDialog>
 
   String _getNextLevelName(int level) {
     final names = ['Beginner', 'Learner', 'Explorer', 'Expert', 'Master'];
-    if (level >= names.length) return 'Max Level';
-    return names[level];
+    if (level >= names.length) return _tr('max_level');
+    return _localizedLevelName(names[level]);
+  }
+
+  String _localizedLevelName(String levelName) {
+    switch (levelName.toLowerCase()) {
+      case 'beginner':
+        return _tr('beginner');
+      case 'learner':
+        return _tr('learner');
+      case 'explorer':
+        return _tr('explorer');
+      case 'expert':
+        return _tr('expert');
+      case 'master':
+        return _tr('master');
+      default:
+        return levelName;
+    }
   }
 }
 
@@ -264,6 +293,7 @@ class _LevelProgressBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final clampedProgress = progress.clamp(0.0, 1.0);
     final pointsNeeded = nextLevelThreshold - currentPoints;
+    final controller = AudyScope.of(context);
 
     return Column(
       children: [
@@ -279,8 +309,15 @@ class _LevelProgressBar extends StatelessWidget {
         const SizedBox(height: 8),
         Text(
           pointsNeeded <= 0
-              ? 'Max Level!'
-              : '$currentPoints / $nextLevelThreshold to $nextLevelName',
+              ? controller.tr('max_level_exclamation')
+              : controller.tr(
+                  'points_progress_to_level',
+                  params: {
+                    'current': '$currentPoints',
+                    'next': '$nextLevelThreshold',
+                    'levelName': nextLevelName,
+                  },
+                ),
           style: const TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w600,

@@ -315,11 +315,15 @@ class AudyGreetingHeader extends StatelessWidget {
     required this.greeting,
     required this.adaptive,
     this.onProfileTap,
+    this.onDeviceTap,
+    this.isDeviceConnected = false,
   });
 
   final String greeting;
   final AudyAdaptive adaptive;
   final VoidCallback? onProfileTap;
+  final VoidCallback? onDeviceTap;
+  final bool isDeviceConnected;
 
   @override
   Widget build(BuildContext context) {
@@ -341,31 +345,69 @@ class AudyGreetingHeader extends StatelessWidget {
             ],
           ),
         ),
-        if (onProfileTap != null)
-          GestureDetector(
-            onTap: onProfileTap,
-            child: Container(
-              width: 100,
-              height: 100,
-              decoration: BoxDecoration(
-                color: const Color.fromARGB(
-                  255,
-                  201,
-                  201,
-                  235,
-                ).withValues(alpha: 0.5),
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: AudyColors.softLavender.withValues(alpha: 0.4),
-                  width: 2,
+        if (onDeviceTap != null || onProfileTap != null)
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (onDeviceTap != null) ...[
+                GestureDetector(
+                  onTap: onDeviceTap,
+                  child: Container(
+                    width: AudySpacing.touchTargetMin,
+                    height: AudySpacing.touchTargetMin,
+                    decoration: BoxDecoration(
+                      color: (isDeviceConnected
+                              ? AudyColors.mintGreen
+                              : AudyColors.skyBlue)
+                          .withValues(alpha: 0.16),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: isDeviceConnected
+                            ? AudyColors.mintGreen
+                            : AudyColors.skyBlue,
+                        width: 2,
+                      ),
+                    ),
+                    child: Icon(
+                      isDeviceConnected
+                          ? Icons.bluetooth_connected_rounded
+                          : Icons.bluetooth_rounded,
+                      color: isDeviceConnected
+                          ? AudyColors.mintGreen
+                          : AudyColors.skyBlue,
+                      size: AudySpacing.iconMedium,
+                    ),
+                  ),
                 ),
-              ),
-              child: Icon(
-                Icons.person_rounded, // Default person icon
-                color: Colors.white, // White icon on colored background
-                size: 64, // 32.0 px
-              ),
-            ),
+                SizedBox(width: adaptive.space(12)),
+              ],
+              if (onProfileTap != null)
+                GestureDetector(
+                  onTap: onProfileTap,
+                  child: Container(
+                    width: 100,
+                    height: 100,
+                    decoration: BoxDecoration(
+                      color: const Color.fromARGB(
+                        255,
+                        201,
+                        201,
+                        235,
+                      ).withValues(alpha: 0.5),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: AudyColors.softLavender.withValues(alpha: 0.4),
+                        width: 2,
+                      ),
+                    ),
+                    child: Icon(
+                      Icons.person_rounded, // Default person icon
+                      color: Colors.white, // White icon on colored background
+                      size: 64, // 32.0 px
+                    ),
+                  ),
+                ),
+            ],
           ),
       ],
     );

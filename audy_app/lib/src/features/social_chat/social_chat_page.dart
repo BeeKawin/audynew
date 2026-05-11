@@ -170,7 +170,7 @@ class _SocialPracticePageState extends State<SocialPracticePage> {
                       ),
                       SizedBox(height: adaptive.space(8)),
                       Text(
-                        controller.tr('Chat with AUDY'),
+                        controller.tr('chat_with_auday'),
                         style: TextStyle(
                           fontSize: adaptive.space(16),
                           color: const Color(0xFF60758F),
@@ -310,6 +310,9 @@ class _SocialPracticePageState extends State<SocialPracticePage> {
               child: Text(
                 controller.isChatLoading
                     ? controller.tr('thinking')
+                    : controller.socialFeedback ==
+                          'Start a conversation with a short message.'
+                    ? controller.tr('start_conversation')
                     : controller.socialFeedback,
                 textAlign: TextAlign.center,
                 style: TextStyle(

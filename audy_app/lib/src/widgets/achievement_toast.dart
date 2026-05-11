@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 
+import '../state/audy_controller.dart';
+
 /// Achievement toast with 5s auto-dismiss
 /// Autism-friendly: gentle animation, clear icon, soft colors
 class AchievementToast {
@@ -144,9 +146,9 @@ class _ToastWidgetState extends State<_ToastWidget>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'Achievement Unlocked!',
-                        style: TextStyle(
+                      Text(
+                        AudyScope.of(context).tr('achievement_unlocked'),
+                        style: const TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
                           color: Color(0xFF6B8E6B),

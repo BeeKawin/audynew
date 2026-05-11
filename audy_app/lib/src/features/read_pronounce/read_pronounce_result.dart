@@ -7,6 +7,10 @@ import '../../state/audy_controller.dart';
 import '../../widgets/point_celebration_dialog.dart';
 import 'read_pronounce_controller.dart';
 
+String _tr(BuildContext context, String key, {Map<String, String>? params}) {
+  return AudyScope.of(context).tr(key, params: params);
+}
+
 class ReadPronounceResultScreen extends StatefulWidget {
   const ReadPronounceResultScreen({
     super.key,
@@ -129,9 +133,9 @@ class _ReadPronounceResultScreenState extends State<ReadPronounceResultScreen> {
   }
 
   String _getLevelName(int level) {
-    final names = ['Beginner', 'Learner', 'Explorer', 'Expert', 'Master'];
-    if (level >= names.length) return 'Master';
-    return names[level];
+    final keys = ['beginner', 'learner', 'explorer', 'expert', 'master'];
+    if (level >= keys.length) return widget.controller.tr('master');
+    return widget.controller.tr(keys[level]);
   }
 
   @override
@@ -216,7 +220,7 @@ class _CelebrationHeader extends StatelessWidget {
         ),
         SizedBox(height: adaptive.space(16)),
         Text(
-          'All Done!',
+          _tr(context, 'all_done'),
           style: TextStyle(
             fontSize: adaptive.space(32),
             fontWeight: FontWeight.w900,
@@ -225,7 +229,7 @@ class _CelebrationHeader extends StatelessWidget {
         ),
         SizedBox(height: adaptive.space(8)),
         Text(
-          'You completed the session!',
+          _tr(context, 'session_complete'),
           style: TextStyle(
             fontSize: adaptive.space(16),
             color: const Color(0xFF617691),
@@ -327,7 +331,7 @@ class _AccuracyPanel extends StatelessWidget {
       child: Column(
         children: [
           Text(
-            'Accuracy',
+            _tr(context, 'accuracy'),
             style: TextStyle(
               fontSize: adaptive.space(18),
               fontWeight: FontWeight.w700,
@@ -345,7 +349,14 @@ class _AccuracyPanel extends StatelessWidget {
           ),
           SizedBox(height: adaptive.space(8)),
           Text(
-            '$correct correct from $total tries',
+            _tr(
+              context,
+              'correct_from_tries',
+              params: {
+                'correct': correct.toString(),
+                'total': total.toString(),
+              },
+            ),
             style: TextStyle(
               fontSize: adaptive.space(16),
               color: const Color(0xFF617691),
@@ -394,7 +405,7 @@ class _SessionTimePanel extends StatelessWidget {
           ),
           SizedBox(width: adaptive.space(12)),
           Text(
-            'Time: $timeLabel',
+            _tr(context, 'time_format', params: {'time': timeLabel}),
             style: TextStyle(
               fontSize: adaptive.space(18),
               fontWeight: FontWeight.w700,
@@ -438,7 +449,7 @@ class _ActionButtons extends StatelessWidget {
               elevation: 4,
             ),
             child: Text(
-              'Play Again',
+              _tr(context, 'play_again'),
               style: TextStyle(
                 fontSize: adaptive.space(18),
                 fontWeight: FontWeight.w700,
@@ -463,7 +474,7 @@ class _ActionButtons extends StatelessWidget {
               elevation: 4,
             ),
             child: Text(
-              'Done',
+              _tr(context, 'done'),
               style: TextStyle(
                 fontSize: adaptive.space(18),
                 fontWeight: FontWeight.w700,

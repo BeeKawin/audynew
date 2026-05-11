@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../core/app_routes.dart';
 import '../core/audy_ui.dart';
 import '../core/audy_theme.dart';
+import '../services/bluetooth_service.dart';
 import '../services/sound_service.dart';
 import '../state/audy_controller.dart';
 
@@ -101,7 +102,7 @@ class DashboardPage extends StatelessWidget {
             route: AppRoutes.rewards,
           ),
           _ActivityData(
-            title: 'My Device',
+            title: controller.tr('my_device'),
             icon: Icons.bluetooth_rounded,
             iconColor: const Color(0xFF7FDBDA),
             borderColor: const Color(0xFF7FDBDA),
@@ -115,11 +116,24 @@ class DashboardPage extends StatelessWidget {
             // Language toggle at top left
             _LanguageToggle(controller: controller),
             const SizedBox(height: AudySpacing.elementGap),
-            AudyGreetingHeader(
-              greeting: controller.tr('dashboard_greeting'),
-              adaptive: adaptive,
-              onProfileTap: () =>
-                  Navigator.pushNamed(context, AppRoutes.profile),
+            ValueListenableBuilder<bool>(
+              valueListenable:
+                  AudyBluetoothService.instance.connectionNotifier,
+              builder: (context, isDeviceConnected, _) {
+                return AudyGreetingHeader(
+                  greeting: controller.tr('dashboard_greeting'),
+                  adaptive: adaptive,
+                  isDeviceConnected: isDeviceConnected,
+                  onDeviceTap: () {
+                    SoundService.instance.playTap();
+                    Navigator.pushNamed(context, AppRoutes.device);
+                  },
+                  onProfileTap: () {
+                    SoundService.instance.playTap();
+                    Navigator.pushNamed(context, AppRoutes.profile);
+                  },
+                );
+              },
             ),
             const SizedBox(height: AudySpacing.sectionGap),
             // Games Played Indicator
@@ -222,7 +236,7 @@ class _GamesPlayedCard extends StatelessWidget {
               ),
               SizedBox(width: adaptive.space(8)),
               Text(
-                'Games Played',
+                controller.tr('games_played'),
                 style: TextStyle(
                   fontSize: adaptive.space(16),
                   fontWeight: FontWeight.w700,
@@ -251,7 +265,7 @@ class _GamesPlayedCard extends StatelessWidget {
                 await controller.resetGamesPlayedCheat();
               },
               icon: const Icon(Icons.refresh_rounded, size: 18),
-              label: const Text('Reset count'),
+              label: Text(controller.tr('reset_count')),
               style: TextButton.styleFrom(
                 foregroundColor: AudyColors.textSecondary,
                 minimumSize: Size(adaptive.space(48), adaptive.space(48)),
@@ -274,8 +288,8 @@ class _GamesPlayedCard extends StatelessWidget {
             SizedBox(height: adaptive.space(8)),
             Text(
               gamesPlayed >= 5
-                  ? 'Time for a break! 🌸'
-                  : 'Almost time for a break... 🌸',
+                  ? controller.tr('break_time_now')
+                  : controller.tr('break_time_soon'),
               style: TextStyle(
                 fontSize: adaptive.space(14),
                 fontWeight: FontWeight.w600,

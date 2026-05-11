@@ -254,20 +254,18 @@ class _AudyAppState extends State<AudyApp> {
           AppRoutes.reactionTime: (_) => const ReactionTimePage(),
           AppRoutes.readingHub: (_) => const ReadPronounceHub(),
           AppRoutes.letters: (_) => const ReadPronouncePracticeScreen(
-            title: 'Letters Practice',
-            subtitle:
-                'Listen, repeat, and build confidence one sound at a time.',
+            title: 'letters_practice',
+            subtitle: 'listen_repeat',
             module: ReadPronounceModule.letters,
           ),
           AppRoutes.words: (_) => const ReadPronouncePracticeScreen(
-            title: 'Words Practice',
-            subtitle:
-                'Simple familiar words with listening and speaking practice.',
+            title: 'words_practice',
+            subtitle: 'simple_words',
             module: ReadPronounceModule.words,
           ),
           AppRoutes.sentences: (_) => const ReadPronouncePracticeScreen(
-            title: 'Sentences Practice',
-            subtitle: 'Say short sentences clearly and at a relaxed pace.',
+            title: 'sentences_practice',
+            subtitle: 'short_sentences',
             module: ReadPronounceModule.sentences,
           ),
           AppRoutes.social: (_) => const SocialPracticePage(),

@@ -32,6 +32,10 @@ class _LoginPageState extends State<LoginPage> {
   String? _errorMessage;
   String? _successMessage;
 
+  String _tr(String key, {Map<String, String>? params}) {
+    return AudyScope.of(context).tr(key, params: params);
+  }
+
   @override
   void dispose() {
     _emailController.dispose();
@@ -63,7 +67,7 @@ class _LoginPageState extends State<LoginPage> {
             ),
             SizedBox(height: adaptive.space(8)),
             Text(
-              'Your Learning Buddy',
+              _tr('learning_buddy'),
               style: TextStyle(
                 fontSize: adaptive.space(16),
                 color: AudyColors.textLight,
@@ -108,7 +112,7 @@ class _LoginPageState extends State<LoginPage> {
         children: [
           // Sign In button
           _buildModeButton(
-            label: 'Sign In',
+            label: _tr('sign_in'),
             isSelected: !_isSignUp,
             onTap: () {
               SoundService.instance.playTap();
@@ -121,7 +125,7 @@ class _LoginPageState extends State<LoginPage> {
           ),
           // Sign Up button
           _buildModeButton(
-            label: 'Sign Up',
+            label: _tr('sign_up'),
             isSelected: _isSignUp,
             onTap: () {
               SoundService.instance.playTap();
@@ -177,7 +181,7 @@ class _LoginPageState extends State<LoginPage> {
           // Email field
           _buildTextField(
             controller: _emailController,
-            label: 'Email',
+            label: _tr('email'),
             icon: Icons.email_outlined,
             keyboardType: TextInputType.emailAddress,
             isPassword: false,
@@ -187,7 +191,7 @@ class _LoginPageState extends State<LoginPage> {
           // Password field
           _buildTextField(
             controller: _passwordController,
-            label: 'Password',
+            label: _tr('password'),
             icon: Icons.lock_outline,
             keyboardType: TextInputType.text,
             isPassword: true,
@@ -200,7 +204,7 @@ class _LoginPageState extends State<LoginPage> {
             // Name field
             _buildTextField(
               controller: _nameController,
-              label: 'Your Name',
+              label: _tr('your_name'),
               icon: Icons.person_outline,
               keyboardType: TextInputType.text,
               isPassword: false,
@@ -267,7 +271,7 @@ class _LoginPageState extends State<LoginPage> {
               Icon(Icons.cake_outlined, color: AudyColors.textLight, size: 20),
               const SizedBox(width: 8),
               Text(
-                'Age',
+                _tr('age'),
                 style: TextStyle(fontSize: 14, color: AudyColors.textLight),
               ),
             ],
@@ -403,8 +407,8 @@ class _LoginPageState extends State<LoginPage> {
             : Icon(_isSignUp ? Icons.person_add : Icons.login, size: 24),
         label: Text(
           _isLoading
-              ? (_isSignUp ? 'Creating account...' : 'Signing in...')
-              : (_isSignUp ? 'Create Account' : 'Sign In'),
+              ? (_isSignUp ? _tr('creating_account') : _tr('signing_in'))
+              : (_isSignUp ? _tr('create_account') : _tr('sign_in')),
           style: TextStyle(
             fontSize: adaptive.space(18),
             fontWeight: FontWeight.w800,
@@ -436,19 +440,19 @@ class _LoginPageState extends State<LoginPage> {
     final password = _passwordController.text;
 
     if (email.isEmpty) {
-      setState(() => _errorMessage = 'Please enter your email.');
+      setState(() => _errorMessage = _tr('enter_email'));
       return;
     }
 
     if (password.isEmpty) {
-      setState(() => _errorMessage = 'Please enter your password.');
+      setState(() => _errorMessage = _tr('enter_password'));
       return;
     }
 
     if (_isSignUp) {
       final name = _nameController.text.trim();
       if (name.isEmpty) {
-        setState(() => _errorMessage = 'Please enter your name.');
+        setState(() => _errorMessage = _tr('enter_name'));
         return;
       }
     }
