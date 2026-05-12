@@ -94,6 +94,7 @@ class _ReactionTimePageState extends State<ReactionTimePage> {
       if (isFinalRound) {
         await bluetooth.setArms(4);
         await bluetooth.pulseEmotion(2);
+        await bluetooth.setLed(11);
       } else {
         await bluetooth.pulseEmotion(1);
       }

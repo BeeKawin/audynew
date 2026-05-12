@@ -323,7 +323,11 @@ class _EmotionClassifyScreenState extends State<EmotionClassifyScreen> {
     required bool isFinalRound,
   }) async {
     try {
-      await AudyBluetoothService.instance.pulseEmotion(isFinalRound ? 2 : 1);
+      final bluetooth = AudyBluetoothService.instance;
+      await bluetooth.pulseEmotion(isFinalRound ? 2 : 1);
+      if (isFinalRound) {
+        await bluetooth.setLed(11);
+      }
     } catch (e) {
       debugPrint(
         'EmotionClassifyScreen: Correct answer BLE signal skipped - $e',

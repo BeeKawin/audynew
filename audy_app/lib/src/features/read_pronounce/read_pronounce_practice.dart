@@ -60,10 +60,21 @@ class _ReadPronouncePracticeScreenState
     _service = ReadPronounceService();
     _controller.startSession(widget.module);
     _controller.addListener(_onControllerChanged);
+    unawaited(_sendGameEnterBleState());
     SoundService.instance.playInstructionReadPronounce();
     _bleMicSub = AudyBluetoothService.instance.incomingMessages.listen(
       _handleBleInput,
     );
+  }
+
+  Future<void> _sendGameEnterBleState() async {
+    try {
+      await AudyBluetoothService.instance.setLed(20);
+    } catch (e) {
+      debugPrint(
+        'ReadPronouncePracticeScreen: Entry LED BLE state skipped - $e',
+      );
+    }
   }
 
   void _handleBleInput(AudyBleMessage message) {
@@ -98,12 +109,23 @@ class _ReadPronouncePracticeScreenState
 
   @override
   void dispose() {
+    unawaited(_resetGameBleState());
     _bleMicSub?.cancel();
     _recordingTimer?.cancel();
     _controller.removeListener(_onControllerChanged);
     _controller.dispose();
     _service.dispose();
     super.dispose();
+  }
+
+  Future<void> _resetGameBleState() async {
+    try {
+      await AudyBluetoothService.instance.setLed(0);
+    } catch (e) {
+      debugPrint(
+        'ReadPronouncePracticeScreen: Exit LED BLE reset skipped - $e',
+      );
+    }
   }
 
   Future<void> _handleVoiceButtonTap() async {
@@ -292,6 +314,7 @@ class _ReadPronouncePracticeScreenState
       if (isFinalRound) {
         await bluetooth.setArms(4);
         await bluetooth.pulseEmotion(2);
+        await bluetooth.setLed(11);
       } else {
         await bluetooth.pulseEmotion(1);
       }

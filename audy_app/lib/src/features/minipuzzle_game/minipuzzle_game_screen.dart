@@ -78,6 +78,7 @@ class _MiniPuzzleGameScreenState extends State<MiniPuzzleGameScreen> {
       await bluetooth.pulseEmotion(isFinalRound ? 2 : 1);
       if (isFinalRound) {
         await bluetooth.setArms(4);
+        await bluetooth.setLed(11);
       }
     } catch (e) {
       debugPrint(

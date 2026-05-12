@@ -31,11 +31,22 @@ class _SocialPracticePageState extends State<SocialPracticePage> {
     super.initState();
     messageController = TextEditingController();
     _scrollController = ScrollController();
+    unawaited(_sendGameEnterBleState());
     _bleMicSub = AudyBluetoothService.instance.incomingMessages.listen(
       _handleBleInput,
     );
     // Scroll to bottom after initial build
     WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
+  }
+
+  Future<void> _sendGameEnterBleState() async {
+    try {
+      await AudyBluetoothService.instance.setLed(20);
+    } catch (e) {
+      debugPrint(
+        'SocialPracticePage: Entry LED BLE state skipped - $e',
+      );
+    }
   }
 
   void _handleBleInput(AudyBleMessage message) {
@@ -47,11 +58,22 @@ class _SocialPracticePageState extends State<SocialPracticePage> {
 
   @override
   void dispose() {
+    unawaited(_resetGameBleState());
     _bleMicSub?.cancel();
     messageController.dispose();
     _scrollController.dispose();
     _speech.stop();
     super.dispose();
+  }
+
+  Future<void> _resetGameBleState() async {
+    try {
+      await AudyBluetoothService.instance.setLed(0);
+    } catch (e) {
+      debugPrint(
+        'SocialPracticePage: Exit LED BLE reset skipped - $e',
+      );
+    }
   }
 
   void _scrollToBottom() {
