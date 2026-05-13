@@ -51,6 +51,57 @@ String _localizedFeatureTitle(BuildContext context, String gameType, String titl
   }
 }
 
+const double _institutionHarderDifficultyThreshold = 0.75;
+
+class _DifficultyRecommendation {
+  const _DifficultyRecommendation({
+    required this.gameType,
+    required this.title,
+    required this.score,
+  });
+
+  final String gameType;
+  final String title;
+  final double score;
+}
+
+List<_DifficultyRecommendation> _skillDifficultyRecommendations(
+  Map<String, double> skillProgress,
+) {
+  final recommendations = skillProgress.entries
+      .where((entry) => entry.value >= _institutionHarderDifficultyThreshold)
+      .map(
+        (entry) => _DifficultyRecommendation(
+          gameType: _gameTypeForSkill(entry.key),
+          title: entry.key,
+          score: entry.value,
+        ),
+      )
+      .toList();
+
+  recommendations.sort((a, b) => b.score.compareTo(a.score));
+  return recommendations.take(3).toList();
+}
+
+String _gameTypeForSkill(String skill) {
+  switch (skill.toLowerCase()) {
+    case 'emotions':
+      return 'emotion_classify';
+    case 'minipuzzle':
+      return 'minipuzzle';
+    case 'sorting':
+      return 'sorting';
+    case 'reaction':
+      return 'reaction_time';
+    case 'reading':
+      return 'reading';
+    case 'social':
+      return 'social_chat';
+    default:
+      return skill;
+  }
+}
+
 class RewardsPage extends StatefulWidget {
   const RewardsPage({super.key});
 
@@ -590,6 +641,8 @@ class _ParentDashboardTab extends StatelessWidget {
       builder: (context, snapshot) {
         final analytics = snapshot.data ?? _emptyAnalytics();
         final latest = analytics.latestSession;
+        final difficultyRecommendations =
+            _skillDifficultyRecommendations(controller.skillPercentages);
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -651,6 +704,12 @@ class _ParentDashboardTab extends StatelessWidget {
                   color: const Color(0xFFF8C7DF),
                 ),
               ],
+            ),
+            SizedBox(height: adaptive.space(24)),
+            _DifficultyInstructionCard(
+              adaptive: adaptive,
+              description: _tr(context, 'difficulty_instruction_parent_desc'),
+              recommendations: difficultyRecommendations,
             ),
             SizedBox(height: adaptive.space(24)),
             _ChartCard(
@@ -811,6 +870,8 @@ class _InstitutionPanelTab extends StatelessWidget {
   Widget build(BuildContext context) {
     final child = controller.currentChildProfile;
     final group = controller.groupPerformance;
+    final difficultyRecommendations =
+        _skillDifficultyRecommendations(group.averageSkillProgress);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -918,6 +979,12 @@ class _InstitutionPanelTab extends StatelessWidget {
               ),
             ],
           ),
+        ),
+        SizedBox(height: adaptive.space(24)),
+        _DifficultyInstructionCard(
+          adaptive: adaptive,
+          description: _tr(context, 'difficulty_instruction_institution_desc'),
+          recommendations: difficultyRecommendations,
         ),
         SizedBox(height: adaptive.space(24)),
 
@@ -2725,6 +2792,165 @@ class _EmptyDashboardState extends StatelessWidget {
           fontWeight: FontWeight.w700,
           color: Color(0xFF60758F),
         ),
+      ),
+    );
+  }
+}
+
+class _DifficultyInstructionCard extends StatelessWidget {
+  const _DifficultyInstructionCard({
+    required this.adaptive,
+    required this.description,
+    required this.recommendations,
+  });
+
+  final AudyAdaptive adaptive;
+  final String description;
+  final List<_DifficultyRecommendation> recommendations;
+
+  @override
+  Widget build(BuildContext context) {
+    return AudyPanel(
+      adaptive: adaptive,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFC9E8C1),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: const Icon(
+                  Icons.trending_up_rounded,
+                  color: Color(0xFF243A5A),
+                  size: 26,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _tr(context, 'difficulty_instruction_title'),
+                      style: TextStyle(
+                        fontSize: adaptive.space(18),
+                        fontWeight: FontWeight.w800,
+                        color: const Color(0xFF243A5A),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      description,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: Color(0xFF60758F),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: adaptive.space(16)),
+          if (recommendations.isEmpty)
+            Text(
+              _tr(context, 'difficulty_instruction_empty'),
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF60758F),
+              ),
+            )
+          else
+            Column(
+              children: recommendations
+                  .map(
+                    (recommendation) => _DifficultyRecommendationRow(
+                      adaptive: adaptive,
+                      recommendation: recommendation,
+                    ),
+                  )
+                  .toList(),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DifficultyRecommendationRow extends StatelessWidget {
+  const _DifficultyRecommendationRow({
+    required this.adaptive,
+    required this.recommendation,
+  });
+
+  final AudyAdaptive adaptive;
+  final _DifficultyRecommendation recommendation;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = _analyticsColor(recommendation.gameType);
+
+    return Padding(
+      padding: EdgeInsets.only(bottom: adaptive.space(10)),
+      child: Row(
+        children: [
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: color,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(
+              _analyticsIcon(recommendation.gameType),
+              color: const Color(0xFF243A5A),
+              size: 22,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _localizedFeatureTitle(
+                    context,
+                    recommendation.gameType,
+                    recommendation.title,
+                  ),
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF243A5A),
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  _tr(context, 'try_harder_difficulty'),
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Color(0xFF60758F),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Text(
+            '${(recommendation.score * 100).round()}%',
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w800,
+              color: Color(0xFF243A5A),
+            ),
+          ),
+        ],
       ),
     );
   }

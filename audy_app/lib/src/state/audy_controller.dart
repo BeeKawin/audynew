@@ -86,40 +86,6 @@ class SkinVariant {
   });
 }
 
-class DailyQuest {
-  final String id;
-  final IconData icon;
-  final String label;
-  final String type;
-  int progress;
-  final int target;
-  final int rewardPoints;
-
-  DailyQuest({
-    required this.id,
-    required this.icon,
-    required this.label,
-    required this.type,
-    this.progress = 0,
-    required this.target,
-    required this.rewardPoints,
-  });
-
-  bool get isCompleted => progress >= target;
-
-  DailyQuest copyWith({int? progress}) {
-    return DailyQuest(
-      id: id,
-      icon: icon,
-      label: label,
-      type: type,
-      progress: progress ?? this.progress,
-      target: target,
-      rewardPoints: rewardPoints,
-    );
-  }
-}
-
 class SocialMessage {
   const SocialMessage({
     required this.id,
@@ -378,7 +344,6 @@ class AudyController extends ChangeNotifier {
     }
     gamesPlayed += 1;
     _trackGameInSession();
-    await updateQuestProgress('game');
     _updateRewardProgress(RewardCondition.emotionClassify);
     _checkAchievements();
     await _saveProgress();
@@ -392,7 +357,6 @@ class AudyController extends ChangeNotifier {
     }
     gamesPlayed += 1;
     _trackGameInSession();
-    await updateQuestProgress('game');
     _updateRewardProgress(RewardCondition.emotionMimic);
     _checkAchievements();
     await _saveProgress();
@@ -1481,7 +1445,6 @@ class AudyController extends ChangeNotifier {
     if (puzzleGamesCompleted >= 1) {
       _unlockAchievement('puzzle_starter');
     }
-    await updateQuestProgress('game');
     _trackGameInSession();
     _updateRewardProgress(RewardCondition.miniPuzzle);
     _checkAchievements();
@@ -1496,7 +1459,6 @@ class AudyController extends ChangeNotifier {
     if (readingExercisesCompleted >= 5) {
       _unlockAchievement('reading_buddy');
     }
-    await updateQuestProgress('learn');
     _trackGameInSession();
     _updateRewardProgress(RewardCondition.reading);
     _checkAchievements();
@@ -1514,7 +1476,6 @@ class AudyController extends ChangeNotifier {
     if (chatMessagesSent >= 10) {
       _unlockAchievement('social_butterfly');
     }
-    await updateQuestProgress('chat');
     _updateRewardProgress(RewardCondition.socialChat);
     _checkAchievements();
     await _saveProgress();
@@ -1528,7 +1489,6 @@ class AudyController extends ChangeNotifier {
     if (sortingGamesCompleted >= 10) {
       _unlockAchievement('sorting_champion');
     }
-    await updateQuestProgress('game');
     _trackGameInSession();
     _updateRewardProgress(RewardCondition.sortingGame);
     _checkAchievements();
@@ -1539,7 +1499,6 @@ class AudyController extends ChangeNotifier {
   /// Track reaction game completed
   Future<void> trackReactionCompleted() async {
     gamesPlayed += 1;
-    await updateQuestProgress('game');
     _trackGameInSession();
     _updateRewardProgress(RewardCondition.reactionTime);
     _checkAchievements();
@@ -1553,7 +1512,6 @@ class AudyController extends ChangeNotifier {
     if (emotionsRecognized >= 5) {
       _unlockAchievement('emotion_explorer');
     }
-    await updateQuestProgress('game');
     _checkAchievements();
     await _saveProgress();
     notifyListeners();
@@ -1566,7 +1524,6 @@ class AudyController extends ChangeNotifier {
     }
     gamesPlayed += 1;
     _trackGameInSession();
-    await updateQuestProgress('game');
     _checkAchievements();
     await _saveProgress();
     notifyListeners();
@@ -1888,142 +1845,6 @@ class AudyController extends ChangeNotifier {
     _mimicEmotions = _buildShuffledMimicEmotions();
 
     userRewards = [];
-
-    // Initialize daily quests
-    _initDailyQuests();
-  }
-
-  // Daily Quests Pool
-  static final List<DailyQuest> _questPool = [
-    // Games
-    DailyQuest(
-      id: 'play_emotion',
-      icon: Icons.sentiment_satisfied_rounded,
-      label: 'Emotion',
-      type: 'game',
-      target: 1,
-      rewardPoints: 10,
-    ),
-    DailyQuest(
-      id: 'play_puzzle',
-      icon: Icons.extension_rounded,
-      label: 'Puzzle',
-      type: 'game',
-      target: 1,
-      rewardPoints: 10,
-    ),
-    DailyQuest(
-      id: 'play_sorting',
-      icon: Icons.category_rounded,
-      label: 'Sorting',
-      type: 'game',
-      target: 1,
-      rewardPoints: 10,
-    ),
-    DailyQuest(
-      id: 'play_reaction',
-      icon: Icons.flash_on_rounded,
-      label: 'React',
-      type: 'game',
-      target: 1,
-      rewardPoints: 10,
-    ),
-    // Chat
-    DailyQuest(
-      id: 'send_messages',
-      icon: Icons.chat_bubble_rounded,
-      label: 'Chat',
-      type: 'chat',
-      target: 3,
-      rewardPoints: 15,
-    ),
-    DailyQuest(
-      id: 'chat_session',
-      icon: Icons.forum_rounded,
-      label: 'Talk',
-      type: 'chat',
-      target: 1,
-      rewardPoints: 12,
-    ),
-    // Learn
-    DailyQuest(
-      id: 'read_story',
-      icon: Icons.menu_book_rounded,
-      label: 'Read',
-      type: 'learn',
-      target: 1,
-      rewardPoints: 10,
-    ),
-    DailyQuest(
-      id: 'learn_emotion',
-      icon: Icons.face_rounded,
-      label: 'Faces',
-      type: 'learn',
-      target: 2,
-      rewardPoints: 12,
-    ),
-  ];
-
-  // Daily Quests State
-  List<DailyQuest> dailyQuests = [];
-  int dailyQuestsCompleted = 0;
-  bool _allQuestsBonusGiven = false;
-
-  /// Initialize daily quests - randomly select 3 from pool
-  void _initDailyQuests() {
-    final random = Random();
-    final shuffled = List<DailyQuest>.from(_questPool)..shuffle(random);
-    dailyQuests = shuffled.take(3).map((q) => q.copyWith(progress: 0)).toList();
-    dailyQuestsCompleted = 0;
-    _allQuestsBonusGiven = false;
-  }
-
-  /// Update quest progress by type
-  Future<void> updateQuestProgress(String type, {int amount = 1}) async {
-    bool progressUpdated = false;
-    int pointsEarned = 0;
-
-    for (var i = 0; i < dailyQuests.length; i++) {
-      final quest = dailyQuests[i];
-      if (quest.type == type && !quest.isCompleted) {
-        final newProgress = min(quest.progress + amount, quest.target);
-        if (newProgress != quest.progress) {
-          dailyQuests[i] = quest.copyWith(progress: newProgress);
-          progressUpdated = true;
-
-          // Check if just completed
-          if (dailyQuests[i].isCompleted) {
-            dailyQuestsCompleted++;
-            pointsEarned += quest.rewardPoints;
-          }
-        }
-      }
-    }
-
-    // Check if all quests completed for bonus
-    if (dailyQuestsCompleted >= 3 && !_allQuestsBonusGiven) {
-      _allQuestsBonusGiven = true;
-      pointsEarned += 20; // Bonus points
-      progressUpdated = true;
-      // Could trigger a celebration here
-    }
-
-    // Persist quest reward points to storage
-    if (pointsEarned > 0) {
-      learningPoints += pointsEarned;
-      await _saveProgress();
-    }
-
-    // Always notify when progress changes
-    if (progressUpdated) {
-      notifyListeners();
-    }
-  }
-
-  /// Reset daily quests (call when needed)
-  void resetDailyQuests() {
-    _initDailyQuests();
-    notifyListeners();
   }
 }
 

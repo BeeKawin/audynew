@@ -6,10 +6,10 @@ void main() {
     await tester.pumpWidget(const AudyApp());
 
     expect(find.text('AUDY'), findsOneWidget);
-    expect(find.text('Today\'s Progress'), findsOneWidget);
+    expect(find.text('Assignments'), findsOneWidget);
+    expect(find.text('No assignments yet'), findsOneWidget);
     expect(find.text('Activities'), findsOneWidget);
     expect(find.text('Games'), findsOneWidget);
-    expect(find.text('Autism-Friendly Learning App'), findsOneWidget);
 
     final gamesFinder = find.text('Games').first;
     await tester.ensureVisible(gamesFinder);
@@ -17,6 +17,6 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Play and learn with fun activities!'), findsOneWidget);
-    expect(find.text('Emotion Game'), findsOneWidget);
+    expect(find.text('What is this emotion?'), findsOneWidget);
   });
 }

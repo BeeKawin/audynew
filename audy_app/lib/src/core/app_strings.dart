@@ -18,8 +18,45 @@ class AppStrings {
     'read_speak': {'en': 'Read & Speak', 'th': 'อ่านและพูด'},
     'social_chat': {'en': 'Social Chat', 'th': 'คุยแชท'},
     'rewards': {'en': 'Rewards', 'th': 'รางวัล'},
-    'daily_quests': {'en': 'Daily Quests', 'th': 'ภารกิจประจำวัน'},
-    'bonus': {'en': 'Bonus!', 'th': 'โบนัส!'},
+    'assignments': {'en': 'Assignments', 'th': 'งานที่มอบหมาย'},
+    'add_assignment': {'en': 'Add', 'th': 'เพิ่ม'},
+    'create_assignment': {
+      'en': 'Create Assignment',
+      'th': 'สร้างงานที่มอบหมาย',
+    },
+    'assignment_feature_label': {'en': 'Feature', 'th': 'กิจกรรม'},
+    'difficulty_label': {'en': 'Difficulty', 'th': 'ระดับความยาก'},
+    'assignment_target_label': {'en': 'Times today', 'th': 'จำนวนครั้งวันนี้'},
+    'assignment_limit_reached': {'en': '3 today', 'th': 'ครบ 3 งาน'},
+    'no_assignments_today': {
+      'en': 'No assignments yet',
+      'th': 'ยังไม่มีงานวันนี้',
+    },
+    'create_assignment_hint': {
+      'en': 'Add up to 3 calm tasks for today.',
+      'th': 'เพิ่มงานที่สงบได้สูงสุด 3 งานสำหรับวันนี้',
+    },
+    'assignment_recommendations': {
+      'en': 'Recommended',
+      'th': 'แนะนำ',
+    },
+    'assignment_recommendations_desc': {
+      'en': 'Based on features above 80% accuracy.',
+      'th': 'อ้างอิงจากกิจกรรมที่แม่นยำมากกว่า 80%',
+    },
+    'assignment_recommendations_loading': {
+      'en': 'Checking recent progress...',
+      'th': 'กำลังดูความก้าวหน้าล่าสุด...',
+    },
+    'assignment_recommendations_empty': {
+      'en': 'No strong match yet. Keep today simple.',
+      'th': 'ยังไม่มีคำแนะนำที่ชัดเจน วันนี้ทำแบบง่ายก่อน',
+    },
+    'assignment_accuracy_value': {
+      'en': '{percent}% accuracy',
+      'th': 'แม่นยำ {percent}%',
+    },
+    'use': {'en': 'Use', 'th': 'ใช้'},
     'my_device': {'en': 'My Device', 'th': 'อุปกรณ์ของฉัน'},
     'reset_count': {'en': 'Reset count', 'th': 'รีเซ็ตจำนวน'},
     'break_time_now': {'en': 'Time for a break!', 'th': 'ได้เวลาพักแล้ว!'},
@@ -527,6 +564,26 @@ class AppStrings {
     'games_completed': {'en': 'Games Completed', 'th': 'เกมที่ทำเสร็จ'},
     'current_streak': {'en': 'Current Streak', 'th': 'ต่อเนื่องปัจจุบัน'},
     'skill_progress': {'en': 'Skill Progress', 'th': 'ความก้าวหน้าทักษะ'},
+    'difficulty_instruction_title': {
+      'en': 'Difficulty Guidance',
+      'th': 'คำแนะนำระดับความยาก',
+    },
+    'difficulty_instruction_parent_desc': {
+      'en': 'These skills look strong this week. Try a harder level next.',
+      'th': 'ทักษะเหล่านี้ทำได้ดีในสัปดาห์นี้ ลองระดับที่ยากขึ้นครั้งต่อไป',
+    },
+    'difficulty_instruction_institution_desc': {
+      'en': 'These skills are strong for this child. Caretakers can offer harder practice.',
+      'th': 'ทักษะเหล่านี้เป็นจุดแข็งของเด็ก ผู้ดูแลสามารถเพิ่มความยากได้',
+    },
+    'difficulty_instruction_empty': {
+      'en': 'Keep the current level for now and review again after more sessions.',
+      'th': 'ใช้ระดับปัจจุบันไปก่อน แล้วตรวจดูอีกครั้งหลังเล่นเพิ่ม',
+    },
+    'try_harder_difficulty': {
+      'en': 'Try harder difficulty',
+      'th': 'ลองระดับที่ยากขึ้น',
+    },
     'export_report': {'en': 'Export Report', 'th': 'ส่งออกรายงาน'},
     'export_report_desc': {
       'en': 'Generate and export progress reports for documentation and sharing with parents or therapists.',
