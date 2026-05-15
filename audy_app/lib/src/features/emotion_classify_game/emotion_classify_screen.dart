@@ -22,6 +22,20 @@ class EmotionClassifyScreen extends StatefulWidget {
 }
 
 class _EmotionClassifyScreenState extends State<EmotionClassifyScreen> {
+  static const List<String> _fixedChoiceOrder = [
+    'Happy',
+    'Sad',
+    'Angry',
+    'Scared',
+  ];
+
+  static const Map<String, Color> _choicePalette = {
+    'Happy': Color(0xFFFFF2A8),
+    'Sad': Color(0xFFBDD8F2),
+    'Angry': Color.fromARGB(255, 223, 171, 206),
+    'Scared': Color.fromARGB(255, 114, 196, 126),
+  };
+
   String? _selectedAnswer;
   bool _showingFeedback = false;
   bool _isCorrect = false;
@@ -62,7 +76,7 @@ class _EmotionClassifyScreenState extends State<EmotionClassifyScreen> {
 
     if (controller.isClassifyGameComplete) return;
 
-    final options = controller.currentClassifyQuestion.options;
+    final options = _orderedOptionsFor(controller.currentClassifyQuestion);
 
     if (answerIndex < 0 || answerIndex >= options.length) return;
 
@@ -101,13 +115,6 @@ class _EmotionClassifyScreenState extends State<EmotionClassifyScreen> {
   Widget build(BuildContext context) {
     final controller = AudyScope.of(context);
 
-    const palette = {
-      'Happy': Color(0xFFFFF2A8),
-      'Sad': Color(0xFFBDD8F2),
-      'Angry': Color(0xFFFFDAC7),
-      'Scared': Color(0xFFDDD0F4),
-    };
-
     if (controller.isClassifyGameComplete) {
       return EmotionClassifyCompleteScreen(
         controller: controller,
@@ -116,6 +123,7 @@ class _EmotionClassifyScreenState extends State<EmotionClassifyScreen> {
     }
 
     final question = controller.currentClassifyQuestion;
+    final orderedOptions = _orderedOptionsFor(question);
     final imagePath = _imagePathForRound(
       controller.classifyCurrentRound,
       question.correctAnswer,
@@ -135,9 +143,7 @@ class _EmotionClassifyScreenState extends State<EmotionClassifyScreen> {
                     controller.resetClassifyGame();
                     Navigator.pop(context);
                   },
-                  borderRadius: BorderRadius.circular(
-                    AudySpacing.radiusMedium,
-                  ),
+                  borderRadius: BorderRadius.circular(AudySpacing.radiusMedium),
                   child: SizedBox(
                     width: AudySpacing.touchTargetMin,
                     height: AudySpacing.touchTargetMin,
@@ -204,13 +210,13 @@ class _EmotionClassifyScreenState extends State<EmotionClassifyScreen> {
                     mainAxisSpacing: AudySpacing.elementGap,
                     crossAxisSpacing: AudySpacing.elementGap,
                     childAspectRatio: 2.2,
-                    children: question.options.map((option) {
+                    children: orderedOptions.map((option) {
                       final isSelected = _selectedAnswer == option;
                       final isAnswered = _showingFeedback;
                       final correctOption = option == question.correctAnswer;
 
                       Color cardColor =
-                          palette[option] ?? const Color(0xFFE7D8FA);
+                          _choicePalette[option] ?? const Color(0xFFE7D8FA);
                       if (isAnswered) {
                         if (correctOption) {
                           cardColor = AudyColors.mintGreen;
@@ -311,6 +317,17 @@ class _EmotionClassifyScreenState extends State<EmotionClassifyScreen> {
     });
   }
 
+  List<String> _orderedOptionsFor(EmotionQuestion question) {
+    final fixedOptions = _fixedChoiceOrder
+        .where(question.options.contains)
+        .toList(growable: false);
+    final extraOptions = question.options
+        .where((option) => !_fixedChoiceOrder.contains(option))
+        .toList(growable: false);
+
+    return [...fixedOptions, ...extraOptions];
+  }
+
   String? _imagePathForRound(int round, String emotion) {
     if (!EmotionImages.hasImages(emotion)) return null;
     return _roundImagePaths.putIfAbsent(
@@ -319,9 +336,7 @@ class _EmotionClassifyScreenState extends State<EmotionClassifyScreen> {
     );
   }
 
-  Future<void> _sendCorrectAnswerBleSignal({
-    required bool isFinalRound,
-  }) async {
+  Future<void> _sendCorrectAnswerBleSignal({required bool isFinalRound}) async {
     try {
       final bluetooth = AudyBluetoothService.instance;
       await bluetooth.pulseEmotion(isFinalRound ? 2 : 1);
