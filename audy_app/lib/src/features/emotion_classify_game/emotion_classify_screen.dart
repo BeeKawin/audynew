@@ -10,6 +10,8 @@ import '../../services/bluetooth_service.dart';
 import '../../services/sound_service.dart';
 import '../../state/audy_controller.dart';
 import '../../widgets/game_guide_box.dart';
+import '../../widgets/robot_panel_layout.dart';
+import '../../widgets/virtual_robot_panel.dart';
 import 'emotion_classify_complete_screen.dart';
 
 /// "What is this emotion?" - Classification game
@@ -86,6 +88,16 @@ class _EmotionClassifyScreenState extends State<EmotionClassifyScreen> {
     _handleAnswer(selectedAnswer, controller);
   }
 
+  void _triggerVirtualInput(String channel, int value) {
+    _handleBleInput(
+      AudyBleMessage(
+        channel: channel,
+        value: value,
+        receivedAt: DateTime.now(),
+      ),
+    );
+  }
+
   int? _answerIndexFromBle(AudyBleMessage message) {
     switch (message.channel) {
       case 'ears':
@@ -132,151 +144,177 @@ class _EmotionClassifyScreenState extends State<EmotionClassifyScreen> {
     return AudyResponsivePage(
       scrollable: false,
       builder: (context, adaptive) {
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                InkWell(
-                  onTap: () {
-                    SoundService.instance.playTap();
-                    controller.resetClassifyGame();
-                    Navigator.pop(context);
-                  },
-                  borderRadius: BorderRadius.circular(AudySpacing.radiusMedium),
-                  child: SizedBox(
-                    width: AudySpacing.touchTargetMin,
-                    height: AudySpacing.touchTargetMin,
-                    child: const Icon(
-                      Icons.arrow_back_rounded,
-                      size: AudySpacing.iconMedium,
+        return ValueListenableBuilder<bool>(
+          valueListenable: AudyBluetoothService.instance.connectionNotifier,
+          builder: (context, isConnected, _) {
+            return RobotPanelLayout(
+              adaptive: adaptive,
+              showPanel: !isConnected,
+              panelBuilder: (isHorizontal) => VirtualRobotPanel(
+                adaptive: adaptive,
+                isHorizontal: isHorizontal,
+                onEarsLeftTap: () => _triggerVirtualInput('ears', 1),
+                onEarsRightTap: () => _triggerVirtualInput('ears', 2),
+                onForceLeftTap: () => _triggerVirtualInput('force', 1),
+                onForceRightTap: () => _triggerVirtualInput('force', 2),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      InkWell(
+                        onTap: () {
+                          SoundService.instance.playTap();
+                          controller.resetClassifyGame();
+                          Navigator.pop(context);
+                        },
+                        borderRadius: BorderRadius.circular(
+                          AudySpacing.radiusMedium,
+                        ),
+                        child: SizedBox(
+                          width: AudySpacing.touchTargetMin,
+                          height: AudySpacing.touchTargetMin,
+                          child: const Icon(
+                            Icons.arrow_back_rounded,
+                            size: AudySpacing.iconMedium,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: AudySpacing.elementGap),
+                      Text(
+                        controller.tr(
+                          'round_format',
+                          params: {
+                            'current': controller.classifyCurrentRound
+                                .toString(),
+                            'total': controller.classifyTotalRounds.toString(),
+                          },
+                        ),
+                        style: AudyTypography.labelLarge,
+                      ),
+                      const SizedBox(width: AudySpacing.elementGap),
+                      Text(
+                        controller.tr(
+                          'score_format',
+                          params: {
+                            'score': controller.classifyScore.toString(),
+                          },
+                        ),
+                        style: AudyTypography.labelLarge.copyWith(
+                          color: AudyColors.mintGreen,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AudySpacing.sectionGap),
+                  if (_showGuide) ...[
+                    GameGuideBox(
+                      message: controller.tr('guide_emotion_classify'),
+                      onDismissed: () => setState(() => _showGuide = false),
+                    ),
+                    const SizedBox(height: AudySpacing.elementGap),
+                  ],
+                  Center(
+                    child: Text(
+                      controller.tr('what_emotion'),
+                      style: AudyTypography.displayMedium,
+                      textAlign: TextAlign.center,
                     ),
                   ),
-                ),
-                const SizedBox(width: AudySpacing.elementGap),
-                Text(
-                  controller.tr(
-                    'round_format',
-                    params: {
-                      'current': controller.classifyCurrentRound.toString(),
-                      'total': controller.classifyTotalRounds.toString(),
-                    },
+                  const SizedBox(height: AudySpacing.sectionGap),
+                  Center(
+                    child: EmotionCharacterWidget(
+                      emotion: question.correctAnswer,
+                      size: 180,
+                      useHumanImage: true,
+                      imagePath: imagePath,
+                    ),
                   ),
-                  style: AudyTypography.labelLarge,
-                ),
-                const SizedBox(width: AudySpacing.elementGap),
-                Text(
-                  controller.tr(
-                    'score_format',
-                    params: {'score': controller.classifyScore.toString()},
-                  ),
-                  style: AudyTypography.labelLarge.copyWith(
-                    color: AudyColors.mintGreen,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: AudySpacing.sectionGap),
-            if (_showGuide) ...[
-              GameGuideBox(
-                message: controller.tr('guide_emotion_classify'),
-                onDismissed: () => setState(() => _showGuide = false),
-              ),
-              const SizedBox(height: AudySpacing.elementGap),
-            ],
-            Center(
-              child: Text(
-                controller.tr('what_emotion'),
-                style: AudyTypography.displayMedium,
-                textAlign: TextAlign.center,
-              ),
-            ),
-            const SizedBox(height: AudySpacing.sectionGap),
-            Center(
-              child: EmotionCharacterWidget(
-                emotion: question.correctAnswer,
-                size: 180,
-                useHumanImage: true,
-                imagePath: imagePath,
-              ),
-            ),
-            const SizedBox(height: AudySpacing.sectionGap),
-            Expanded(
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 600),
-                  child: GridView.count(
-                    crossAxisCount: 2,
-                    mainAxisSpacing: AudySpacing.elementGap,
-                    crossAxisSpacing: AudySpacing.elementGap,
-                    childAspectRatio: 2.2,
-                    children: orderedOptions.map((option) {
-                      final isSelected = _selectedAnswer == option;
-                      final isAnswered = _showingFeedback;
-                      final correctOption = option == question.correctAnswer;
+                  const SizedBox(height: AudySpacing.sectionGap),
+                  Expanded(
+                    child: Center(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 600),
+                        child: GridView.count(
+                          crossAxisCount: 2,
+                          mainAxisSpacing: AudySpacing.elementGap,
+                          crossAxisSpacing: AudySpacing.elementGap,
+                          childAspectRatio: 2.2,
+                          children: orderedOptions.map((option) {
+                            final isSelected = _selectedAnswer == option;
+                            final isAnswered = _showingFeedback;
+                            final correctOption =
+                                option == question.correctAnswer;
 
-                      Color cardColor =
-                          _choicePalette[option] ?? const Color(0xFFE7D8FA);
-                      if (isAnswered) {
-                        if (correctOption) {
-                          cardColor = AudyColors.mintGreen;
-                        } else if (isSelected && !_isCorrect) {
-                          cardColor = AudyColors.error.withValues(alpha: 0.3);
-                        }
-                      }
+                            Color cardColor =
+                                _choicePalette[option] ??
+                                const Color(0xFFE7D8FA);
+                            if (isAnswered) {
+                              if (correctOption) {
+                                cardColor = AudyColors.mintGreen;
+                              } else if (isSelected && !_isCorrect) {
+                                cardColor = AudyColors.error.withValues(
+                                  alpha: 0.3,
+                                );
+                              }
+                            }
 
-                      return InkWell(
-                        onTap: isAnswered
-                            ? null
-                            : () {
-                                SoundService.instance.playTap();
-                                _handleAnswer(option, controller);
-                              },
-                        borderRadius: BorderRadius.circular(
-                          AudySpacing.radiusLarge,
-                        ),
-                        child: AnimatedContainer(
-                          duration: AudyAnimation.normal,
-                          decoration: BoxDecoration(
-                            color: cardColor,
-                            borderRadius: BorderRadius.circular(
-                              AudySpacing.radiusLarge,
-                            ),
-                            boxShadow: AudyShadows.cardShadow,
-                            border: isSelected
-                                ? Border.all(
-                                    color: AudyColors.skyBlue,
-                                    width: 3,
-                                  )
-                                : null,
-                          ),
-                          child: Center(
-                            child: Text(
-                              option,
-                              style: AudyTypography.headingSmall.copyWith(
-                                color: AudyColors.textPrimary,
+                            return InkWell(
+                              onTap: isAnswered
+                                  ? null
+                                  : () {
+                                      SoundService.instance.playTap();
+                                      _handleAnswer(option, controller);
+                                    },
+                              borderRadius: BorderRadius.circular(
+                                AudySpacing.radiusLarge,
                               ),
-                            ),
-                          ),
+                              child: AnimatedContainer(
+                                duration: AudyAnimation.normal,
+                                decoration: BoxDecoration(
+                                  color: cardColor,
+                                  borderRadius: BorderRadius.circular(
+                                    AudySpacing.radiusLarge,
+                                  ),
+                                  boxShadow: AudyShadows.cardShadow,
+                                  border: isSelected
+                                      ? Border.all(
+                                          color: AudyColors.skyBlue,
+                                          width: 3,
+                                        )
+                                      : null,
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    option,
+                                    style: AudyTypography.headingSmall.copyWith(
+                                      color: AudyColors.textPrimary,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            );
+                          }).toList(),
                         ),
-                      );
-                    }).toList(),
+                      ),
+                    ),
                   ),
-                ),
+                  if (_showingFeedback) ...[
+                    const SizedBox(height: AudySpacing.elementGap),
+                    Center(
+                      child: Text(
+                        controller.classifyFeedback,
+                        textAlign: TextAlign.center,
+                        style: AudyTypography.bodyLarge,
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: AudySpacing.smallGap),
+                ],
               ),
-            ),
-            if (_showingFeedback) ...[
-              const SizedBox(height: AudySpacing.elementGap),
-              Center(
-                child: Text(
-                  controller.classifyFeedback,
-                  textAlign: TextAlign.center,
-                  style: AudyTypography.bodyLarge,
-                ),
-              ),
-            ],
-            const SizedBox(height: AudySpacing.smallGap),
-          ],
+            );
+          },
         );
       },
     );

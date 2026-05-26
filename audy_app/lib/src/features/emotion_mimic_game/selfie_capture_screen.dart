@@ -14,6 +14,8 @@ import '../../services/bluetooth_service.dart';
 import '../../services/emotion_service.dart';
 import '../../services/face_guidance_service.dart';
 import '../../services/sound_service.dart';
+import '../../widgets/robot_panel_layout.dart';
+import '../../widgets/virtual_robot_panel.dart';
 import 'mimic_result_screen.dart';
 
 class SelfieCaptureScreen extends StatefulWidget {
@@ -59,6 +61,16 @@ class _SelfieCaptureScreenState extends State<SelfieCaptureScreen> {
     if (_isProcessing || !_isCameraReady) return;
 
     unawaited(_takePhoto());
+  }
+
+  void _triggerVirtualInput(String channel, int value) {
+    _handleBleInput(
+      AudyBleMessage(
+        channel: channel,
+        value: value,
+        receivedAt: DateTime.now(),
+      ),
+    );
   }
 
   Future<void> _initCamera() async {
@@ -313,101 +325,124 @@ class _SelfieCaptureScreenState extends State<SelfieCaptureScreen> {
     return AudyResponsivePage(
       scrollable: false,
       builder: (context, adaptive) {
-        return Column(
-          children: [
-            Row(
-              children: [
-                InkWell(
-                  onTap: () {
-                    SoundService.instance.playTap();
-                    Navigator.pop(context);
-                  },
-                  borderRadius: BorderRadius.circular(AudySpacing.radiusMedium),
-                  child: SizedBox(
-                    width: AudySpacing.touchTargetMin,
-                    height: AudySpacing.touchTargetMin,
-                    child: const Icon(
-                      Icons.arrow_back_rounded,
-                      size: AudySpacing.iconMedium,
-                    ),
+        return ValueListenableBuilder<bool>(
+          valueListenable: AudyBluetoothService.instance.connectionNotifier,
+          builder: (context, isConnected, _) {
+            return RobotPanelLayout(
+              adaptive: adaptive,
+              showPanel: !isConnected,
+              panelBuilder: (isHorizontal) => VirtualRobotPanel(
+                adaptive: adaptive,
+                isHorizontal: isHorizontal,
+                onTummyTap: () => _triggerVirtualInput('tummy', 1),
+              ),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      InkWell(
+                        onTap: () {
+                          SoundService.instance.playTap();
+                          Navigator.pop(context);
+                        },
+                        borderRadius: BorderRadius.circular(
+                          AudySpacing.radiusMedium,
+                        ),
+                        child: SizedBox(
+                          width: AudySpacing.touchTargetMin,
+                          height: AudySpacing.touchTargetMin,
+                          child: const Icon(
+                            Icons.arrow_back_rounded,
+                            size: AudySpacing.iconMedium,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: AudySpacing.elementGap),
-            Text('Make this face', style: AudyTypography.headingMedium),
-            const SizedBox(height: AudySpacing.smallGap),
-            EmotionCharacterWidget(emotion: widget.targetEmotion, size: 120),
-            const SizedBox(height: AudySpacing.sectionGap),
-            Expanded(
-              child: Container(
-                decoration: BoxDecoration(
-                  color: AudyColors.backgroundSoft,
-                  borderRadius: BorderRadius.circular(AudySpacing.radiusXLarge),
-                  boxShadow: AudyShadows.cardShadow,
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(AudySpacing.radiusXLarge),
-                  child: _buildCameraView(),
-                ),
-              ),
-            ),
-            const SizedBox(height: AudySpacing.smallGap),
-            _buildGuidanceMessage(),
-            const SizedBox(height: AudySpacing.sectionGap),
-            if (_errorMessage != null)
-              Text(
-                _errorMessage!,
-                textAlign: TextAlign.center,
-                style: AudyTypography.bodyMedium.copyWith(
-                  color: AudyColors.error,
-                ),
-              ),
-            if (_errorMessage == null) ...[
-              SizedBox(
-                width: double.infinity,
-                height: AudySpacing.buttonHeight + 12,
-                child: ElevatedButton(
-                  onPressed: _isProcessing || !_isCameraReady
-                      ? null
-                      : _takePhoto,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AudyColors.mintGreen,
-                    foregroundColor: AudyColors.textOnColor,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(
-                        AudySpacing.radiusXLarge,
+                  const SizedBox(height: AudySpacing.elementGap),
+                  Text('Make this face', style: AudyTypography.headingMedium),
+                  const SizedBox(height: AudySpacing.smallGap),
+                  EmotionCharacterWidget(
+                    emotion: widget.targetEmotion,
+                    size: 120,
+                  ),
+                  const SizedBox(height: AudySpacing.sectionGap),
+                  Expanded(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: AudyColors.backgroundSoft,
+                        borderRadius: BorderRadius.circular(
+                          AudySpacing.radiusXLarge,
+                        ),
+                        boxShadow: AudyShadows.cardShadow,
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(
+                          AudySpacing.radiusXLarge,
+                        ),
+                        child: _buildCameraView(),
                       ),
                     ),
-                    elevation: 4,
                   ),
-                  child: _isProcessing
-                      ? const SizedBox(
-                          width: 28,
-                          height: 28,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 3,
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              AudyColors.textOnColor,
+                  const SizedBox(height: AudySpacing.smallGap),
+                  _buildGuidanceMessage(),
+                  const SizedBox(height: AudySpacing.sectionGap),
+                  if (_errorMessage != null)
+                    Text(
+                      _errorMessage!,
+                      textAlign: TextAlign.center,
+                      style: AudyTypography.bodyMedium.copyWith(
+                        color: AudyColors.error,
+                      ),
+                    ),
+                  if (_errorMessage == null) ...[
+                    SizedBox(
+                      width: double.infinity,
+                      height: AudySpacing.buttonHeight + 12,
+                      child: ElevatedButton(
+                        onPressed: _isProcessing || !_isCameraReady
+                            ? null
+                            : _takePhoto,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AudyColors.mintGreen,
+                          foregroundColor: AudyColors.textOnColor,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(
+                              AudySpacing.radiusXLarge,
                             ),
                           ),
-                        )
-                      : Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(Icons.camera_rounded, size: 32),
-                            const SizedBox(width: 12),
-                            Text(
-                              'Take Photo',
-                              style: AudyTypography.buttonText,
-                            ),
-                          ],
+                          elevation: 4,
                         ),
-                ),
+                        child: _isProcessing
+                            ? const SizedBox(
+                                width: 28,
+                                height: 28,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 3,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    AudyColors.textOnColor,
+                                  ),
+                                ),
+                              )
+                            : Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Icon(Icons.camera_rounded, size: 32),
+                                  const SizedBox(width: 12),
+                                  Text(
+                                    'Take Photo',
+                                    style: AudyTypography.buttonText,
+                                  ),
+                                ],
+                              ),
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: AudySpacing.sectionGap),
+                ],
               ),
-            ],
-            const SizedBox(height: AudySpacing.sectionGap),
-          ],
+            );
+          },
         );
       },
     );

@@ -11,6 +11,8 @@ import '../../services/sound_service.dart';
 import '../../state/audy_controller.dart';
 import '../../widgets/game_guide_box.dart';
 import '../../widgets/point_celebration_dialog.dart';
+import '../../widgets/robot_panel_layout.dart';
+import '../../widgets/virtual_robot_panel.dart';
 
 // Helper function to get localized string
 String _tr(BuildContext context, String key, {Map<String, String>? params}) {
@@ -55,6 +57,16 @@ class _ReactionTimePageState extends State<ReactionTimePage> {
     if (controller.isReactionGameComplete) return;
 
     unawaited(_handleClickBoxTap(playSound: true));
+  }
+
+  void _triggerVirtualInput(String channel, int value) {
+    _handleBleInput(
+      AudyBleMessage(
+        channel: channel,
+        value: value,
+        receivedAt: DateTime.now(),
+      ),
+    );
   }
 
   void _handleVisibleClickBoxTap() {
@@ -160,106 +172,124 @@ class _ReactionTimePageState extends State<ReactionTimePage> {
             break;
         }
 
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _TopRow(
+        return ValueListenableBuilder<bool>(
+          valueListenable: AudyBluetoothService.instance.connectionNotifier,
+          builder: (context, isConnected, _) {
+            return RobotPanelLayout(
               adaptive: adaptive,
-              leadingLabel: _tr(context, 'back_home'),
-              trailingText: _tr(
-                context,
-                'round_format',
-                params: {
-                  'current': controller.reactionRound.toString(),
-                  'total': controller.reactionTotalRounds.toString(),
-                },
+              showPanel: !isConnected,
+              panelBuilder: (isHorizontal) => VirtualRobotPanel(
+                adaptive: adaptive,
+                isHorizontal: isHorizontal,
+                onTummyTap: () => _triggerVirtualInput('tummy', 1),
               ),
-            ),
-            SizedBox(height: adaptive.space(12)),
-            if (_showGuide) ...[
-              GameGuideBox(
-                message: _tr(context, 'guide_reaction_time'),
-                onDismissed: () => setState(() => _showGuide = false),
-              ),
-              SizedBox(height: adaptive.space(12)),
-            ],
-            SizedBox(height: adaptive.space(24)),
-            Center(
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    _tr(context, 'reaction_time'),
-                    style: TextStyle(
-                      fontSize: adaptive.space(28),
-                      fontWeight: FontWeight.w800,
-                      color: const Color(0xFF243A5A),
+                  _TopRow(
+                    adaptive: adaptive,
+                    leadingLabel: _tr(context, 'back_home'),
+                    trailingText: _tr(
+                      context,
+                      'round_format',
+                      params: {
+                        'current': controller.reactionRound.toString(),
+                        'total': controller.reactionTotalRounds.toString(),
+                      },
                     ),
                   ),
-                  SizedBox(height: adaptive.space(8)),
-                  Text(
-                    _tr(context, 'tap_when_green'),
-                    style: TextStyle(
-                      fontSize: adaptive.space(15),
-                      color: const Color(0xFF617691),
+                  SizedBox(height: adaptive.space(12)),
+                  if (_showGuide) ...[
+                    GameGuideBox(
+                      message: _tr(context, 'guide_reaction_time'),
+                      onDismissed: () => setState(() => _showGuide = false),
+                    ),
+                    SizedBox(height: adaptive.space(12)),
+                  ],
+                  SizedBox(height: adaptive.space(24)),
+                  Center(
+                    child: Column(
+                      children: [
+                        Text(
+                          _tr(context, 'reaction_time'),
+                          style: TextStyle(
+                            fontSize: adaptive.space(28),
+                            fontWeight: FontWeight.w800,
+                            color: const Color(0xFF243A5A),
+                          ),
+                        ),
+                        SizedBox(height: adaptive.space(8)),
+                        Text(
+                          _tr(context, 'tap_when_green'),
+                          style: TextStyle(
+                            fontSize: adaptive.space(15),
+                            color: const Color(0xFF617691),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(height: adaptive.space(20)),
+                  Center(
+                    child: Text(
+                      topText,
+                      style: TextStyle(
+                        fontSize: adaptive.space(32),
+                        fontWeight: FontWeight.w800,
+                        color: const Color(0xFF243A5A),
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: adaptive.space(16)),
+                  SizedBox(
+                    height: adaptive.isPhone ? 260 : 420,
+                    child: InkWell(
+                      onTap: _handleVisibleClickBoxTap,
+                      borderRadius: BorderRadius.circular(adaptive.space(28)),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        width: double.infinity,
+                        height: double.infinity,
+                        decoration: BoxDecoration(
+                          color: containerColor,
+                          borderRadius: BorderRadius.circular(
+                            adaptive.space(28),
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(
+                                0xFF99A9C0,
+                              ).withValues(alpha: 0.15),
+                              blurRadius: 22,
+                              offset: const Offset(0, 12),
+                            ),
+                          ],
+                        ),
+                        child: Center(
+                          child: Icon(
+                            containerIcon,
+                            size: adaptive.isPhone ? 72 : 96,
+                            color: iconColor,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: adaptive.space(16)),
+                  Center(
+                    child: Text(
+                      controller.reactionFeedback,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: adaptive.space(14),
+                        color: const Color(0xFF60758F),
+                      ),
                     ),
                   ),
                 ],
               ),
-            ),
-            SizedBox(height: adaptive.space(20)),
-            Center(
-              child: Text(
-                topText,
-                style: TextStyle(
-                  fontSize: adaptive.space(32),
-                  fontWeight: FontWeight.w800,
-                  color: const Color(0xFF243A5A),
-                ),
-              ),
-            ),
-            SizedBox(height: adaptive.space(16)),
-            SizedBox(
-              height: adaptive.isPhone ? 260 : 420,
-              child: InkWell(
-                onTap: _handleVisibleClickBoxTap,
-                borderRadius: BorderRadius.circular(adaptive.space(28)),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  width: double.infinity,
-                  height: double.infinity,
-                  decoration: BoxDecoration(
-                    color: containerColor,
-                    borderRadius: BorderRadius.circular(adaptive.space(28)),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFF99A9C0).withValues(alpha: 0.15),
-                        blurRadius: 22,
-                        offset: const Offset(0, 12),
-                      ),
-                    ],
-                  ),
-                  child: Center(
-                    child: Icon(
-                      containerIcon,
-                      size: adaptive.isPhone ? 72 : 96,
-                      color: iconColor,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            SizedBox(height: adaptive.space(16)),
-            Center(
-              child: Text(
-                controller.reactionFeedback,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: adaptive.space(14),
-                  color: const Color(0xFF60758F),
-                ),
-              ),
-            ),
-          ],
+            );
+          },
         );
       },
     );

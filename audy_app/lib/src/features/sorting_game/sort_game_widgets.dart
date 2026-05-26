@@ -211,8 +211,10 @@ class SortCategoryTarget extends StatelessWidget {
                 : constraints.maxHeight;
             final badgeSize = (visualLimit * 0.58).clamp(58.0, 84.0);
             final iconSize = badgeSize * 0.72;
-            final labelFontSize =
-                (constraints.maxWidth * 0.13).clamp(12.0, 16.0);
+            final labelFontSize = (constraints.maxWidth * 0.13).clamp(
+              12.0,
+              16.0,
+            );
 
             return Column(
               mainAxisSize: MainAxisSize.max,

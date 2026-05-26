@@ -8,6 +8,8 @@ import '../../core/audy_ui.dart';
 import '../../services/bluetooth_service.dart';
 import '../../services/sound_service.dart';
 import '../../state/audy_controller.dart';
+import '../../widgets/robot_panel_layout.dart';
+import '../../widgets/virtual_robot_panel.dart';
 
 class SocialPracticePage extends StatefulWidget {
   const SocialPracticePage({super.key});
@@ -43,9 +45,7 @@ class _SocialPracticePageState extends State<SocialPracticePage> {
     try {
       await AudyBluetoothService.instance.setLed(20);
     } catch (e) {
-      debugPrint(
-        'SocialPracticePage: Entry LED BLE state skipped - $e',
-      );
+      debugPrint('SocialPracticePage: Entry LED BLE state skipped - $e');
     }
   }
 
@@ -54,6 +54,16 @@ class _SocialPracticePageState extends State<SocialPracticePage> {
     if (message.channel != 'nose' || message.value != 1) return;
 
     _listen();
+  }
+
+  void _triggerVirtualInput(String channel, int value) {
+    _handleBleInput(
+      AudyBleMessage(
+        channel: channel,
+        value: value,
+        receivedAt: DateTime.now(),
+      ),
+    );
   }
 
   @override
@@ -70,9 +80,7 @@ class _SocialPracticePageState extends State<SocialPracticePage> {
     try {
       await AudyBluetoothService.instance.setLed(0);
     } catch (e) {
-      debugPrint(
-        'SocialPracticePage: Exit LED BLE reset skipped - $e',
-      );
+      debugPrint('SocialPracticePage: Exit LED BLE reset skipped - $e');
     }
   }
 
@@ -164,186 +172,202 @@ class _SocialPracticePageState extends State<SocialPracticePage> {
     }
     return AudyResponsivePage(
       builder: (context, adaptive) {
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Column(
+        return ValueListenableBuilder<bool>(
+          valueListenable: AudyBluetoothService.instance.connectionNotifier,
+          builder: (context, isConnected, _) {
+            return RobotPanelLayout(
+              adaptive: adaptive,
+              showPanel: !isConnected,
+              panelBuilder: (isHorizontal) => VirtualRobotPanel(
+                adaptive: adaptive,
+                isHorizontal: isHorizontal,
+                onNoseTap: () => _triggerVirtualInput('nose', 1),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      AudyBackButton(
-                        label: controller.tr('back_home'),
-                        onPressed: () {
-                          SoundService.instance.playTap();
-                          Navigator.pop(context);
-                        },
-                      ),
-                      SizedBox(height: adaptive.space(28)),
-                      Text(
-                        controller.tr('social_practice'),
-                        style: TextStyle(
-                          fontSize: adaptive.space(28),
-                          fontWeight: FontWeight.w800,
-                          color: const Color(0xFF243A5A),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            AudyBackButton(
+                              label: controller.tr('back_home'),
+                              onPressed: () {
+                                SoundService.instance.playTap();
+                                Navigator.pop(context);
+                              },
+                            ),
+                            SizedBox(height: adaptive.space(28)),
+                            Text(
+                              controller.tr('social_practice'),
+                              style: TextStyle(
+                                fontSize: adaptive.space(28),
+                                fontWeight: FontWeight.w800,
+                                color: const Color(0xFF243A5A),
+                              ),
+                            ),
+                            SizedBox(height: adaptive.space(8)),
+                            Text(
+                              controller.tr('chat_with_auday'),
+                              style: TextStyle(
+                                fontSize: adaptive.space(16),
+                                color: const Color(0xFF60758F),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      SizedBox(height: adaptive.space(8)),
-                      Text(
-                        controller.tr('chat_with_auday'),
-                        style: TextStyle(
-                          fontSize: adaptive.space(16),
-                          color: const Color(0xFF60758F),
-                        ),
-                      ),
+                      if (!adaptive.isPhone) const AudyMascot(size: 110),
                     ],
                   ),
-                ),
-                if (!adaptive.isPhone) const AudyMascot(size: 110),
-              ],
-            ),
-            SizedBox(height: adaptive.space(20)),
-            AudyPanel(
-              adaptive: adaptive,
-              child: SizedBox(
-                height: adaptive.isPhone ? 360 : 460,
-                child: ListView.builder(
-                  controller: _scrollController,
-                  padding: const EdgeInsets.all(12),
-                  itemCount: controller.thaiSocialMessages.length,
-                  itemBuilder: (context, index) {
-                    final message = controller.thaiSocialMessages[index];
-                    return _ChatBubble(
-                      text: message.text,
-                      isUser: message.isUser,
-                    );
-                  },
-                ),
-              ),
-            ),
-            SizedBox(height: adaptive.space(18)),
-            AudyPanel(
-              adaptive: adaptive,
-              padding: EdgeInsets.all(adaptive.space(14)),
-              child: Row(
-                children: [
-                  // Mic button for Thai speech input
-                  AvatarGlow(
-                    key: ValueKey('glow_$_listeningCount'),
-                    glowColor: const Color(0xFFF8C7DF),
-                    animate: _isListening,
-                    repeat: true,
-                    child: GestureDetector(
-                      onTap: _listen,
-                      child: CircleAvatar(
-                        radius: adaptive.isPhone ? 22 : 26,
-                        backgroundColor: const Color(0xFFF8C7DF),
-                        child: Icon(
-                          _isListening
-                              ? Icons.mic_rounded
-                              : Icons.mic_none_rounded,
-                          color: const Color(0xFF243A5A),
-                          size: adaptive.space(20),
-                        ),
+                  SizedBox(height: adaptive.space(20)),
+                  AudyPanel(
+                    adaptive: adaptive,
+                    child: SizedBox(
+                      height: adaptive.isPhone ? 360 : 460,
+                      child: ListView.builder(
+                        controller: _scrollController,
+                        padding: const EdgeInsets.all(12),
+                        itemCount: controller.thaiSocialMessages.length,
+                        itemBuilder: (context, index) {
+                          final message = controller.thaiSocialMessages[index];
+                          return _ChatBubble(
+                            text: message.text,
+                            isUser: message.isUser,
+                          );
+                        },
                       ),
                     ),
                   ),
-                  SizedBox(width: adaptive.space(12)),
-                  Expanded(
-                    child: TextField(
-                      controller: messageController,
-                      decoration: InputDecoration(
-                        hintText: controller.tr('type_message'),
-                        filled: true,
-                        fillColor: const Color(0xFFF3F6F9),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(999),
-                          borderSide: BorderSide.none,
-                        ),
-                        contentPadding: EdgeInsets.symmetric(
-                          horizontal: adaptive.space(18),
-                          vertical: adaptive.space(16),
-                        ),
-                      ),
-                    ),
-                  ),
-                  SizedBox(width: adaptive.space(12)),
-                  // Speaker button (TTS for Thai)
-                  InkWell(
-                    onTap: () {
-                      SoundService.instance.playTap();
-                      // Get last bot message and speak it
-                      final botMessages = controller.thaiSocialMessages
-                          .where((m) => !m.isUser)
-                          .toList();
-                      if (botMessages.isNotEmpty) {
-                        controller.speakThaiResponse(botMessages.last.text);
-                      }
-                    },
-                    child: CircleAvatar(
-                      radius: adaptive.isPhone ? 22 : 26,
-                      backgroundColor: const Color(0xFFFFE0B2),
-                      child: Icon(
-                        Icons.volume_up_rounded,
-                        color: const Color(0xFF243A5A),
-                        size: adaptive.space(20),
-                      ),
-                    ),
-                  ),
-                  SizedBox(width: adaptive.space(12)),
-                  // Send button
-                  InkWell(
-                    onTap: controller.isChatLoading
-                        ? null
-                        : () async {
-                            SoundService.instance.playTap();
-                            await _submitMessage(controller);
-                          },
-                    child: CircleAvatar(
-                      radius: adaptive.isPhone ? 22 : 26,
-                      backgroundColor: controller.isChatLoading
-                          ? const Color(0xFFE1E5EB)
-                          : const Color(0xFFC9E8C1),
-                      child: controller.isChatLoading
-                          ? SizedBox(
-                              width: adaptive.space(18),
-                              height: adaptive.space(18),
-                              child: const CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation(
-                                  Color(0xFF243A5A),
-                                ),
+                  SizedBox(height: adaptive.space(18)),
+                  AudyPanel(
+                    adaptive: adaptive,
+                    padding: EdgeInsets.all(adaptive.space(14)),
+                    child: Row(
+                      children: [
+                        // Mic button for Thai speech input
+                        AvatarGlow(
+                          key: ValueKey('glow_$_listeningCount'),
+                          glowColor: const Color(0xFFF8C7DF),
+                          animate: _isListening,
+                          repeat: true,
+                          child: GestureDetector(
+                            onTap: _listen,
+                            child: CircleAvatar(
+                              radius: adaptive.isPhone ? 22 : 26,
+                              backgroundColor: const Color(0xFFF8C7DF),
+                              child: Icon(
+                                _isListening
+                                    ? Icons.mic_rounded
+                                    : Icons.mic_none_rounded,
+                                color: const Color(0xFF243A5A),
+                                size: adaptive.space(20),
                               ),
-                            )
-                          : Icon(
-                              Icons.send_outlined,
+                            ),
+                          ),
+                        ),
+                        SizedBox(width: adaptive.space(12)),
+                        Expanded(
+                          child: TextField(
+                            controller: messageController,
+                            decoration: InputDecoration(
+                              hintText: controller.tr('type_message'),
+                              filled: true,
+                              fillColor: const Color(0xFFF3F6F9),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(999),
+                                borderSide: BorderSide.none,
+                              ),
+                              contentPadding: EdgeInsets.symmetric(
+                                horizontal: adaptive.space(18),
+                                vertical: adaptive.space(16),
+                              ),
+                            ),
+                          ),
+                        ),
+                        SizedBox(width: adaptive.space(12)),
+                        // Speaker button (TTS for Thai)
+                        InkWell(
+                          onTap: () {
+                            SoundService.instance.playTap();
+                            // Get last bot message and speak it
+                            final botMessages = controller.thaiSocialMessages
+                                .where((m) => !m.isUser)
+                                .toList();
+                            if (botMessages.isNotEmpty) {
+                              controller.speakThaiResponse(
+                                botMessages.last.text,
+                              );
+                            }
+                          },
+                          child: CircleAvatar(
+                            radius: adaptive.isPhone ? 22 : 26,
+                            backgroundColor: const Color(0xFFFFE0B2),
+                            child: Icon(
+                              Icons.volume_up_rounded,
                               color: const Color(0xFF243A5A),
                               size: adaptive.space(20),
                             ),
+                          ),
+                        ),
+                        SizedBox(width: adaptive.space(12)),
+                        // Send button
+                        InkWell(
+                          onTap: controller.isChatLoading
+                              ? null
+                              : () async {
+                                  SoundService.instance.playTap();
+                                  await _submitMessage(controller);
+                                },
+                          child: CircleAvatar(
+                            radius: adaptive.isPhone ? 22 : 26,
+                            backgroundColor: controller.isChatLoading
+                                ? const Color(0xFFE1E5EB)
+                                : const Color(0xFFC9E8C1),
+                            child: controller.isChatLoading
+                                ? SizedBox(
+                                    width: adaptive.space(18),
+                                    height: adaptive.space(18),
+                                    child: const CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      valueColor: AlwaysStoppedAnimation(
+                                        Color(0xFF243A5A),
+                                      ),
+                                    ),
+                                  )
+                                : Icon(
+                                    Icons.send_outlined,
+                                    color: const Color(0xFF243A5A),
+                                    size: adaptive.space(20),
+                                  ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(height: adaptive.space(12)),
+                  Center(
+                    child: Text(
+                      controller.isChatLoading
+                          ? controller.tr('thinking')
+                          : controller.socialFeedback ==
+                                'Start a conversation with a short message.'
+                          ? controller.tr('start_conversation')
+                          : controller.socialFeedback,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: adaptive.space(13),
+                        color: const Color(0xFF60758F),
+                      ),
                     ),
                   ),
                 ],
               ),
-            ),
-            SizedBox(height: adaptive.space(12)),
-            Center(
-              child: Text(
-                controller.isChatLoading
-                    ? controller.tr('thinking')
-                    : controller.socialFeedback ==
-                          'Start a conversation with a short message.'
-                    ? controller.tr('start_conversation')
-                    : controller.socialFeedback,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: adaptive.space(13),
-                  color: const Color(0xFF60758F),
-                ),
-              ),
-            ),
-          ],
+            );
+          },
         );
       },
     );

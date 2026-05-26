@@ -36,10 +36,7 @@ class AppStrings {
       'en': 'Add up to 3 calm tasks for today.',
       'th': 'เพิ่มงานที่สงบได้สูงสุด 3 งานสำหรับวันนี้',
     },
-    'assignment_recommendations': {
-      'en': 'Recommended',
-      'th': 'แนะนำ',
-    },
+    'assignment_recommendations': {'en': 'Recommended', 'th': 'แนะนำ'},
     'assignment_recommendations_desc': {
       'en': 'Based on features above 80% accuracy.',
       'th': 'อ้างอิงจากกิจกรรมที่แม่นยำมากกว่า 80%',
@@ -249,6 +246,26 @@ class AppStrings {
     'rainbow': {'en': 'Rainbow', 'th': 'สายรุ้ง'},
     'all_off': {'en': 'All off', 'th': 'ปิดทั้งหมด'},
     'nose_lights': {'en': 'Nose lights', 'th': 'ไฟจมูก'},
+    // Virtual Robot
+    'virtual_robot': {'en': 'Virtual Robot', 'th': 'หุ่นยนต์เสมือน'},
+    'virtual_robot_controls': {
+      'en': 'Robot controls',
+      'th': 'ปุ่มควบคุมหุ่นยนต์',
+    },
+    'virtual_robot_expand': {
+      'en': 'Expand robot panel',
+      'th': 'ขยายแผงหุ่นยนต์',
+    },
+    'virtual_robot_collapse': {
+      'en': 'Collapse robot panel',
+      'th': 'ย่อแผงหุ่นยนต์',
+    },
+    'virtual_tummy': {'en': 'Tummy', 'th': 'ท้อง'},
+    'virtual_nose': {'en': 'Nose', 'th': 'จมูก'},
+    'virtual_ear_left': {'en': 'Left ear', 'th': 'หูซ้าย'},
+    'virtual_ear_right': {'en': 'Right ear', 'th': 'หูขวา'},
+    'virtual_force_left': {'en': 'Squeeze L', 'th': 'บีบซ้าย'},
+    'virtual_force_right': {'en': 'Squeeze R', 'th': 'บีบขวา'},
     'tummy_clicked': {'en': 'Tummy clicked', 'th': 'แตะที่ท้อง'},
     'tummy_not_clicked': {'en': 'Tummy not clicked', 'th': 'ไม่ได้แตะที่ท้อง'},
     'nose_clicked': {'en': 'Nose clicked', 'th': 'แตะที่จมูก'},
@@ -482,10 +499,7 @@ class AppStrings {
       'th': 'ฟีเจอร์นี้ยังใช้ไม่ได้บนอุปกรณ์นี้',
     },
     'recording_time': {'en': 'Recording {time}', 'th': 'กำลังบันทึก {time}'},
-    'tap_mic_to_check': {
-      'en': 'Tap mic to check',
-      'th': 'แตะไมค์เพื่อตรวจ',
-    },
+    'tap_mic_to_check': {'en': 'Tap mic to check', 'th': 'แตะไมค์เพื่อตรวจ'},
     'ready': {'en': 'Ready', 'th': 'พร้อม'},
     'all_done': {'en': 'All Done!', 'th': 'เสร็จแล้ว!'},
     'session_complete': {
@@ -527,7 +541,10 @@ class AppStrings {
     'reset_progress': {'en': 'Reset Progress', 'th': 'รีเซ็ตความก้าวหน้า'},
     'user': {'en': 'User', 'th': 'ผู้ใช้'},
     'age_format': {'en': 'Age: {age}', 'th': 'อายุ: {age}'},
-    'member_since': {'en': 'Member since {date}', 'th': 'เป็นสมาชิกตั้งแต่ {date}'},
+    'member_since': {
+      'en': 'Member since {date}',
+      'th': 'เป็นสมาชิกตั้งแต่ {date}',
+    },
     'log_out': {'en': 'Log Out', 'th': 'ออกจากระบบ'},
     'parent_dashboard': {'en': 'Parent Dashboard', 'th': 'แดชบอร์ดผู้ปกครอง'},
     'institution_panel': {'en': 'Institution Panel', 'th': 'แผงสถาบัน'},
@@ -536,7 +553,10 @@ class AppStrings {
       'en': 'Your learning journey',
       'th': 'เส้นทางการเรียนรู้ของคุณ',
     },
-    'learning_analytics': {'en': 'Learning Analytics', 'th': 'วิเคราะห์การเรียนรู้'},
+    'learning_analytics': {
+      'en': 'Learning Analytics',
+      'th': 'วิเคราะห์การเรียนรู้',
+    },
     'daily_activity': {'en': 'Daily Activity', 'th': 'กิจกรรมรายวัน'},
     'daily_activity_desc': {
       'en': 'Completed learning sessions each day',
@@ -555,7 +575,10 @@ class AppStrings {
     'joined_format': {'en': 'Joined: {date}', 'th': 'เข้าร่วม: {date}'},
     'games_label': {'en': 'Games', 'th': 'เกม'},
     'streak': {'en': 'Streak', 'th': 'ต่อเนื่อง'},
-    'single_child_summary': {'en': 'Single Child Summary', 'th': 'สรุปเด็กคนเดียว'},
+    'single_child_summary': {
+      'en': 'Single Child Summary',
+      'th': 'สรุปเด็กคนเดียว',
+    },
     'current_child_statistics': {
       'en': 'Current Child Statistics',
       'th': 'สถิติเด็กปัจจุบัน',
@@ -573,11 +596,13 @@ class AppStrings {
       'th': 'ทักษะเหล่านี้ทำได้ดีในสัปดาห์นี้ ลองระดับที่ยากขึ้นครั้งต่อไป',
     },
     'difficulty_instruction_institution_desc': {
-      'en': 'These skills are strong for this child. Caretakers can offer harder practice.',
+      'en':
+          'These skills are strong for this child. Caretakers can offer harder practice.',
       'th': 'ทักษะเหล่านี้เป็นจุดแข็งของเด็ก ผู้ดูแลสามารถเพิ่มความยากได้',
     },
     'difficulty_instruction_empty': {
-      'en': 'Keep the current level for now and review again after more sessions.',
+      'en':
+          'Keep the current level for now and review again after more sessions.',
       'th': 'ใช้ระดับปัจจุบันไปก่อน แล้วตรวจดูอีกครั้งหลังเล่นเพิ่ม',
     },
     'try_harder_difficulty': {
@@ -586,8 +611,10 @@ class AppStrings {
     },
     'export_report': {'en': 'Export Report', 'th': 'ส่งออกรายงาน'},
     'export_report_desc': {
-      'en': 'Generate and export progress reports for documentation and sharing with parents or therapists.',
-      'th': 'สร้างและส่งออกรายงานความก้าวหน้าเพื่อบันทึกและแบ่งปันกับผู้ปกครองหรือนักบำบัด',
+      'en':
+          'Generate and export progress reports for documentation and sharing with parents or therapists.',
+      'th':
+          'สร้างและส่งออกรายงานความก้าวหน้าเพื่อบันทึกและแบ่งปันกับผู้ปกครองหรือนักบำบัด',
     },
     'report_exported': {'en': 'Report Exported!', 'th': 'ส่งออกรายงานแล้ว!'},
     'report_saved': {
@@ -596,7 +623,10 @@ class AppStrings {
     },
     'great': {'en': 'Great!', 'th': 'เยี่ยม!'},
     'communication': {'en': 'Communication', 'th': 'การสื่อสาร'},
-    'sensory_sensitivity': {'en': 'Sensory Sensitivity', 'th': 'ความไวต่อประสาทสัมผัส'},
+    'sensory_sensitivity': {
+      'en': 'Sensory Sensitivity',
+      'th': 'ความไวต่อประสาทสัมผัส',
+    },
     'favorite_interests': {'en': 'Favorite Interests', 'th': 'ความสนใจที่ชอบ'},
     'edit_preferences': {'en': 'Edit Preferences', 'th': 'แก้ไขการตั้งค่า'},
     'none_selected': {'en': 'None selected', 'th': 'ยังไม่ได้เลือก'},
@@ -606,7 +636,10 @@ class AppStrings {
     'minutes': {'en': 'Minutes', 'th': 'นาที'},
     'participation': {'en': 'Participation', 'th': 'การมีส่วนร่วม'},
     'average_score': {'en': 'Average Score', 'th': 'คะแนนเฉลี่ย'},
-    'recorded_activity': {'en': 'Recorded activity', 'th': 'มีกิจกรรมที่บันทึกแล้ว'},
+    'recorded_activity': {
+      'en': 'Recorded activity',
+      'th': 'มีกิจกรรมที่บันทึกแล้ว',
+    },
     'no_sessions_yet': {'en': 'No sessions yet', 'th': 'ยังไม่มีกิจกรรม'},
     'percent_correct': {'en': '{percent}% correct', 'th': 'ถูกต้อง {percent}%'},
     'no_learning_sessions': {
@@ -645,10 +678,7 @@ class AppStrings {
       'en': 'Tap "Add Reward" to create your first reward!',
       'th': 'แตะ "เพิ่มรางวัล" เพื่อสร้างรางวัลแรกของคุณ!',
     },
-    'max_rewards_reached': {
-      'en': 'Max 3 rewards',
-      'th': 'สูงสุด 3 รางวัล',
-    },
+    'max_rewards_reached': {'en': 'Max 3 rewards', 'th': 'สูงสุด 3 รางวัล'},
     'skins': {'en': 'Skins', 'th': 'สกิน'},
     'available_points': {'en': 'Available Points', 'th': 'คะแนนที่ใช้ได้'},
     'skin_price': {'en': '{points} each', 'th': '{points} ต่อชิ้น'},
@@ -696,7 +726,10 @@ class AppStrings {
     'start': {'en': 'Start', 'th': 'เริ่ม'},
 
     // Auth
-    'learning_buddy': {'en': 'Your Learning Buddy', 'th': 'เพื่อนเรียนรู้ของคุณ'},
+    'learning_buddy': {
+      'en': 'Your Learning Buddy',
+      'th': 'เพื่อนเรียนรู้ของคุณ',
+    },
     'sign_in': {'en': 'Sign In', 'th': 'เข้าสู่ระบบ'},
     'sign_up': {'en': 'Sign Up', 'th': 'สมัครสมาชิก'},
     'email': {'en': 'Email', 'th': 'อีเมล'},
@@ -717,7 +750,10 @@ class AppStrings {
     'enter_name': {'en': 'Please enter your name.', 'th': 'กรุณากรอกชื่อ'},
 
     // Preferences
-    'lets_personalize': {'en': 'Let\'s Personalize!', 'th': 'มาตั้งค่าให้เหมาะกับคุณ!'},
+    'lets_personalize': {
+      'en': 'Let\'s Personalize!',
+      'th': 'มาตั้งค่าให้เหมาะกับคุณ!',
+    },
     'your_preferences': {'en': 'Your Preferences', 'th': 'การตั้งค่าของคุณ'},
     'personalize_help': {
       'en': 'Help us make AUDY perfect for you!',
@@ -731,7 +767,10 @@ class AppStrings {
       'en': 'How do you communicate?',
       'th': 'คุณสื่อสารอย่างไร?',
     },
-    'sound_sensitivity': {'en': 'Sound sensitivity?', 'th': 'ไวต่อเสียงแค่ไหน?'},
+    'sound_sensitivity': {
+      'en': 'Sound sensitivity?',
+      'th': 'ไวต่อเสียงแค่ไหน?',
+    },
     'learning_pace': {'en': 'Learning pace?', 'th': 'จังหวะการเรียนรู้?'},
     'favorite_things': {'en': 'Favorite things?', 'th': 'สิ่งที่ชอบ?'},
     'non_verbal': {'en': 'Non-verbal', 'th': 'ไม่ใช้คำพูด'},
@@ -823,9 +862,18 @@ class AppStrings {
     'minipuzzle_easy': {'en': 'Easy', 'th': 'ง่าย'},
     'minipuzzle_medium': {'en': 'Medium', 'th': 'ปานกลาง'},
     'minipuzzle_hard': {'en': 'Hard', 'th': 'ยาก'},
-    'minipuzzle_easy_desc_generic': {'en': 'Gentle start', 'th': 'เริ่มแบบง่ายๆ'},
-    'minipuzzle_medium_desc_generic': {'en': 'More choices', 'th': 'ตัวเลือกมากขึ้น'},
-    'minipuzzle_hard_desc_generic': {'en': 'Bigger challenge', 'th': 'ท้าทายมากขึ้น'},
+    'minipuzzle_easy_desc_generic': {
+      'en': 'Gentle start',
+      'th': 'เริ่มแบบง่ายๆ',
+    },
+    'minipuzzle_medium_desc_generic': {
+      'en': 'More choices',
+      'th': 'ตัวเลือกมากขึ้น',
+    },
+    'minipuzzle_hard_desc_generic': {
+      'en': 'Bigger challenge',
+      'th': 'ท้าทายมากขึ้น',
+    },
     'minipuzzle_easy_desc': {
       'en': '2 items - Perfect for beginners',
       'th': '2 รายการ - เหมาะสำหรับผู้เริ่มต้น',
@@ -842,9 +890,18 @@ class AppStrings {
     'minipuzzle_correct': {'en': '{n} Correct!', 'th': '{n} ถูกต้อง!'},
     'minipuzzle_attempts': {'en': 'Attempts', 'th': 'ครั้งที่ลอง'},
     'attempts': {'en': 'Attempts', 'th': 'จำนวนครั้งที่ลอง'},
-    'minipuzzle_pattern_prompt': {'en': 'What comes next?', 'th': 'อะไรคือตัวถัดไป?'},
-    'minipuzzle_odd_prompt': {'en': 'Find the different one', 'th': 'หาสิ่งที่แตกต่าง'},
-    'minipuzzle_match_prompt': {'en': 'Match each shape', 'th': 'จับคู่รูปทรงแต่ละชิ้น'},
+    'minipuzzle_pattern_prompt': {
+      'en': 'What comes next?',
+      'th': 'อะไรคือตัวถัดไป?',
+    },
+    'minipuzzle_odd_prompt': {
+      'en': 'Find the different one',
+      'th': 'หาสิ่งที่แตกต่าง',
+    },
+    'minipuzzle_match_prompt': {
+      'en': 'Match each shape',
+      'th': 'จับคู่รูปทรงแต่ละชิ้น',
+    },
   };
 
   // Format string with placeholders

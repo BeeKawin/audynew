@@ -9,6 +9,8 @@ import '../../services/bluetooth_service.dart';
 import '../../services/sound_service.dart';
 import '../../state/audy_controller.dart';
 import '../../widgets/game_guide_box.dart';
+import '../../widgets/robot_panel_layout.dart';
+import '../../widgets/virtual_robot_panel.dart';
 import 'mimic_complete_screen.dart';
 import 'selfie_capture_screen.dart';
 
@@ -49,6 +51,16 @@ class _EmotionMimicScreenState extends State<EmotionMimicScreen> {
     unawaited(_startSelfieCapture(controller.currentMimicTarget));
   }
 
+  void _triggerVirtualInput(String channel, int value) {
+    _handleBleInput(
+      AudyBleMessage(
+        channel: channel,
+        value: value,
+        receivedAt: DateTime.now(),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final controller = AudyScope.of(context);
@@ -64,113 +76,130 @@ class _EmotionMimicScreenState extends State<EmotionMimicScreen> {
     return AudyResponsivePage(
       scrollable: false,
       builder: (context, adaptive) {
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                InkWell(
-                  onTap: () {
-                    SoundService.instance.playTap();
-                    controller.resetMimicGame();
-                    Navigator.pop(context);
-                  },
-                  borderRadius: BorderRadius.circular(
-                    AudySpacing.radiusMedium,
-                  ),
-                  child: SizedBox(
-                    width: AudySpacing.touchTargetMin,
-                    height: AudySpacing.touchTargetMin,
-                    child: const Icon(
-                      Icons.arrow_back_rounded,
-                      size: AudySpacing.iconMedium,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: AudySpacing.elementGap),
-                Text(
-                  controller.tr(
-                    'round_format',
-                    params: {
-                      'current': controller.mimicCurrentRound.toString(),
-                      'total': controller.mimicTotalRounds.toString(),
-                    },
-                  ),
-                  style: AudyTypography.labelLarge,
-                ),
-                const SizedBox(width: AudySpacing.elementGap),
-                Text(
-                  controller.tr(
-                    'score_format',
-                    params: {'score': controller.mimicScore.toString()},
-                  ),
-                  style: AudyTypography.labelLarge.copyWith(
-                    color: AudyColors.mintGreen,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: AudySpacing.sectionGap),
-            if (_showGuide) ...[
-              GameGuideBox(
-                message: controller.tr('guide_emotion_mimic'),
-                onDismissed: () => setState(() => _showGuide = false),
+        return ValueListenableBuilder<bool>(
+          valueListenable: AudyBluetoothService.instance.connectionNotifier,
+          builder: (context, isConnected, _) {
+            return RobotPanelLayout(
+              adaptive: adaptive,
+              showPanel: !isConnected,
+              panelBuilder: (isHorizontal) => VirtualRobotPanel(
+                adaptive: adaptive,
+                isHorizontal: isHorizontal,
+                onTummyTap: () => _triggerVirtualInput('tummy', 1),
               ),
-              const SizedBox(height: AudySpacing.elementGap),
-            ],
-            Center(
-              child: Text(
-                controller.tr('make_this_face'),
-                style: AudyTypography.displayMedium,
-                textAlign: TextAlign.center,
-              ),
-            ),
-            const SizedBox(height: AudySpacing.sectionGap),
-            Center(
-              child: EmotionCharacterWidget(
-                emotion: targetEmotion,
-                size: 180,
-                useHumanImage: false,
-              ),
-            ),
-            const SizedBox(height: AudySpacing.sectionGap),
-            Center(
-              child: Text(targetEmotion, style: AudyTypography.headingLarge),
-            ),
-            const Spacer(),
-            SizedBox(
-              width: double.infinity,
-              height: AudySpacing.buttonHeight + 12,
-              child: ElevatedButton(
-                onPressed: () {
-                  SoundService.instance.playTap();
-                  unawaited(_startSelfieCapture(targetEmotion));
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AudyColors.mintGreen,
-                  foregroundColor: AudyColors.textOnColor,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(
-                      AudySpacing.radiusXLarge,
-                    ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      InkWell(
+                        onTap: () {
+                          SoundService.instance.playTap();
+                          controller.resetMimicGame();
+                          Navigator.pop(context);
+                        },
+                        borderRadius: BorderRadius.circular(
+                          AudySpacing.radiusMedium,
+                        ),
+                        child: SizedBox(
+                          width: AudySpacing.touchTargetMin,
+                          height: AudySpacing.touchTargetMin,
+                          child: const Icon(
+                            Icons.arrow_back_rounded,
+                            size: AudySpacing.iconMedium,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: AudySpacing.elementGap),
+                      Text(
+                        controller.tr(
+                          'round_format',
+                          params: {
+                            'current': controller.mimicCurrentRound.toString(),
+                            'total': controller.mimicTotalRounds.toString(),
+                          },
+                        ),
+                        style: AudyTypography.labelLarge,
+                      ),
+                      const SizedBox(width: AudySpacing.elementGap),
+                      Text(
+                        controller.tr(
+                          'score_format',
+                          params: {'score': controller.mimicScore.toString()},
+                        ),
+                        style: AudyTypography.labelLarge.copyWith(
+                          color: AudyColors.mintGreen,
+                        ),
+                      ),
+                    ],
                   ),
-                  elevation: 4,
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.camera_alt_rounded, size: 32),
-                    const SizedBox(width: 12),
-                    Text(
-                      controller.tr('take_photo'),
-                      style: AudyTypography.buttonText,
+                  const SizedBox(height: AudySpacing.sectionGap),
+                  if (_showGuide) ...[
+                    GameGuideBox(
+                      message: controller.tr('guide_emotion_mimic'),
+                      onDismissed: () => setState(() => _showGuide = false),
                     ),
+                    const SizedBox(height: AudySpacing.elementGap),
                   ],
-                ),
+                  Center(
+                    child: Text(
+                      controller.tr('make_this_face'),
+                      style: AudyTypography.displayMedium,
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                  const SizedBox(height: AudySpacing.sectionGap),
+                  Center(
+                    child: EmotionCharacterWidget(
+                      emotion: targetEmotion,
+                      size: 180,
+                      useHumanImage: false,
+                    ),
+                  ),
+                  const SizedBox(height: AudySpacing.sectionGap),
+                  Center(
+                    child: Text(
+                      targetEmotion,
+                      style: AudyTypography.headingLarge,
+                    ),
+                  ),
+                  const Spacer(),
+                  SizedBox(
+                    width: double.infinity,
+                    height: AudySpacing.buttonHeight + 12,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        SoundService.instance.playTap();
+                        unawaited(_startSelfieCapture(targetEmotion));
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AudyColors.mintGreen,
+                        foregroundColor: AudyColors.textOnColor,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(
+                            AudySpacing.radiusXLarge,
+                          ),
+                        ),
+                        elevation: 4,
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.camera_alt_rounded, size: 32),
+                          const SizedBox(width: 12),
+                          Text(
+                            controller.tr('take_photo'),
+                            style: AudyTypography.buttonText,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: AudySpacing.sectionGap),
+                ],
               ),
-            ),
-            const SizedBox(height: AudySpacing.sectionGap),
-          ],
+            );
+          },
         );
       },
     );
