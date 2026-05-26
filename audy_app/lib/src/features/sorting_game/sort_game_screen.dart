@@ -181,7 +181,12 @@ class _SortGameScreenState extends State<SortGameScreen> {
             ),
           ],
         ),
-        Flexible(
+        ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: adaptive.isPhone
+                ? adaptive.space(160)
+                : adaptive.space(280),
+          ),
           child: StarRewardDisplay(
             starsEarned: _engine.liveProgressStars,
             maxStars: _engine.totalItemsInLevel,

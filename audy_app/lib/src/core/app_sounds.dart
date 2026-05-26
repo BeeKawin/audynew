@@ -18,6 +18,7 @@ class AppSounds {
   static const String points = 'assets/sounds/points.mp3';
   static const String bearCongrats = 'assets/sounds/bear_congrats.mp3';
   static const String bearTryAgain = 'assets/sounds/bear_tryagain.mp3';
+  static const String greetings = 'assets/sounds/greetings.mp3';
 
   // Reaction game sounds
   static const String go = 'assets/sounds/go.mp3';
@@ -62,6 +63,7 @@ class AppSounds {
     gameComplete,
     bearCongrats,
     bearTryAgain,
+    greetings,
     points,
     go,
     error,

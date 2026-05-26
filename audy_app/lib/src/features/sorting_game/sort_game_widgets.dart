@@ -320,7 +320,8 @@ class ABAGameFeedbackOverlay extends StatelessWidget {
               size: (effectiveWidth * 0.08).clamp(24.0, 48.0),
               color: AudyColors.textOnColor,
             ),
-            Flexible(
+            ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: effectiveWidth * 0.72),
               child: Text(
                 message,
                 style: TextStyle(

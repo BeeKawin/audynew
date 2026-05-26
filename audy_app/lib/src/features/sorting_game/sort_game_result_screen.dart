@@ -477,7 +477,12 @@ class _SortGameResultScreenState extends State<SortGameResultScreen> {
         spacing: adaptive.space(8),
         children: [
           Icon(insightIcon, size: adaptive.space(32), color: insightColor),
-          Flexible(
+          ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: adaptive.isPhone
+                  ? adaptive.space(260)
+                  : adaptive.space(520),
+            ),
             child: Text(
               insight,
               style: TextStyle(

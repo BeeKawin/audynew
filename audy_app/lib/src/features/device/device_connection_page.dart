@@ -39,6 +39,8 @@ class _DeviceConnectionPageState extends State<DeviceConnectionPage> {
 
   StreamSubscription<AudyBleMessage>? _incomingSub;
 
+  static const Duration _connectionLedDuration = Duration(seconds: 2);
+
   bool _isScanning = false;
   bool _isConnecting = false;
   bool _isSending = false;
@@ -143,6 +145,9 @@ class _DeviceConnectionPageState extends State<DeviceConnectionPage> {
 
       if (!mounted) return;
 
+      SoundService.instance.playBluetoothGreeting();
+      unawaited(_playRobotConnectionGreeting());
+
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(_tr(context, 'connected_to_audy'))));
@@ -165,6 +170,20 @@ class _DeviceConnectionPageState extends State<DeviceConnectionPage> {
           _isConnecting = false;
         });
       }
+    }
+  }
+
+  Future<void> _playRobotConnectionGreeting() async {
+    try {
+      await _bluetooth.setArms(4);
+      await _bluetooth.setLed(11);
+      await Future<void>.delayed(_connectionLedDuration);
+
+      if (!_bluetooth.isConnected) return;
+
+      await _bluetooth.setLed(0);
+    } catch (e) {
+      debugPrint('DeviceConnectionPage: Connection greeting skipped - $e');
     }
   }
 

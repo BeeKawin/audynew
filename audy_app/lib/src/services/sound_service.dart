@@ -20,6 +20,7 @@ class SoundService {
   static const double _bgmVolume = 0.3;
   static const double _sfxVolume = 1.0;
   static const Duration _bearCompletionDelay = Duration(milliseconds: 900);
+  static const Duration _bluetoothGreetingDelay = Duration(seconds: 1);
 
   /// Preloaded audio sources keyed by asset path
   final Map<String, AudioSource> _sources = {};
@@ -156,6 +157,24 @@ class SoundService {
     unawaited(
       Future.delayed(_bearCompletionDelay, () {
         play(soundPath);
+      }),
+    );
+  }
+
+  /// Play Bluetooth greeting shortly after a successful device connection.
+  void playBluetoothGreeting() {
+    if (!_enabled) return;
+
+    unawaited(
+      Future<void>.delayed(_bluetoothGreetingDelay, () {
+        if (!AudyBluetoothService.instance.isConnected) {
+          debugPrint(
+            'SoundService: Bluetooth disconnected, not playing greeting',
+          );
+          return;
+        }
+
+        play(AppSounds.greetings);
       }),
     );
   }
