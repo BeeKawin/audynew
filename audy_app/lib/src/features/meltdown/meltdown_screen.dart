@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import '../../core/app_routes.dart';
 import '../../core/app_sounds.dart';
 import '../../core/audy_theme.dart';
+import '../../core/audy_ui.dart';
 import '../../state/audy_controller.dart';
 import 'wave_painter.dart';
 
@@ -200,8 +201,7 @@ class _MeltdownScreenState extends State<MeltdownScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        color: AudyColors.backgroundPrimary,
+      body: AudyBackground(
         child: Stack(
           children: [
             // Wave background

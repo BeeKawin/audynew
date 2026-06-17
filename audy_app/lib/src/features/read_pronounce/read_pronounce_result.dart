@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/app_routes.dart';
+import '../../core/audy_ui.dart';
 import '../../data/models/game_session_model.dart';
 import '../../services/sound_service.dart';
 import '../../state/audy_controller.dart';
@@ -148,45 +149,53 @@ class _ReadPronounceResultScreenState extends State<ReadPronounceResultScreen> {
         );
 
         return Scaffold(
-          body: SafeArea(
-            child: SingleChildScrollView(
-              padding: EdgeInsets.symmetric(
-                horizontal: adaptive.isPhone ? 20 : adaptive.space(28),
-                vertical: adaptive.isPhone ? 24 : adaptive.space(32),
-              ),
-              child: Column(
-                children: [
-                  _CelebrationHeader(adaptive: adaptive),
-                  SizedBox(height: adaptive.space(24)),
-                  _ModuleNameCard(
-                    adaptive: adaptive,
-                    moduleName: widget.moduleName,
-                  ),
-                  SizedBox(height: adaptive.space(20)),
-                  _StarsDisplay(adaptive: adaptive, stars: widget.result.stars),
-                  SizedBox(height: adaptive.space(20)),
-                  _AccuracyPanel(
-                    adaptive: adaptive,
-                    accuracyPercent: widget.result.accuracyPercent,
-                    correct: widget.result.correctAttempts,
-                    total: widget.result.totalAttempts,
-                  ),
-                  SizedBox(height: adaptive.space(20)),
-                  _SessionTimePanel(
-                    adaptive: adaptive,
-                    durationMs: widget.result.sessionDurationMs,
-                  ),
-                  SizedBox(height: adaptive.space(32)),
-                  _ActionButtons(
-                    adaptive: adaptive,
-                    onPlayAgain: () {
-                      Navigator.pop(context);
-                    },
-                    onDone: () {
-                      AppRoutes.navigateAfterGameCompletion(context, widget.controller);
-                    },
-                  ),
-                ],
+          body: AudyBackground(
+            child: SafeArea(
+              child: SingleChildScrollView(
+                padding: EdgeInsets.symmetric(
+                  horizontal: adaptive.isPhone ? 20 : adaptive.space(28),
+                  vertical: adaptive.isPhone ? 24 : adaptive.space(32),
+                ),
+                child: Column(
+                  children: [
+                    _CelebrationHeader(adaptive: adaptive),
+                    SizedBox(height: adaptive.space(24)),
+                    _ModuleNameCard(
+                      adaptive: adaptive,
+                      moduleName: widget.moduleName,
+                    ),
+                    SizedBox(height: adaptive.space(20)),
+                    _StarsDisplay(
+                      adaptive: adaptive,
+                      stars: widget.result.stars,
+                    ),
+                    SizedBox(height: adaptive.space(20)),
+                    _AccuracyPanel(
+                      adaptive: adaptive,
+                      accuracyPercent: widget.result.accuracyPercent,
+                      correct: widget.result.correctAttempts,
+                      total: widget.result.totalAttempts,
+                    ),
+                    SizedBox(height: adaptive.space(20)),
+                    _SessionTimePanel(
+                      adaptive: adaptive,
+                      durationMs: widget.result.sessionDurationMs,
+                    ),
+                    SizedBox(height: adaptive.space(32)),
+                    _ActionButtons(
+                      adaptive: adaptive,
+                      onPlayAgain: () {
+                        Navigator.pop(context);
+                      },
+                      onDone: () {
+                        AppRoutes.navigateAfterGameCompletion(
+                          context,
+                          widget.controller,
+                        );
+                      },
+                    ),
+                  ],
+                ),
               ),
             ),
           ),

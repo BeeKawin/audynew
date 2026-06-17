@@ -1,6 +1,28 @@
 import 'package:flutter/material.dart';
 import 'audy_theme.dart';
 
+const String audyBackgroundAsset = 'assets/images/background.png';
+
+class AudyBackground extends StatelessWidget {
+  const AudyBackground({super.key, required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        color: AudyColors.backgroundPrimary,
+        image: DecorationImage(
+          image: AssetImage(audyBackgroundAsset),
+          fit: BoxFit.cover,
+        ),
+      ),
+      child: child,
+    );
+  }
+}
+
 class AudyAdaptive {
   const AudyAdaptive({required this.width, required this.height});
 
@@ -58,15 +80,7 @@ class AudyResponsivePage extends StatelessWidget {
         );
 
         return Scaffold(
-          body: DecoratedBox(
-            decoration: BoxDecoration(
-              image: DecorationImage(
-                image: AssetImage('assets/images/background.png'),
-                fit: BoxFit.cover,
-                opacity: 0.5, // Semi-transparent (50% visibility)
-              ),
-              color: AudyColors.backgroundPrimary,
-            ),
+          body: AudyBackground(
             child: SafeArea(
               child: Center(
                 child: ConstrainedBox(

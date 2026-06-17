@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/app_routes.dart';
+import '../../core/audy_ui.dart';
 import '../../services/sound_service.dart';
 import '../../state/audy_controller.dart';
 
@@ -14,92 +15,94 @@ class ReadPronounceHub extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final adaptive = _AudyAdaptive(
-              width: constraints.maxWidth,
-              height: constraints.maxHeight,
-            );
+      body: AudyBackground(
+        child: SafeArea(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final adaptive = _AudyAdaptive(
+                width: constraints.maxWidth,
+                height: constraints.maxHeight,
+              );
 
-            return SingleChildScrollView(
-              padding: EdgeInsets.symmetric(
-                horizontal: adaptive.isPhone ? 20 : adaptive.space(28),
-                vertical: adaptive.isPhone ? 20 : adaptive.space(28),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _TopRow(
-                    adaptive: adaptive,
-                    onBack: () {
-                      SoundService.instance.playTap();
-                      Navigator.pop(context);
-                    },
-                  ),
-                  SizedBox(height: adaptive.space(24)),
-                  Center(
-                    child: Column(
-                      children: [
-                        Text(
-                          _tr(context, 'read_pronounce'),
-                          style: TextStyle(
-                            fontSize: adaptive.space(28),
-                            fontWeight: FontWeight.w800,
-                            color: const Color(0xFF243A5A),
-                          ),
-                        ),
-                        SizedBox(height: adaptive.space(8)),
-                        Text(
-                          _tr(context, 'choose_learning_level'),
-                          style: TextStyle(
-                            fontSize: adaptive.space(15),
-                            color: const Color(0xFF617691),
-                          ),
-                        ),
-                      ],
+              return SingleChildScrollView(
+                padding: EdgeInsets.symmetric(
+                  horizontal: adaptive.isPhone ? 20 : adaptive.space(28),
+                  vertical: adaptive.isPhone ? 20 : adaptive.space(28),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _TopRow(
+                      adaptive: adaptive,
+                      onBack: () {
+                        SoundService.instance.playTap();
+                        Navigator.pop(context);
+                      },
                     ),
-                  ),
-                  SizedBox(height: adaptive.space(28)),
-                  _ModuleCard(
-                    adaptive: adaptive,
-                    title: _tr(context, 'letters'),
-                    subtitle: _tr(context, 'abc_sounds'),
-                    icon: Icons.abc_rounded,
-                    color: const Color(0xFFFF8D91),
-                    onTap: () {
-                      SoundService.instance.playTap();
-                      Navigator.pushNamed(context, AppRoutes.letters);
-                    },
-                  ),
-                  SizedBox(height: adaptive.space(16)),
-                  _ModuleCard(
-                    adaptive: adaptive,
-                    title: _tr(context, 'words'),
-                    subtitle: _tr(context, 'simple_vocabulary'),
-                    icon: Icons.menu_book_rounded,
-                    color: const Color(0xFF8FBCEC),
-                    onTap: () {
-                      SoundService.instance.playTap();
-                      Navigator.pushNamed(context, AppRoutes.words);
-                    },
-                  ),
-                  SizedBox(height: adaptive.space(16)),
-                  _ModuleCard(
-                    adaptive: adaptive,
-                    title: _tr(context, 'sentences'),
-                    subtitle: _tr(context, 'short_phrases'),
-                    icon: Icons.chat_bubble_rounded,
-                    color: const Color(0xFF90F48A),
-                    onTap: () {
-                      SoundService.instance.playTap();
-                      Navigator.pushNamed(context, AppRoutes.sentences);
-                    },
-                  ),
-                ],
-              ),
-            );
-          },
+                    SizedBox(height: adaptive.space(24)),
+                    Center(
+                      child: Column(
+                        children: [
+                          Text(
+                            _tr(context, 'read_pronounce'),
+                            style: TextStyle(
+                              fontSize: adaptive.space(28),
+                              fontWeight: FontWeight.w800,
+                              color: const Color(0xFF243A5A),
+                            ),
+                          ),
+                          SizedBox(height: adaptive.space(8)),
+                          Text(
+                            _tr(context, 'choose_learning_level'),
+                            style: TextStyle(
+                              fontSize: adaptive.space(15),
+                              color: const Color(0xFF617691),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    SizedBox(height: adaptive.space(28)),
+                    _ModuleCard(
+                      adaptive: adaptive,
+                      title: _tr(context, 'letters'),
+                      subtitle: _tr(context, 'abc_sounds'),
+                      icon: Icons.abc_rounded,
+                      color: const Color(0xFFFF8D91),
+                      onTap: () {
+                        SoundService.instance.playTap();
+                        Navigator.pushNamed(context, AppRoutes.letters);
+                      },
+                    ),
+                    SizedBox(height: adaptive.space(16)),
+                    _ModuleCard(
+                      adaptive: adaptive,
+                      title: _tr(context, 'words'),
+                      subtitle: _tr(context, 'simple_vocabulary'),
+                      icon: Icons.menu_book_rounded,
+                      color: const Color(0xFF8FBCEC),
+                      onTap: () {
+                        SoundService.instance.playTap();
+                        Navigator.pushNamed(context, AppRoutes.words);
+                      },
+                    ),
+                    SizedBox(height: adaptive.space(16)),
+                    _ModuleCard(
+                      adaptive: adaptive,
+                      title: _tr(context, 'sentences'),
+                      subtitle: _tr(context, 'short_phrases'),
+                      icon: Icons.chat_bubble_rounded,
+                      color: const Color(0xFF90F48A),
+                      onTap: () {
+                        SoundService.instance.playTap();
+                        Navigator.pushNamed(context, AppRoutes.sentences);
+                      },
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
         ),
       ),
     );

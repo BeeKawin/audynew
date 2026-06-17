@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:avatar_glow/avatar_glow.dart';
 import 'package:flutter/material.dart';
 
+import '../../core/audy_ui.dart';
 import '../../services/bluetooth_service.dart';
 import '../../services/sound_service.dart';
 import '../../state/audy_controller.dart';
@@ -384,15 +385,16 @@ class _ReadPronouncePracticeScreenState
         if (state == null) return const SizedBox.shrink();
 
         return Scaffold(
-          body: SafeArea(
-            child: SingleChildScrollView(
-              padding: EdgeInsets.symmetric(
-                horizontal: adaptive.isPhone ? 20 : adaptive.space(28),
-                vertical: adaptive.isPhone ? 20 : adaptive.space(28),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+          body: AudyBackground(
+            child: SafeArea(
+              child: SingleChildScrollView(
+                padding: EdgeInsets.symmetric(
+                  horizontal: adaptive.isPhone ? 20 : adaptive.space(28),
+                  vertical: adaptive.isPhone ? 20 : adaptive.space(28),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                   _TopRow(
                     adaptive: adaptive,
                     label: _tr(context, 'back_home'),
@@ -500,7 +502,8 @@ class _ReadPronouncePracticeScreenState
                     feedback: _localizedFeedback(context, state.feedback),
                     isCorrect: state.isCorrect,
                   ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),

@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'src/core/app_routes.dart';
 import 'src/core/audy_theme.dart';
+import 'src/core/audy_ui.dart';
 import 'src/data/service_locator.dart';
 import 'src/features/auth/login_page.dart';
 import 'src/features/dashboard_page.dart';
@@ -143,27 +144,29 @@ class _AudyAppState extends State<AudyApp> {
         debugShowCheckedModeBanner: false,
         home: Scaffold(
           backgroundColor: AudyColors.backgroundPrimary,
-          body: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.child_care_rounded,
-                  size: 80,
-                  color: AudyColors.skyBlue,
-                ),
-                const SizedBox(height: 24),
-                Text(
-                  'AUDY',
-                  style: AudyTypography.displayLarge.copyWith(
+          body: AudyBackground(
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.child_care_rounded,
+                    size: 80,
                     color: AudyColors.skyBlue,
                   ),
-                ),
-                const SizedBox(height: 16),
-                const CircularProgressIndicator(
-                  color: AudyColors.skyBlue,
-                ),
-              ],
+                  const SizedBox(height: 24),
+                  Text(
+                    'AUDY',
+                    style: AudyTypography.displayLarge.copyWith(
+                      color: AudyColors.skyBlue,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const CircularProgressIndicator(
+                    color: AudyColors.skyBlue,
+                  ),
+                ],
+              ),
             ),
           ),
         ),
