@@ -41,6 +41,7 @@ class FlashCardFace extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = card.color;
+    final lang = AudyScope.of(context).currentLanguage;
     final glyphSize = (height * 0.34).clamp(28.0, 56.0);
     final wordSize = (height * 0.13).clamp(15.0, 22.0);
 
@@ -102,7 +103,7 @@ class FlashCardFace extends StatelessWidget {
               ),
             ),
             Text(
-              card.word,
+              card.display(lang),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: AudyTypography.cardTitle.copyWith(fontSize: wordSize),

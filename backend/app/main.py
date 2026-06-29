@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routers import thai_chat, emotion, tts
+from app.routers import thai_chat, emotion, tts, flashcard
 from app.config import settings
 
 app = FastAPI(
@@ -27,6 +27,7 @@ app.add_middleware(
 app.include_router(thai_chat.router)
 app.include_router(emotion.router)
 app.include_router(tts.router)
+app.include_router(flashcard.router)
 
 
 @app.get("/")
@@ -41,6 +42,9 @@ async def root():
             "/api/emotion/health",
             "/api/tts",
             "/api/tts/health",
+            "/api/flashcard/generate",
+            "/api/flashcard/validate",
+            "/api/flashcard/health",
         ],
     }
 

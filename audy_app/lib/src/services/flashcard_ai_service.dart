@@ -14,11 +14,15 @@ class FlashValidation {
   const FlashValidation({
     required this.valid,
     this.errorIndices = const [],
+    this.swapIndex,
     this.feedback = '',
   });
 
   final bool valid;
   final List<int> errorIndices;
+
+  /// The single card the child should move/swap to fix the sentence, if any.
+  final int? swapIndex;
   final String feedback;
 }
 
@@ -37,14 +41,18 @@ class FlashcardAiService {
 
   static const Duration _timeout = Duration(seconds: 8);
 
-  // word (lowercased) -> emoji, built once from the existing word pools so AI
-  // sentences render the same glyphs the local game uses.
-  static final Map<String, String> _glyphByWord = _buildGlyphLookup();
+  // word (lowercased) -> emoji / Thai, built once from the existing word pools so
+  // AI sentences render the same glyphs and Thai text the local game uses.
+  static final Map<String, String> _glyphByWord = _buildLookups().$1;
+  static final Map<String, String> _thaiByWord = _buildLookups().$2;
 
-  static Map<String, String> _buildGlyphLookup() {
-    final map = <String, String>{};
+  static (Map<String, String>, Map<String, String>) _buildLookups() {
+    final glyphs = <String, String>{};
+    final thai = <String, String>{};
     void add(FlashCard c) {
-      if (c.glyph != null) map[c.word.toLowerCase()] = c.glyph!;
+      final key = c.word.toLowerCase();
+      if (c.glyph != null) glyphs[key] = c.glyph!;
+      if (c.wordTh != null) thai[key] = c.wordTh!;
     }
 
     FlashWordPool.pronouns.forEach(add);
@@ -53,10 +61,12 @@ class FlashcardAiService {
     FlashWordPool.adverbs.forEach(add);
     FlashWordPool.prepositions.forEach(add);
     for (final v in FlashWordPool.verbs) {
-      map[v.base.toLowerCase()] = v.glyph;
-      map[v.third.toLowerCase()] = v.glyph;
+      glyphs[v.base.toLowerCase()] = v.glyph;
+      glyphs[v.third.toLowerCase()] = v.glyph;
+      thai[v.base.toLowerCase()] = v.th;
+      thai[v.third.toLowerCase()] = v.th;
     }
-    return map;
+    return (glyphs, thai);
   }
 
   /// Generate a round via the backend; falls back to the local generator.
@@ -117,9 +127,14 @@ class FlashcardAiService {
         final idx = (e is Map) ? e['index'] : null;
         if (idx is int && idx >= 0 && idx < placed.length) errors.add(idx);
       }
+      final rawSwap = data['swap_index'];
+      final swap = (rawSwap is int && rawSwap >= 0 && rawSwap < placed.length)
+          ? rawSwap
+          : null;
       return FlashValidation(
         valid: data['valid'] == true,
         errorIndices: errors,
+        swapIndex: swap,
         feedback: (data['feedback'] ?? '').toString(),
       );
     } catch (_) {
@@ -139,11 +154,13 @@ class FlashcardAiService {
       final pos = _posFromString((j['pos'] ?? '').toString());
       final glyph =
           (j['glyph'] as String?) ?? _glyphByWord[word.toLowerCase()];
+      final wordTh = (j['word_th'] as String?) ?? _thaiByWord[word.toLowerCase()];
       return FlashCard(
         id: 'ai_${roundIndex}_${counter++}',
         word: word,
         pos: pos,
         glyph: glyph,
+        wordTh: wordTh,
       );
     }
 

@@ -12,11 +12,12 @@ const _prep = PartOfSpeech.preposition;
 
 /// A verb lemma with both agreement forms.
 class FlashVerb {
-  const FlashVerb(this.lemma, this.base, this.third, this.glyph);
+  const FlashVerb(this.lemma, this.base, this.third, this.glyph, this.th);
   final String lemma;
   final String base; // I/You/We/They form
   final String third; // He/She/It form
   final String glyph;
+  final String th; // Thai display (no conjugation in Thai)
 }
 
 /// Word pools per part of speech. Rounds draw randomly so sentences vary every
@@ -26,69 +27,69 @@ class FlashWordPool {
   const FlashWordPool._();
 
   static const List<FlashCard> pronouns = [
-    FlashCard(id: 'he', word: 'He', pos: _p, glyph: '🧒', thirdSingular: true),
-    FlashCard(id: 'she', word: 'She', pos: _p, glyph: '👧', thirdSingular: true),
-    FlashCard(id: 'it', word: 'It', pos: _p, glyph: '🧸', thirdSingular: true),
-    FlashCard(id: 'they', word: 'They', pos: _p, glyph: '👫', thirdSingular: false),
-    FlashCard(id: 'we', word: 'We', pos: _p, glyph: '👨‍👩‍👧', thirdSingular: false),
-    FlashCard(id: 'i', word: 'I', pos: _p, glyph: '🙋', thirdSingular: false),
+    FlashCard(id: 'he', word: 'He', pos: _p, glyph: '🧒', thirdSingular: true, wordTh: 'เขา'),
+    FlashCard(id: 'she', word: 'She', pos: _p, glyph: '👧', thirdSingular: true, wordTh: 'เธอ'),
+    FlashCard(id: 'it', word: 'It', pos: _p, glyph: '🧸', thirdSingular: true, wordTh: 'มัน'),
+    FlashCard(id: 'they', word: 'They', pos: _p, glyph: '👫', thirdSingular: false, wordTh: 'พวกเขา'),
+    FlashCard(id: 'we', word: 'We', pos: _p, glyph: '👨‍👩‍👧', thirdSingular: false, wordTh: 'เรา'),
+    FlashCard(id: 'i', word: 'I', pos: _p, glyph: '🙋', thirdSingular: false, wordTh: 'ฉัน'),
   ];
 
   static const List<FlashVerb> verbs = [
-    FlashVerb('eat', 'Eat', 'Eats', '🍴'),
-    FlashVerb('run', 'Run', 'Runs', '🏃'),
-    FlashVerb('see', 'See', 'Sees', '👀'),
-    FlashVerb('play', 'Play', 'Plays', '🎮'),
-    FlashVerb('sleep', 'Sleep', 'Sleeps', '😴'),
-    FlashVerb('hold', 'Hold', 'Holds', '🤝'),
-    FlashVerb('read', 'Read', 'Reads', '📖'),
-    FlashVerb('jump', 'Jump', 'Jumps', '🤸'),
-    FlashVerb('sit', 'Sit', 'Sits', '🪑'),
-    FlashVerb('sing', 'Sing', 'Sings', '🎵'),
+    FlashVerb('eat', 'Eat', 'Eats', '🍴', 'กิน'),
+    FlashVerb('run', 'Run', 'Runs', '🏃', 'วิ่ง'),
+    FlashVerb('see', 'See', 'Sees', '👀', 'เห็น'),
+    FlashVerb('play', 'Play', 'Plays', '🎮', 'เล่น'),
+    FlashVerb('sleep', 'Sleep', 'Sleeps', '😴', 'นอน'),
+    FlashVerb('hold', 'Hold', 'Holds', '🤝', 'ถือ'),
+    FlashVerb('read', 'Read', 'Reads', '📖', 'อ่าน'),
+    FlashVerb('jump', 'Jump', 'Jumps', '🤸', 'กระโดด'),
+    FlashVerb('sit', 'Sit', 'Sits', '🪑', 'นั่ง'),
+    FlashVerb('sing', 'Sing', 'Sings', '🎵', 'ร้องเพลง'),
   ];
 
   static const List<FlashCard> nouns = [
-    FlashCard(id: 'apple', word: 'Apple', pos: _n, glyph: '🍎', thirdSingular: true),
-    FlashCard(id: 'ball', word: 'Ball', pos: _n, glyph: '⚽', thirdSingular: true),
-    FlashCard(id: 'dog', word: 'Dog', pos: _n, glyph: '🐶', thirdSingular: true),
-    FlashCard(id: 'cat', word: 'Cat', pos: _n, glyph: '🐱', thirdSingular: true),
-    FlashCard(id: 'car', word: 'Car', pos: _n, glyph: '🚗', thirdSingular: true),
-    FlashCard(id: 'bird', word: 'Bird', pos: _n, glyph: '🐦', thirdSingular: true),
-    FlashCard(id: 'cake', word: 'Cake', pos: _n, glyph: '🍰', thirdSingular: true),
-    FlashCard(id: 'fish', word: 'Fish', pos: _n, glyph: '🐟', thirdSingular: true),
-    FlashCard(id: 'box', word: 'Box', pos: _n, glyph: '📦', thirdSingular: true),
-    FlashCard(id: 'bed', word: 'Bed', pos: _n, glyph: '🛏️', thirdSingular: true),
-    FlashCard(id: 'tree', word: 'Tree', pos: _n, glyph: '🌳', thirdSingular: true),
-    FlashCard(id: 'park', word: 'Park', pos: _n, glyph: '🏞️', thirdSingular: true),
+    FlashCard(id: 'apple', word: 'Apple', pos: _n, glyph: '🍎', thirdSingular: true, wordTh: 'แอปเปิล'),
+    FlashCard(id: 'ball', word: 'Ball', pos: _n, glyph: '⚽', thirdSingular: true, wordTh: 'ลูกบอล'),
+    FlashCard(id: 'dog', word: 'Dog', pos: _n, glyph: '🐶', thirdSingular: true, wordTh: 'หมา'),
+    FlashCard(id: 'cat', word: 'Cat', pos: _n, glyph: '🐱', thirdSingular: true, wordTh: 'แมว'),
+    FlashCard(id: 'car', word: 'Car', pos: _n, glyph: '🚗', thirdSingular: true, wordTh: 'รถ'),
+    FlashCard(id: 'bird', word: 'Bird', pos: _n, glyph: '🐦', thirdSingular: true, wordTh: 'นก'),
+    FlashCard(id: 'cake', word: 'Cake', pos: _n, glyph: '🍰', thirdSingular: true, wordTh: 'เค้ก'),
+    FlashCard(id: 'fish', word: 'Fish', pos: _n, glyph: '🐟', thirdSingular: true, wordTh: 'ปลา'),
+    FlashCard(id: 'box', word: 'Box', pos: _n, glyph: '📦', thirdSingular: true, wordTh: 'กล่อง'),
+    FlashCard(id: 'bed', word: 'Bed', pos: _n, glyph: '🛏️', thirdSingular: true, wordTh: 'เตียง'),
+    FlashCard(id: 'tree', word: 'Tree', pos: _n, glyph: '🌳', thirdSingular: true, wordTh: 'ต้นไม้'),
+    FlashCard(id: 'park', word: 'Park', pos: _n, glyph: '🏞️', thirdSingular: true, wordTh: 'สวน'),
   ];
 
   static const List<FlashCard> adjectives = [
-    FlashCard(id: 'blue', word: 'Blue', pos: _a, glyph: '🔵'),
-    FlashCard(id: 'red', word: 'Red', pos: _a, glyph: '🔴'),
-    FlashCard(id: 'big', word: 'Big', pos: _a, glyph: '🟦'),
-    FlashCard(id: 'small', word: 'Small', pos: _a, glyph: '🤏'),
-    FlashCard(id: 'happy', word: 'Happy', pos: _a, glyph: '😊'),
-    FlashCard(id: 'fast', word: 'Fast', pos: _a, glyph: '⚡'),
-    FlashCard(id: 'hot', word: 'Hot', pos: _a, glyph: '🔥'),
-    FlashCard(id: 'cold', word: 'Cold', pos: _a, glyph: '❄️'),
+    FlashCard(id: 'blue', word: 'Blue', pos: _a, glyph: '🔵', wordTh: 'สีน้ำเงิน'),
+    FlashCard(id: 'red', word: 'Red', pos: _a, glyph: '🔴', wordTh: 'สีแดง'),
+    FlashCard(id: 'big', word: 'Big', pos: _a, glyph: '🟦', wordTh: 'ใหญ่'),
+    FlashCard(id: 'small', word: 'Small', pos: _a, glyph: '🤏', wordTh: 'เล็ก'),
+    FlashCard(id: 'happy', word: 'Happy', pos: _a, glyph: '😊', wordTh: 'มีความสุข'),
+    FlashCard(id: 'fast', word: 'Fast', pos: _a, glyph: '⚡', wordTh: 'เร็ว'),
+    FlashCard(id: 'hot', word: 'Hot', pos: _a, glyph: '🔥', wordTh: 'ร้อน'),
+    FlashCard(id: 'cold', word: 'Cold', pos: _a, glyph: '❄️', wordTh: 'เย็น'),
   ];
 
   static const List<FlashCard> adverbs = [
-    FlashCard(id: 'quickly', word: 'Quickly', pos: _adv, glyph: '💨'),
-    FlashCard(id: 'slowly', word: 'Slowly', pos: _adv, glyph: '🐌'),
-    FlashCard(id: 'happily', word: 'Happily', pos: _adv, glyph: '😄'),
-    FlashCard(id: 'quietly', word: 'Quietly', pos: _adv, glyph: '🤫'),
-    FlashCard(id: 'loudly', word: 'Loudly', pos: _adv, glyph: '📢'),
-    FlashCard(id: 'softly', word: 'Softly', pos: _adv, glyph: '🍃'),
+    FlashCard(id: 'quickly', word: 'Quickly', pos: _adv, glyph: '💨', wordTh: 'อย่างรวดเร็ว'),
+    FlashCard(id: 'slowly', word: 'Slowly', pos: _adv, glyph: '🐌', wordTh: 'อย่างช้า ๆ'),
+    FlashCard(id: 'happily', word: 'Happily', pos: _adv, glyph: '😄', wordTh: 'อย่างมีความสุข'),
+    FlashCard(id: 'quietly', word: 'Quietly', pos: _adv, glyph: '🤫', wordTh: 'อย่างเงียบ ๆ'),
+    FlashCard(id: 'loudly', word: 'Loudly', pos: _adv, glyph: '📢', wordTh: 'อย่างดัง'),
+    FlashCard(id: 'softly', word: 'Softly', pos: _adv, glyph: '🍃', wordTh: 'อย่างนุ่มนวล'),
   ];
 
   static const List<FlashCard> prepositions = [
-    FlashCard(id: 'in', word: 'In', pos: _prep, glyph: '📥'),
-    FlashCard(id: 'on', word: 'On', pos: _prep, glyph: '🔝'),
-    FlashCard(id: 'under', word: 'Under', pos: _prep, glyph: '🔽'),
-    FlashCard(id: 'near', word: 'Near', pos: _prep, glyph: '📍'),
-    FlashCard(id: 'behind', word: 'Behind', pos: _prep, glyph: '🚪'),
-    FlashCard(id: 'by', word: 'By', pos: _prep, glyph: '🧱'),
+    FlashCard(id: 'in', word: 'In', pos: _prep, glyph: '📥', wordTh: 'ใน'),
+    FlashCard(id: 'on', word: 'On', pos: _prep, glyph: '🔝', wordTh: 'บน'),
+    FlashCard(id: 'under', word: 'Under', pos: _prep, glyph: '🔽', wordTh: 'ใต้'),
+    FlashCard(id: 'near', word: 'Near', pos: _prep, glyph: '📍', wordTh: 'ใกล้'),
+    FlashCard(id: 'behind', word: 'Behind', pos: _prep, glyph: '🚪', wordTh: 'ข้างหลัง'),
+    FlashCard(id: 'by', word: 'By', pos: _prep, glyph: '🧱', wordTh: 'ข้าง'),
   ];
 
   static List<FlashCard> simplePool(PartOfSpeech pos) {
@@ -154,6 +155,7 @@ class FlashLevelDefinitions {
         glyph: base.glyph,
         thirdSingular: base.thirdSingular,
         lemma: base.lemma,
+        wordTh: base.wordTh,
       );
     }
 
@@ -177,6 +179,7 @@ class FlashLevelDefinitions {
         glyph: v.glyph,
         thirdSingular: thirdSingular,
         lemma: v.lemma,
+        wordTh: v.th,
       ));
     }
 

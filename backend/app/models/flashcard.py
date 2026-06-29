@@ -4,9 +4,10 @@ from typing import List, Optional
 
 # ---- Shared card shape ----
 class FlashWord(BaseModel):
-    word: str
+    word: str  # canonical English (drives glyph + grammar)
     pos: str  # noun | pronoun | verb | adjective | adverb | preposition
     glyph: Optional[str] = None  # emoji; resolved client-side if missing
+    word_th: Optional[str] = None  # Thai display text (shown in Thai mode)
 
 
 # ---- /api/flashcard/generate ----
@@ -37,4 +38,5 @@ class WordError(BaseModel):
 class ValidateResponse(BaseModel):
     valid: bool                    # meaning-equivalent, not exact-match
     errors: List[WordError] = []   # word-level flags -> drive red glow
+    swap_index: Optional[int] = None  # the single card the child should move
     feedback: str = ""             # short child-friendly message

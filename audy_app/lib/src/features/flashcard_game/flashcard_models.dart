@@ -64,14 +64,25 @@ class FlashCard {
     this.glyph,
     this.thirdSingular,
     this.lemma,
+    this.wordTh,
   });
 
   final String id;
+
+  /// Canonical English word (drives glyph lookup + POS grammar).
   final String word;
   final PartOfSpeech pos;
 
   /// Optional emoji shown as the word's picture. Null → word-only card.
   final String? glyph;
+
+  /// Thai display text, shown on the card when the app language is Thai.
+  final String? wordTh;
+
+  /// The text to show/speak for [lang] ('en' or 'th'). Falls back to English
+  /// when no Thai translation is available.
+  String display(String lang) =>
+      (lang == 'th' && (wordTh?.isNotEmpty ?? false)) ? wordTh! : word;
 
   /// Number/person agreement feature.
   /// - Pronoun / Noun: true if the subject takes a 3rd-person-singular verb

@@ -70,7 +70,6 @@ class _FlashCardGameScreenState extends State<FlashCardGameScreen> {
   }
 
   String _lang() => mounted ? AudyScope.of(context).currentLanguage : 'en';
-  bool get _thaiVoice => _lang() == 'th';
 
   /// Deal cards one at a time, speaking each word before the next appears.
   void _maybeStartDeal() {
@@ -94,11 +93,12 @@ class _FlashCardGameScreenState extends State<FlashCardGameScreen> {
       if (mounted) setState(() => _dealing = false);
       return;
     }
-    final thai = _thaiVoice;
+    final lang = _lang();
+    final thai = lang == 'th';
     for (var i = 0; i < hand.length; i++) {
       if (!mounted || _engine.roundIndex != _animatedRound) return;
       setState(() => _dealtCount = i + 1);
-      await _tts.speak(hand[i].word, thai: thai);
+      await _tts.speak(hand[i].display(lang), thai: thai);
     }
     if (mounted) setState(() => _dealing = false);
   }
@@ -116,7 +116,8 @@ class _FlashCardGameScreenState extends State<FlashCardGameScreen> {
     }
 
     final reduce = MediaQuery.of(context).disableAnimations;
-    final thai = _thaiVoice;
+    final lang = _lang();
+    final thai = lang == 'th';
     final n = _engine.slots.length;
     final errs = _engine.errorIndices.toSet();
     final correct = _engine.isCorrect;
@@ -127,16 +128,10 @@ class _FlashCardGameScreenState extends State<FlashCardGameScreen> {
         _runningFeedback = false;
         return;
       }
-      final CardGlow g;
-      if (correct) {
-        g = CardGlow.correct;
-      } else if (errs.isEmpty) {
-        g = CardGlow.wrong; // local fallback: whole-sentence wrong
-      } else {
-        g = errs.contains(i) ? CardGlow.wrong : CardGlow.correct;
-      }
-      setState(() => _glow[i] = g);
-      await _tts.speak(_engine.slots[i]?.word ?? '', thai: thai);
+      // Only the incorrect card(s) glow red; correct cards stay neutral.
+      final wrong = !correct && errs.contains(i);
+      setState(() => _glow[i] = wrong ? CardGlow.wrong : CardGlow.none);
+      await _tts.speak(_engine.slots[i]?.display(lang) ?? '', thai: thai);
       if (!reduce) {
         await Future.delayed(const Duration(milliseconds: 260));
       }
