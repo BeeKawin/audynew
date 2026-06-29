@@ -22,6 +22,7 @@ import 'src/features/read_pronounce/read_pronounce_practice.dart';
 import 'src/features/read_pronounce/read_pronounce_controller.dart';
 import 'src/features/reaction_game/reaction_game_screen.dart';
 import 'src/features/sorting_game/sort_level_select_screen.dart';
+import 'src/features/flashcard_game/flashcard_level_select.dart';
 import 'src/services/bluetooth_service.dart';
 import 'src/services/emotion_service.dart';
 import 'src/services/sound_service.dart';
@@ -254,6 +255,7 @@ class _AudyAppState extends State<AudyApp> {
           AppRoutes.emotionMimic: (_) => const EmotionMimicScreen(),
           AppRoutes.miniPuzzle: (_) => const MiniPuzzleGameSelection(),
           AppRoutes.sortingGame: (_) => const SortLevelSelectScreen(),
+          AppRoutes.flashcard: (_) => const FlashCardLevelSelectScreen(),
           AppRoutes.reactionTime: (_) => const ReactionTimePage(),
           AppRoutes.readingHub: (_) => const ReadPronounceHub(),
           AppRoutes.letters: (_) => const ReadPronouncePracticeScreen(

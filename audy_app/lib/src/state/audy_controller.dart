@@ -1506,6 +1506,15 @@ class AudyController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Track flash card game completed
+  Future<void> trackFlashcardCompleted() async {
+    gamesPlayed += 1;
+    _trackGameInSession();
+    _checkAchievements();
+    await _saveProgress();
+    notifyListeners();
+  }
+
   /// Track emotion recognized correctly
   Future<void> trackEmotionRecognized() async {
     emotionsRecognized++;

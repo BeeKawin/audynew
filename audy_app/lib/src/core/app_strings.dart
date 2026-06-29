@@ -80,6 +80,43 @@ class AppStrings {
     'mini_puzzle': {'en': 'MiniPuzzle', 'th': 'แก้ปัญหาฝึกสมอง!'},
     'sorting_game': {'en': 'Sorting Game', 'th': 'จำแนกสิ่งของ!'},
     'reaction_time': {'en': 'Reaction Time', 'th': 'กดให้เร็วที่สุด!'},
+    // Flash Card game
+    'flashcard_game': {'en': 'Flash Card', 'th': 'การ์ดคำศัพท์'},
+    'flashcard_guide': {
+      'en': 'Drag cards into the middle to build a sentence, then tap Submit!',
+      'th': 'ลากการ์ดมาวางตรงกลางให้เป็นประโยค แล้วกดส่งคำตอบ!',
+    },
+    'flashcard_instruction_easy': {
+      'en': 'Make a short sentence.',
+      'th': 'สร้างประโยคสั้น ๆ',
+    },
+    'flashcard_instruction_medium': {
+      'en': 'Build the full sentence in order.',
+      'th': 'เรียงคำให้เป็นประโยคที่สมบูรณ์',
+    },
+    'flashcard_instruction_hard': {
+      'en': 'Order every word carefully.',
+      'th': 'เรียงทุกคำให้ถูกต้อง',
+    },
+    'flashcard_hand_empty': {
+      'en': 'All cards are placed!',
+      'th': 'วางการ์ดครบแล้ว!',
+    },
+    'flashcard_clear_answer': {'en': 'Clear', 'th': 'ล้าง'},
+    'flashcard_your_cards': {'en': 'Your cards', 'th': 'การ์ดของคุณ'},
+    'flashcard_expand': {'en': 'Expand', 'th': 'ขยาย'},
+    'flashcard_collapse': {'en': 'Collapse', 'th': 'ย่อ'},
+    'flashcard_sentences_built': {
+      'en': 'Sentences built',
+      'th': 'ประโยคที่สร้างได้',
+    },
+    'pos_noun': {'en': 'Noun', 'th': 'คำนาม'},
+    'pos_pronoun': {'en': 'Pronoun', 'th': 'สรรพนาม'},
+    'pos_verb': {'en': 'Verb', 'th': 'คำกริยา'},
+    'pos_adjective': {'en': 'Adjective', 'th': 'คำคุณศัพท์'},
+    'pos_adverb': {'en': 'Adverb', 'th': 'คำกริยาวิเศษณ์'},
+    'pos_preposition': {'en': 'Preposition', 'th': 'คำบุพบท'},
+    'submit': {'en': 'Submit', 'th': 'ส่งคำตอบ'},
     'play_and_learn': {
       'en': 'Play and learn with fun activities!',
       'th': 'เล่นและเรียนรู้ด้วยกิจกรรมสนุก!',

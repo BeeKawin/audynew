@@ -63,6 +63,13 @@ class GamesHubPage extends StatelessWidget {
         const Color(0xFFFFDAC7),
         AppRoutes.reactionTime,
       ),
+      _RouteCard(
+        controller.tr('flashcard_game'),
+        null,
+        Icons.style_rounded,
+        const Color(0xFFC9E8D2),
+        AppRoutes.flashcard,
+      ),
     ];
 
     return AudyFeaturePage(
