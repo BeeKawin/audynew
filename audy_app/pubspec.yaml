@@ -30,6 +30,8 @@ dependencies:
   flutter_soloud: ^4.0.4
   flutter_blue_plus: ^1.35.3
   model_viewer_plus: ^1.10.0
+  sensors_plus: ^7.0.0
+  shared_preferences: ^2.5.3
 
 
 dev_dependencies:
@@ -45,6 +47,8 @@ flutter:
   assets:
     - assets/sounds/
     - assets/images/
+    - assets/images/games/basket/
+    - assets/images/games/basket/fruits/
     - assets/images/sorting/
     - assets/mascot/
     - assets/3d/

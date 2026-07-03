@@ -62,6 +62,71 @@ class AudyBleMessage {
   }
 }
 
+/// Parsed MPU6050 motion packet from ESP32.
+///
+/// Expected notify payload:
+///   ax,ay,az,gx,gy,gz
+///
+/// Accelerometer values are in m/s^2 and gyroscope values are in rad/s.
+class AudyMpuMotion {
+  const AudyMpuMotion({
+    required this.ax,
+    required this.ay,
+    required this.az,
+    required this.gx,
+    required this.gy,
+    required this.gz,
+    required this.receivedAt,
+  });
+
+  final double ax;
+  final double ay;
+  final double az;
+  final double gx;
+  final double gy;
+  final double gz;
+  final DateTime receivedAt;
+
+  static AudyMpuMotion? tryParse(String rawMessage) {
+    final message = rawMessage.trim();
+    final separatorIndex = message.indexOf(':');
+    final payload = separatorIndex > 0
+        ? message.substring(separatorIndex + 1).trim()
+        : message;
+
+    final singleValue = double.tryParse(payload);
+    if (singleValue != null) {
+      return AudyMpuMotion(
+        ax: 0,
+        ay: singleValue,
+        az: 0,
+        gx: 0,
+        gy: 0,
+        gz: 0,
+        receivedAt: DateTime.now(),
+      );
+    }
+
+    final parts = payload
+        .trim()
+        .split(',')
+        .map((part) => double.tryParse(part.trim()))
+        .toList(growable: false);
+
+    if (parts.length != 6 || parts.any((part) => part == null)) return null;
+
+    return AudyMpuMotion(
+      ax: parts[0]!,
+      ay: parts[1]!,
+      az: parts[2]!,
+      gx: parts[3]!,
+      gy: parts[4]!,
+      gz: parts[5]!,
+      receivedAt: DateTime.now(),
+    );
+  }
+}
+
 /// Bluetooth service for AUDY device.
 ///
 /// Robot BLE protocol:
@@ -90,6 +155,8 @@ class AudyBluetoothService {
   BluetoothCharacteristic? _noseCharacteristic;
   BluetoothCharacteristic? _forceCharacteristic;
   BluetoothCharacteristic? _earsCharacteristic;
+  BluetoothCharacteristic? _mpuCharacteristic;
+  StreamSubscription<List<int>>? _mpuMotionSub;
 
   StreamSubscription<BluetoothConnectionState>? _connectionStateSub;
   final List<StreamSubscription<List<int>>> _incomingSubs = [];
@@ -97,15 +164,20 @@ class AudyBluetoothService {
   final ValueNotifier<bool> connectionNotifier = ValueNotifier<bool>(false);
   final ValueNotifier<AudyBleMessage?> lastIncomingMessage =
       ValueNotifier<AudyBleMessage?>(null);
+  final ValueNotifier<AudyMpuMotion?> lastMpuMotion =
+      ValueNotifier<AudyMpuMotion?>(null);
 
   final StreamController<AudyBleMessage> _incomingController =
       StreamController<AudyBleMessage>.broadcast();
+  final StreamController<AudyMpuMotion> _mpuMotionController =
+      StreamController<AudyMpuMotion>.broadcast();
 
   bool _isConnected = false;
 
   bool get isConnected => _isConnected;
   String? get deviceName => _device?.platformName;
   Stream<AudyBleMessage> get incomingMessages => _incomingController.stream;
+  Stream<AudyMpuMotion> get mpuMotionMessages => _mpuMotionController.stream;
 
   /// Initialize Bluetooth.
   Future<void> initialize() async {
@@ -263,6 +335,11 @@ class AudyBluetoothService {
             _forceCharacteristic = characteristic;
           } else if (uuid == BluetoothUuids.earsCharacteristic) {
             _earsCharacteristic = characteristic;
+          } else if (uuid == BluetoothUuids.mpuCharacteristic) {
+            _mpuCharacteristic = characteristic;
+            debugPrint(
+              'AudyBluetoothService: Found optional MPU characteristic',
+            );
           }
         }
       }
@@ -285,6 +362,9 @@ class AudyBluetoothService {
     }
 
     debugPrint('AudyBluetoothService: Found robot characteristics');
+    if (_mpuCharacteristic == null) {
+      debugPrint('AudyBluetoothService: Optional MPU characteristic not found');
+    }
   }
 
   /// Enable ESP32 -> Flutter notifications.
@@ -295,8 +375,32 @@ class AudyBluetoothService {
     await _enableNotification('nose', _noseCharacteristic);
     await _enableNotification('force', _forceCharacteristic);
     await _enableNotification('ears', _earsCharacteristic);
-
     debugPrint('AudyBluetoothService: Notifications enabled');
+  }
+
+  Future<void> setMpuMotionEnabled(bool enabled) async {
+    final characteristic = _mpuCharacteristic;
+    if (!_isConnected || characteristic == null) {
+      debugPrint(
+        'AudyBluetoothService: Cannot ${enabled ? 'enable' : 'disable'} MPU notifications',
+      );
+      return;
+    }
+
+    if (enabled) {
+      if (_mpuMotionSub != null) return;
+      _mpuMotionSub = characteristic.onValueReceived.listen(
+        (value) => _handleIncomingValue('mpu', value),
+      );
+      await characteristic.setNotifyValue(true);
+      debugPrint('AudyBluetoothService: Notify enabled for mpu');
+      return;
+    }
+
+    await _mpuMotionSub?.cancel();
+    _mpuMotionSub = null;
+    await characteristic.setNotifyValue(false);
+    debugPrint('AudyBluetoothService: Notify disabled for mpu');
   }
 
   Future<void> _resetOutgoingChannelsToDefault() async {
@@ -321,12 +425,18 @@ class AudyBluetoothService {
     _incomingSubs.add(sub);
 
     await characteristic.setNotifyValue(true);
+    debugPrint('AudyBluetoothService: Notify enabled for $channel');
   }
 
   void _handleIncomingValue(String channel, List<int> value) {
     if (value.isEmpty) return;
 
     final decoded = utf8.decode(value).trim();
+    if (channel == 'mpu') {
+      _handleMpuValue(decoded);
+      return;
+    }
+
     final parsedValue = int.tryParse(decoded);
 
     if (parsedValue == null) {
@@ -335,6 +445,18 @@ class AudyBluetoothService {
     }
 
     _publishIncomingMessage(channel, parsedValue);
+  }
+
+  void _handleMpuValue(String decoded) {
+    debugPrint('AudyBluetoothService: MPU raw: $decoded');
+    final parsed = AudyMpuMotion.tryParse(decoded);
+    if (parsed == null) {
+      debugPrint('AudyBluetoothService: Invalid MPU value: $decoded');
+      return;
+    }
+
+    lastMpuMotion.value = parsed;
+    _mpuMotionController.add(parsed);
   }
 
   void _publishIncomingMessage(String channel, int value) {
@@ -500,6 +622,9 @@ class AudyBluetoothService {
   }
 
   Future<void> _cancelIncomingSubscriptions() async {
+    await _mpuMotionSub?.cancel();
+    _mpuMotionSub = null;
+
     final subs = List<StreamSubscription<List<int>>>.from(_incomingSubs);
     _incomingSubs.clear();
 
@@ -516,13 +641,16 @@ class AudyBluetoothService {
     _noseCharacteristic = null;
     _forceCharacteristic = null;
     _earsCharacteristic = null;
+    _mpuCharacteristic = null;
   }
 
   /// Optional cleanup if you ever permanently destroy this service.
   Future<void> dispose() async {
     await disconnect();
     await _incomingController.close();
+    await _mpuMotionController.close();
     connectionNotifier.dispose();
     lastIncomingMessage.dispose();
+    lastMpuMotion.dispose();
   }
 }

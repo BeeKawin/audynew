@@ -197,15 +197,18 @@ class _ReactionTimePageState extends State<ReactionTimePage> {
                         'total': controller.reactionTotalRounds.toString(),
                       },
                     ),
+                    guide: _showGuide
+                        ? Padding(
+                            padding: EdgeInsets.only(right: adaptive.space(64)),
+                            child: GameGuideBox(
+                              message: _tr(context, 'guide_reaction_time'),
+                              onDismissed: () =>
+                                  setState(() => _showGuide = false),
+                            ),
+                          )
+                        : null,
                   ),
                   SizedBox(height: adaptive.space(12)),
-                  if (_showGuide) ...[
-                    GameGuideBox(
-                      message: _tr(context, 'guide_reaction_time'),
-                      onDismissed: () => setState(() => _showGuide = false),
-                    ),
-                    SizedBox(height: adaptive.space(12)),
-                  ],
                   SizedBox(height: adaptive.space(24)),
                   Center(
                     child: Column(
@@ -616,36 +619,35 @@ class _TopRow extends StatelessWidget {
     required this.adaptive,
     required this.leadingLabel,
     this.trailingText,
+    this.guide,
   });
 
   final AudyAdaptive adaptive;
   final String leadingLabel;
   final String? trailingText;
+  final Widget? guide;
 
   @override
   Widget build(BuildContext context) {
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Expanded(
-          child: AudyBackButton(
-            label: leadingLabel,
-            onPressed: () {
-              SoundService.instance.playTap();
-              final controller = AudyScope.of(context);
-              controller.resetReactionGame();
-              AppRoutes.navigateAfterGameCompletion(context, controller);
-            },
-          ),
+        AudyBackButton(
+          label: leadingLabel,
+          onPressed: () {
+            SoundService.instance.playTap();
+            final controller = AudyScope.of(context);
+            controller.resetReactionGame();
+            AppRoutes.navigateAfterGameCompletion(context, controller);
+          },
         ),
+        if (trailingText != null) const SizedBox(width: AudySpacing.elementGap),
         if (trailingText != null)
-          Text(
-            trailingText!,
-            style: TextStyle(
-              fontSize: adaptive.space(16),
-              fontWeight: FontWeight.w700,
-            ),
-          ),
+          Text(trailingText!, style: AudyTypography.labelLarge),
+        if (guide != null) ...[
+          SizedBox(width: adaptive.space(12)),
+          Expanded(child: guide!),
+        ],
       ],
     );
   }

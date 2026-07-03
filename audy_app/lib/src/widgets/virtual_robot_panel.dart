@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:model_viewer_plus/model_viewer_plus.dart';
 
@@ -17,7 +19,7 @@ class VirtualRobotPanel extends StatefulWidget {
     this.onEarsRightTap,
     this.onForceLeftTap,
     this.onForceRightTap,
-    this.initiallyCollapsed = false,
+    this.initiallyCollapsed = true,
   });
 
   final AudyAdaptive adaptive;
@@ -54,26 +56,29 @@ class _VirtualRobotPanelState extends State<VirtualRobotPanel> {
 
   @override
   Widget build(BuildContext context) {
-    final collapsedExtent = widget.adaptive.space(72);
-    final expandedExtent = widget.isHorizontal
-        ? widget.adaptive.space(300)
-        : widget.adaptive.space(320);
-    final width = widget.isHorizontal
-        ? (_isCollapsed ? collapsedExtent : expandedExtent)
-        : double.infinity;
-    final height = widget.isHorizontal
-        ? null
-        : (_isCollapsed ? collapsedExtent : expandedExtent);
+    final collapsedExtent = widget.adaptive.space(48);
+    final maxPanelWidth =
+        MediaQuery.sizeOf(context).width - widget.adaptive.space(24);
+    final expandedExtent = min(
+      widget.isHorizontal
+          ? widget.adaptive.space(300)
+          : widget.adaptive.space(320),
+      maxPanelWidth,
+    );
+    final width = _isCollapsed ? collapsedExtent : expandedExtent;
+    final height = _isCollapsed ? collapsedExtent : expandedExtent;
 
     return AnimatedContainer(
       duration: AudyAnimation.normal,
       curve: Curves.easeOut,
       width: width,
       height: height,
-      padding: EdgeInsets.all(widget.adaptive.space(12)),
+      padding: EdgeInsets.all(_isCollapsed ? 0 : widget.adaptive.space(12)),
       decoration: BoxDecoration(
         color: AudyColors.backgroundCard,
-        borderRadius: BorderRadius.circular(widget.adaptive.space(20)),
+        borderRadius: BorderRadius.circular(
+          _isCollapsed ? widget.adaptive.space(10) : widget.adaptive.space(20),
+        ),
         border: Border.all(color: AudyColors.borderLight, width: 2),
         boxShadow: AudyShadows.cardShadow,
       ),
@@ -82,13 +87,15 @@ class _VirtualRobotPanelState extends State<VirtualRobotPanel> {
   }
 
   Widget _buildCollapsed(BuildContext context) {
-    return Center(
+    return SizedBox.expand(
       child: IconButton(
         onPressed: _toggleCollapsed,
         tooltip: _tr(context, 'virtual_robot_expand'),
+        padding: EdgeInsets.zero,
+        constraints: const BoxConstraints.expand(),
         icon: Icon(
           Icons.smart_toy_rounded,
-          size: widget.adaptive.space(30),
+          size: widget.adaptive.space(24),
           color: AudyColors.skyBlue,
         ),
       ),

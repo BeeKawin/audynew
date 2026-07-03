@@ -27,21 +27,15 @@ class RobotPanelLayout extends StatelessWidget {
         final isHorizontal = constraints.maxWidth >= constraints.maxHeight;
         final panel = panelBuilder(isHorizontal);
 
-        if (isHorizontal) {
-          return Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Expanded(child: child),
-              SizedBox(width: gap ?? adaptive.space(16)),
-              panel,
-            ],
-          );
-        }
-
         return Stack(
+          clipBehavior: Clip.none,
           children: [
-            Positioned.fill(child: child),
-            Positioned(left: 0, right: 0, bottom: 0, child: panel),
+            child,
+            Positioned(
+              top: gap ?? adaptive.space(8),
+              right: gap ?? adaptive.space(8),
+              child: panel,
+            ),
           ],
         );
       },

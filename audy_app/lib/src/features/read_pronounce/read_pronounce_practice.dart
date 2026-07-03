@@ -3,13 +3,10 @@ import 'dart:async';
 import 'package:avatar_glow/avatar_glow.dart';
 import 'package:flutter/material.dart';
 
-import '../../core/audy_ui.dart';
 import '../../services/bluetooth_service.dart';
 import '../../services/sound_service.dart';
 import '../../state/audy_controller.dart';
 import '../../widgets/game_guide_box.dart';
-import '../../widgets/robot_panel_layout.dart';
-import '../../widgets/virtual_robot_panel.dart';
 import 'read_pronounce_controller.dart';
 import 'read_pronounce_result.dart';
 import 'read_pronounce_service.dart';
@@ -85,16 +82,6 @@ class _ReadPronouncePracticeScreenState
     if (message.channel != 'nose' || message.value != 1) return;
 
     unawaited(_handleVoiceButtonTap());
-  }
-
-  void _triggerVirtualInput(String channel, int value) {
-    _handleBleInput(
-      AudyBleMessage(
-        channel: channel,
-        value: value,
-        receivedAt: DateTime.now(),
-      ),
-    );
   }
 
   void _onControllerChanged() {
@@ -366,25 +353,6 @@ class _ReadPronouncePracticeScreenState
         '${seconds.toString().padLeft(2, '0')}';
   }
 
-  String _localizedFeedback(BuildContext context, String feedback) {
-    switch (feedback) {
-      case 'Tap the microphone and say it clearly.':
-        return _tr(context, 'tap_mic_say_clearly');
-      case 'I did not hear it. Try again.':
-        return _tr(context, 'did_not_hear');
-      case 'Try a shorter answer.':
-        return _tr(context, 'try_shorter_answer');
-      case 'Correct':
-        return _tr(context, 'correct');
-      case 'Good try. You can skip this one.':
-        return _tr(context, 'can_skip');
-      case 'Close. Try saying it again.':
-        return _tr(context, 'close_try_again');
-      default:
-        return feedback;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
@@ -393,151 +361,136 @@ class _ReadPronouncePracticeScreenState
           width: constraints.maxWidth,
           height: constraints.maxHeight,
         );
-        final panelAdaptive = AudyAdaptive(
-          width: constraints.maxWidth,
-          height: constraints.maxHeight,
-        );
         final state = _controller.currentState;
         if (state == null) return const SizedBox.shrink();
 
         return Scaffold(
           body: SafeArea(
-            child: ValueListenableBuilder<bool>(
-              valueListenable: AudyBluetoothService.instance.connectionNotifier,
-              builder: (context, isConnected, _) {
-                return RobotPanelLayout(
-                  adaptive: panelAdaptive,
-                  showPanel: !isConnected,
-                  panelBuilder: (isHorizontal) => VirtualRobotPanel(
-                    adaptive: panelAdaptive,
-                    isHorizontal: isHorizontal,
-                    onNoseTap: () => _triggerVirtualInput('nose', 1),
-                  ),
-                  child: SingleChildScrollView(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: adaptive.isPhone ? 20 : adaptive.space(28),
-                      vertical: adaptive.isPhone ? 20 : adaptive.space(28),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _TopRow(
-                          adaptive: adaptive,
-                          label: _tr(context, 'back_home'),
-                          onBack: () {
-                            SoundService.instance.playTap();
-                            Navigator.pop(context);
-                          },
-                        ),
-                        SizedBox(height: adaptive.space(24)),
-                        Center(
-                          child: Column(
-                            children: [
-                              Text(
-                                _tr(context, widget.title),
-                                style: TextStyle(
-                                  fontSize: adaptive.space(28),
-                                  fontWeight: FontWeight.w800,
-                                  color: const Color(0xFF243A5A),
-                                ),
+            child: SingleChildScrollView(
+              padding: EdgeInsets.symmetric(
+                horizontal: adaptive.isPhone ? 16 : adaptive.space(24),
+                vertical: adaptive.isPhone ? 12 : adaptive.space(20),
+              ),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  minHeight:
+                      constraints.maxHeight -
+                      MediaQuery.of(context).padding.vertical -
+                      (adaptive.isPhone ? 24 : adaptive.space(40)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _TopRow(
+                      adaptive: adaptive,
+                      label: _tr(context, 'back_home'),
+                      guide: _showGuide
+                          ? Padding(
+                              padding: EdgeInsets.only(
+                                right: adaptive.space(8),
                               ),
-                              SizedBox(height: adaptive.space(8)),
-                              Text(
-                                _tr(context, widget.subtitle),
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  fontSize: adaptive.space(15),
-                                  color: const Color(0xFF617691),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        SizedBox(height: adaptive.space(28)),
-                        if (_showGuide) ...[
-                          GameGuideBox(
-                            message: AudyScope.of(
-                              context,
-                            ).tr('guide_read_pronounce'),
-                            onDismissed: () =>
-                                setState(() => _showGuide = false),
-                          ),
-                          SizedBox(height: adaptive.space(18)),
-                        ],
-                        _ProgressIndicator(
-                          adaptive: adaptive,
-                          current: state.progressCurrent,
-                          total: state.progressTotal,
-                        ),
-                        SizedBox(height: adaptive.space(24)),
-                        _PromptCard(
-                          adaptive: adaptive,
-                          prompt: state.prompt,
-                          imagePath: _controller.getCurrentImagePath(),
-                          onImageTap: () => unawaited(_handlePromptImageTap()),
-                        ),
-                        SizedBox(height: adaptive.space(22)),
-                        _RecordingStatus(
-                          adaptive: adaptive,
-                          isRecording: _isSttListening,
-                          label: _isSttListening
-                              ? _tr(
+                              child: GameGuideBox(
+                                message: AudyScope.of(
                                   context,
-                                  'recording_time',
-                                  params: {'time': _formatRecordingTime()},
-                                )
-                              : _hasPendingSpeechSubmission
-                              ? _tr(context, 'tap_mic_to_check')
-                              : _tr(context, 'ready'),
-                        ),
-                        // Temporarily hidden; keep the STT debug panel ready for later.
-                        // SizedBox(height: adaptive.space(12)),
-                        // _SttDebugPanel(
-                        //   adaptive: adaptive,
-                        //   status: _sttDebugStatus,
-                        //   text: _sttDebugText,
-                        // ),
-                        SizedBox(height: adaptive.space(16)),
-                        Center(
-                          child: _VoiceButton(
-                            adaptive: adaptive,
-                            isListening: _isSttListening,
-                            isEnabled:
-                                !_isAdvancingRound &&
-                                !_controller.isAwaitingNextRound,
-                            listeningCount: _listeningCount,
-                            onTap: _handleVoiceButtonTap,
-                          ),
-                        ),
-                        if (state.isCorrect) ...[
-                          SizedBox(height: adaptive.space(18)),
-                          Center(child: _CorrectBadge(adaptive: adaptive)),
-                        ],
-                        if (_controller.shouldShowSkip) ...[
-                          SizedBox(height: adaptive.space(18)),
-                          _SkipButton(
-                            adaptive: adaptive,
-                            onPressed: _handleSkip,
-                          ),
-                        ],
-                        if (_sttUnavailableMessage.isNotEmpty) ...[
-                          SizedBox(height: adaptive.space(16)),
-                          _SttUnavailableMessage(
-                            adaptive: adaptive,
-                            message: _sttUnavailableMessage,
-                          ),
-                        ],
-                        SizedBox(height: adaptive.space(18)),
-                        _FeedbackCard(
-                          adaptive: adaptive,
-                          feedback: _localizedFeedback(context, state.feedback),
-                          isCorrect: state.isCorrect,
-                        ),
-                      ],
+                                ).tr('guide_read_pronounce'),
+                                onDismissed: () =>
+                                    setState(() => _showGuide = false),
+                              ),
+                            )
+                          : null,
+                      onBack: () {
+                        SoundService.instance.playTap();
+                        Navigator.pop(context);
+                      },
                     ),
-                  ),
-                );
-              },
+                    SizedBox(height: adaptive.space(14)),
+                    Center(
+                      child: Column(
+                        children: [
+                          Text(
+                            _tr(context, widget.title),
+                            style: TextStyle(
+                              fontSize: adaptive.space(24),
+                              fontWeight: FontWeight.w800,
+                              color: const Color(0xFF243A5A),
+                            ),
+                          ),
+                          SizedBox(height: adaptive.space(6)),
+                          Text(
+                            _tr(context, widget.subtitle),
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: adaptive.space(14),
+                              color: const Color(0xFF617691),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    SizedBox(height: adaptive.space(14)),
+                    _ProgressIndicator(
+                      adaptive: adaptive,
+                      current: state.progressCurrent,
+                      total: state.progressTotal,
+                    ),
+                    SizedBox(height: adaptive.space(14)),
+                    _PromptCard(
+                      adaptive: adaptive,
+                      prompt: state.prompt,
+                      imagePath: _controller.getCurrentImagePath(),
+                      onImageTap: () => unawaited(_handlePromptImageTap()),
+                    ),
+                    SizedBox(height: adaptive.space(12)),
+                    _RecordingStatus(
+                      adaptive: adaptive,
+                      isRecording: _isSttListening,
+                      label: _isSttListening
+                          ? _tr(
+                              context,
+                              'recording_time',
+                              params: {'time': _formatRecordingTime()},
+                            )
+                          : _hasPendingSpeechSubmission
+                          ? _tr(context, 'tap_mic_to_check')
+                          : _tr(context, 'ready'),
+                    ),
+                    // Temporarily hidden; keep the STT debug panel ready for later.
+                    // SizedBox(height: adaptive.space(12)),
+                    // _SttDebugPanel(
+                    //   adaptive: adaptive,
+                    //   status: _sttDebugStatus,
+                    //   text: _sttDebugText,
+                    // ),
+                    SizedBox(height: adaptive.space(10)),
+                    Center(
+                      child: _VoiceButton(
+                        adaptive: adaptive,
+                        isListening: _isSttListening,
+                        isEnabled:
+                            !_isAdvancingRound &&
+                            !_controller.isAwaitingNextRound,
+                        listeningCount: _listeningCount,
+                        onTap: _handleVoiceButtonTap,
+                      ),
+                    ),
+                    if (state.isCorrect) ...[
+                      SizedBox(height: adaptive.space(10)),
+                      Center(child: _CorrectBadge(adaptive: adaptive)),
+                    ],
+                    if (_controller.shouldShowSkip) ...[
+                      SizedBox(height: adaptive.space(10)),
+                      _SkipButton(adaptive: adaptive, onPressed: _handleSkip),
+                    ],
+                    if (_sttUnavailableMessage.isNotEmpty) ...[
+                      SizedBox(height: adaptive.space(10)),
+                      _SttUnavailableMessage(
+                        adaptive: adaptive,
+                        message: _sttUnavailableMessage,
+                      ),
+                    ],
+                  ],
+                ),
+              ),
             ),
           ),
         );
@@ -618,11 +571,11 @@ class _PromptCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final imageSize = adaptive.isPhone ? 112.0 : adaptive.space(132);
+    final imageSize = adaptive.isPhone ? 104.0 : adaptive.space(124);
 
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.all(adaptive.space(28)),
+      padding: EdgeInsets.all(adaptive.space(22)),
       decoration: BoxDecoration(
         color: const Color(0xFFBDD8F2).withValues(alpha: 0.3),
         borderRadius: BorderRadius.circular(adaptive.space(28)),
@@ -664,11 +617,11 @@ class _PromptCard extends StatelessWidget {
               ),
             ),
           ),
-          SizedBox(height: adaptive.space(18)),
+          SizedBox(height: adaptive.space(14)),
           Text(
             prompt,
             style: TextStyle(
-              fontSize: adaptive.space(prompt.length > 12 ? 34 : 48),
+              fontSize: adaptive.space(prompt.length > 12 ? 32 : 44),
               fontWeight: FontWeight.w900,
               color: const Color(0xFF243A5A),
             ),
@@ -830,7 +783,7 @@ class _VoiceButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final radius = adaptive.isPhone ? 62.0 : adaptive.space(72);
+    final radius = adaptive.isPhone ? 56.0 : adaptive.space(66);
 
     return AvatarGlow(
       key: ValueKey('read_pronounce_glow_$listeningCount'),
@@ -847,7 +800,7 @@ class _VoiceButton extends StatelessWidget {
           child: Icon(
             isListening ? Icons.mic_rounded : Icons.mic_none_rounded,
             color: const Color(0xFF243A5A),
-            size: adaptive.space(54),
+            size: adaptive.space(48),
           ),
         ),
       ),
@@ -970,90 +923,54 @@ class _SttUnavailableMessage extends StatelessWidget {
   }
 }
 
-class _FeedbackCard extends StatelessWidget {
-  const _FeedbackCard({
-    required this.adaptive,
-    required this.feedback,
-    required this.isCorrect,
-  });
-
-  final _AudyAdaptive adaptive;
-  final String feedback;
-  final bool isCorrect;
-
-  @override
-  Widget build(BuildContext context) {
-    final color = isCorrect ? const Color(0xFF69E0A0) : const Color(0xFFBDD8F2);
-    final icon = isCorrect
-        ? Icons.check_circle_rounded
-        : Icons.tips_and_updates_rounded;
-
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.all(adaptive.space(16)),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.18),
-        borderRadius: BorderRadius.circular(adaptive.space(16)),
-        border: Border.all(color: color, width: 2),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, size: adaptive.space(24), color: const Color(0xFF243A5A)),
-          SizedBox(width: adaptive.space(12)),
-          Expanded(
-            child: Text(
-              feedback,
-              style: TextStyle(
-                fontSize: adaptive.space(15),
-                color: const Color(0xFF243A5A),
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _TopRow extends StatelessWidget {
   const _TopRow({
     required this.adaptive,
     required this.label,
     required this.onBack,
+    this.guide,
   });
 
   final _AudyAdaptive adaptive;
   final String label;
   final VoidCallback onBack;
+  final Widget? guide;
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onBack,
-      child: Container(
-        constraints: const BoxConstraints(minHeight: 48),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.arrow_back_rounded,
-              size: adaptive.space(22),
-              color: const Color(0xFF617691),
+    return Row(
+      children: [
+        GestureDetector(
+          onTap: onBack,
+          child: Container(
+            constraints: const BoxConstraints(minHeight: 48),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.arrow_back_rounded,
+                  size: adaptive.space(22),
+                  color: const Color(0xFF617691),
+                ),
+                SizedBox(width: adaptive.space(8)),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: adaptive.space(15),
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFF617691),
+                  ),
+                ),
+              ],
             ),
-            SizedBox(width: adaptive.space(8)),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: adaptive.space(15),
-                fontWeight: FontWeight.w600,
-                color: const Color(0xFF617691),
-              ),
-            ),
-          ],
+          ),
         ),
-      ),
+        if (guide != null) ...[
+          SizedBox(width: adaptive.space(12)),
+          Expanded(child: guide!),
+        ],
+      ],
     );
   }
 }

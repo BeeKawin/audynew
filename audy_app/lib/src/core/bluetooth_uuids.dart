@@ -34,4 +34,7 @@ class BluetoothUuids {
   static final Guid earsCharacteristic = Guid(
     'BB04e7e6-3c34-43cf-bc4f-28f38656eca3',
   );
+  static final Guid mpuCharacteristic = Guid(
+    'BB05e7e6-3c34-43cf-bc4f-28f38656eca3',
+  );
 }

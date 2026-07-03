@@ -363,7 +363,7 @@ class AudyController extends ChangeNotifier {
     notifyListeners();
   }
 
-  final int reactionTotalRounds = 5;
+  final int reactionTotalRounds = 3;
   int reactionRound = 1;
   final List<int> reactionTimes = [];
   int reactionMisses = 0;

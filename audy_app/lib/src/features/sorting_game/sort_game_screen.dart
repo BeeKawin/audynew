@@ -72,13 +72,6 @@ class _SortGameScreenState extends State<SortGameScreen> {
               children: [
                 _buildHeader(adaptive),
                 SizedBox(height: adaptive.space(12)),
-                if (_showGuide) ...[
-                  GameGuideBox(
-                    message: _tr(context, 'guide_sorting_game'),
-                    onDismissed: () => setState(() => _showGuide = false),
-                  ),
-                  SizedBox(height: adaptive.space(12)),
-                ],
                 _buildInstruction(),
                 SizedBox(height: adaptive.space(12)),
                 SortGameProgress(
@@ -188,6 +181,14 @@ class _SortGameScreenState extends State<SortGameScreen> {
             starSize: adaptive.space(24),
           ),
         ),
+        if (_showGuide)
+          SizedBox(
+            width: adaptive.space(280),
+            child: GameGuideBox(
+              message: _tr(context, 'guide_sorting_game'),
+              onDismissed: () => setState(() => _showGuide = false),
+            ),
+          ),
       ],
     );
   }
@@ -290,11 +291,16 @@ class _SortGameScreenState extends State<SortGameScreen> {
   }
 
   void _handleCategoryTap(String categoryId) {
-    SoundService.instance.playTap();
     if (_selectedItemId == null || _engine.showingFeedback) return;
 
     final previousCorrectCount = _engine.totalCorrect;
     _engine.handleSortAttempt(_selectedItemId!, categoryId);
+
+    if (_engine.isCorrect) {
+      SoundService.instance.playCorrect();
+    } else {
+      SoundService.instance.playWrong();
+    }
 
     setState(() {
       _selectedItemId = null;

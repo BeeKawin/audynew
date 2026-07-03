@@ -144,6 +144,18 @@ class _EmotionClassifyScreenState extends State<EmotionClassifyScreen> {
     return AudyResponsivePage(
       scrollable: false,
       builder: (context, adaptive) {
+        final headerGap = adaptive.space(10);
+        final sectionGap = adaptive.space(14);
+        final guideMaxWidth = adaptive.isPhone
+            ? adaptive.space(300)
+            : adaptive.space(420);
+        final characterSize = adaptive.isPhone
+            ? adaptive.space(132)
+            : adaptive.space(154);
+        final answerGridHeight = adaptive.isPhone
+            ? adaptive.space(148)
+            : adaptive.space(176);
+
         return ValueListenableBuilder<bool>(
           valueListenable: AudyBluetoothService.instance.connectionNotifier,
           builder: (context, isConnected, _) {
@@ -205,42 +217,59 @@ class _EmotionClassifyScreenState extends State<EmotionClassifyScreen> {
                           color: AudyColors.mintGreen,
                         ),
                       ),
+                      if (_showGuide) ...[
+                        SizedBox(width: headerGap),
+                        Flexible(
+                          child: Align(
+                            alignment: Alignment.centerLeft,
+                            child: ConstrainedBox(
+                              constraints: BoxConstraints(
+                                maxWidth: guideMaxWidth,
+                              ),
+                              child: GameGuideBox(
+                                message: controller.tr(
+                                  'guide_emotion_classify',
+                                ),
+                                onDismissed: () =>
+                                    setState(() => _showGuide = false),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ],
                   ),
-                  const SizedBox(height: AudySpacing.sectionGap),
-                  if (_showGuide) ...[
-                    GameGuideBox(
-                      message: controller.tr('guide_emotion_classify'),
-                      onDismissed: () => setState(() => _showGuide = false),
-                    ),
-                    const SizedBox(height: AudySpacing.elementGap),
-                  ],
+                  SizedBox(height: sectionGap),
                   Center(
                     child: Text(
                       controller.tr('what_emotion'),
-                      style: AudyTypography.displayMedium,
+                      style: AudyTypography.headingLarge,
                       textAlign: TextAlign.center,
                     ),
                   ),
-                  const SizedBox(height: AudySpacing.sectionGap),
+                  SizedBox(height: sectionGap),
                   Center(
                     child: EmotionCharacterWidget(
                       emotion: question.correctAnswer,
-                      size: 180,
+                      size: characterSize,
                       useHumanImage: true,
                       imagePath: imagePath,
                     ),
                   ),
-                  const SizedBox(height: AudySpacing.sectionGap),
+                  SizedBox(height: sectionGap),
                   Expanded(
                     child: Center(
                       child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 600),
+                        constraints: BoxConstraints(
+                          maxWidth: 600,
+                          maxHeight: answerGridHeight,
+                        ),
                         child: GridView.count(
+                          physics: const NeverScrollableScrollPhysics(),
                           crossAxisCount: 2,
-                          mainAxisSpacing: AudySpacing.elementGap,
-                          crossAxisSpacing: AudySpacing.elementGap,
-                          childAspectRatio: 2.2,
+                          mainAxisSpacing: adaptive.space(12),
+                          crossAxisSpacing: adaptive.space(12),
+                          childAspectRatio: adaptive.isPhone ? 2.8 : 2.6,
                           children: orderedOptions.map((option) {
                             final isSelected = _selectedAnswer == option;
                             final isAnswered = _showingFeedback;

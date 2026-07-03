@@ -40,6 +40,8 @@ class _MiniPuzzleGameScreenState extends State<MiniPuzzleGameScreen> {
   bool _isNavigating = false;
   int _lastBleCorrectCount = 0;
   bool _showGuide = true;
+  Timer? _autoAdvanceTimer;
+  int? _autoAdvanceRound;
 
   @override
   void initState() {
@@ -52,6 +54,8 @@ class _MiniPuzzleGameScreenState extends State<MiniPuzzleGameScreen> {
 
   @override
   void dispose() {
+    _autoAdvanceTimer?.cancel();
+    unawaited(_resetMiniPuzzleBleState());
     _controller.removeListener(_onControllerUpdate);
     _controller.dispose();
     super.dispose();
@@ -62,12 +66,11 @@ class _MiniPuzzleGameScreenState extends State<MiniPuzzleGameScreen> {
     if (correctCount > _lastBleCorrectCount) {
       final isFinalRound = _controller.currentRound >= _controller.totalRounds;
       _lastBleCorrectCount = correctCount;
-      unawaited(
-        _sendCorrectMiniPuzzleBleSignal(isFinalRound: isFinalRound),
-      );
+      unawaited(_sendCorrectMiniPuzzleBleSignal(isFinalRound: isFinalRound));
     }
 
-    setState(() {}); // Just rebuild UI, no auto-navigation
+    setState(() {});
+    _scheduleAutoAdvanceIfNeeded();
   }
 
   Future<void> _sendCorrectMiniPuzzleBleSignal({
@@ -84,6 +87,14 @@ class _MiniPuzzleGameScreenState extends State<MiniPuzzleGameScreen> {
       debugPrint(
         'MiniPuzzleGameScreen: Correct answer BLE signal skipped - $e',
       );
+    }
+  }
+
+  Future<void> _resetMiniPuzzleBleState() async {
+    try {
+      await AudyBluetoothService.instance.setLed(0);
+    } catch (e) {
+      debugPrint('MiniPuzzleGameScreen: Exit LED BLE reset skipped - $e');
     }
   }
 
@@ -150,7 +161,17 @@ class _MiniPuzzleGameScreenState extends State<MiniPuzzleGameScreen> {
                     ),
                   ),
                 ),
-                const Spacer(),
+                if (_showGuide) ...[
+                  SizedBox(width: adaptive.space(12)),
+                  Expanded(
+                    child: GameGuideBox(
+                      message: _tr(context, _guideKey()),
+                      onDismissed: () => setState(() => _showGuide = false),
+                    ),
+                  ),
+                  SizedBox(width: adaptive.space(12)),
+                ] else
+                  const Spacer(),
                 // Round indicator
                 Container(
                   padding: EdgeInsets.symmetric(
@@ -177,8 +198,6 @@ class _MiniPuzzleGameScreenState extends State<MiniPuzzleGameScreen> {
               ],
             ),
             SizedBox(height: adaptive.space(24)),
-
-            // Progress bar
             ClipRRect(
               borderRadius: BorderRadius.circular(999),
               child: LinearProgressIndicator(
@@ -189,13 +208,6 @@ class _MiniPuzzleGameScreenState extends State<MiniPuzzleGameScreen> {
               ),
             ),
             SizedBox(height: adaptive.space(32)),
-            if (_showGuide) ...[
-              GameGuideBox(
-                message: _tr(context, _guideKey()),
-                onDismissed: () => setState(() => _showGuide = false),
-              ),
-              SizedBox(height: adaptive.space(16)),
-            ],
 
             // Game content
             SingleChildScrollView(
@@ -206,8 +218,7 @@ class _MiniPuzzleGameScreenState extends State<MiniPuzzleGameScreen> {
             ),
 
             // Feedback area
-            if (_controller.showingFeedback)
-              _buildFeedback(adaptive, gameColor),
+            if (_controller.showingFeedback) _buildFeedback(adaptive),
           ],
         );
       },
@@ -237,11 +248,9 @@ class _MiniPuzzleGameScreenState extends State<MiniPuzzleGameScreen> {
     }
   }
 
-  Widget _buildFeedback(AudyAdaptive adaptive, Color gameColor) {
+  Widget _buildFeedback(AudyAdaptive adaptive) {
     final isCorrect = _controller.isCorrect;
     final bgColor = isCorrect ? AudyColors.mintGreen : AudyColors.warning;
-    final isRoundComplete = _controller.roundComplete;
-    final isLastRound = _controller.currentRound >= _controller.totalRounds;
     return Container(
       margin: EdgeInsets.only(top: adaptive.space(16)),
       padding: EdgeInsets.all(adaptive.space(16)),
@@ -273,44 +282,38 @@ class _MiniPuzzleGameScreenState extends State<MiniPuzzleGameScreen> {
               ),
             ],
           ),
-
-          // Continue button (only show when round is complete)
-          if (isRoundComplete) ...[
-            SizedBox(height: adaptive.space(16)),
-            ElevatedButton(
-              onPressed: () {
-                SoundService.instance.playTap();
-                _handleContinue();
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: gameColor,
-                foregroundColor: AudyColors.textOnColor,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(AudySpacing.radiusXLarge),
-                ),
-                padding: EdgeInsets.symmetric(
-                  horizontal: adaptive.space(24),
-                  vertical: adaptive.space(12),
-                ),
-              ),
-              child: Text(
-                isLastRound
-                    ? _tr(context, 'see_results') // "See Results"
-                    : _tr(context, 'continue'), // "Continue"
-                style: TextStyle(
-                  fontSize: adaptive.space(16),
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-          ],
         ],
       ),
     );
   }
 
+  void _scheduleAutoAdvanceIfNeeded() {
+    if (_isNavigating ||
+        !_controller.roundComplete ||
+        !_controller.isCorrect ||
+        _autoAdvanceRound == _controller.currentRound) {
+      return;
+    }
+
+    _autoAdvanceRound = _controller.currentRound;
+    _autoAdvanceTimer?.cancel();
+    _autoAdvanceTimer = Timer(const Duration(milliseconds: 900), () {
+      if (!mounted ||
+          _isNavigating ||
+          !_controller.roundComplete ||
+          !_controller.isCorrect) {
+        return;
+      }
+
+      _handleContinue();
+    });
+  }
+
   void _handleContinue() {
     if (_isNavigating) return;
+
+    _autoAdvanceTimer?.cancel();
+    _autoAdvanceRound = null;
 
     if (_controller.isSessionComplete) {
       // Navigate to results screen

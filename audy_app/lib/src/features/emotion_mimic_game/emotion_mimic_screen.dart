@@ -76,6 +76,11 @@ class _EmotionMimicScreenState extends State<EmotionMimicScreen> {
     return AudyResponsivePage(
       scrollable: false,
       builder: (context, adaptive) {
+        final headerGap = adaptive.space(10);
+        final guideMaxWidth = adaptive.isPhone
+            ? adaptive.space(300)
+            : adaptive.space(420);
+
         return ValueListenableBuilder<bool>(
           valueListenable: AudyBluetoothService.instance.connectionNotifier,
           builder: (context, isConnected, _) {
@@ -131,16 +136,27 @@ class _EmotionMimicScreenState extends State<EmotionMimicScreen> {
                           color: AudyColors.mintGreen,
                         ),
                       ),
+                      if (_showGuide) ...[
+                        SizedBox(width: headerGap),
+                        Flexible(
+                          child: Align(
+                            alignment: Alignment.centerLeft,
+                            child: ConstrainedBox(
+                              constraints: BoxConstraints(
+                                maxWidth: guideMaxWidth,
+                              ),
+                              child: GameGuideBox(
+                                message: controller.tr('guide_emotion_mimic'),
+                                onDismissed: () =>
+                                    setState(() => _showGuide = false),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                   const SizedBox(height: AudySpacing.sectionGap),
-                  if (_showGuide) ...[
-                    GameGuideBox(
-                      message: controller.tr('guide_emotion_mimic'),
-                      onDismissed: () => setState(() => _showGuide = false),
-                    ),
-                    const SizedBox(height: AudySpacing.elementGap),
-                  ],
                   Center(
                     child: Text(
                       controller.tr('make_this_face'),

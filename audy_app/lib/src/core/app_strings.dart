@@ -76,6 +76,7 @@ class AppStrings {
     'emotion_mimic': {'en': 'Make this emotion!', 'th': 'ทำหน้าให้ถูก!'},
     'mini_puzzle': {'en': 'MiniPuzzle', 'th': 'แก้ปัญหาฝึกสมอง!'},
     'sorting_game': {'en': 'Sorting Game', 'th': 'จำแนกสิ่งของ!'},
+    'fruit_catching_bear': {'en': 'Fruit Catch', 'th': 'รับผลไม้!'},
     'reaction_time': {'en': 'Reaction Time', 'th': 'กดให้เร็วที่สุด!'},
     'play_and_learn': {
       'en': 'Play and learn with fun activities!',
@@ -98,6 +99,10 @@ class AppStrings {
     'guide_sorting_game': {
       'en': 'Tap a piece. Then tap the matching basket.',
       'th': 'แตะชิ้นงาน แล้วแตะตะกร้าที่ตรงกัน',
+    },
+    'guide_fruit_catching_bear': {
+      'en': 'Tilt the device. Catch the fruit.',
+      'th': 'เอียงอุปกรณ์ รับผลไม้',
     },
     'guide_minipuzzle_pattern': {
       'en': 'Look at the pattern. Tap what comes next.',

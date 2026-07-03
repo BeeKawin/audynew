@@ -17,10 +17,10 @@ class GameGuideBox extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(16, 12, 8, 12),
+      padding: const EdgeInsets.fromLTRB(12, 8, 4, 8),
       decoration: BoxDecoration(
         color: AudyColors.backgroundCard,
-        borderRadius: BorderRadius.circular(AudySpacing.radiusLarge),
+        borderRadius: BorderRadius.circular(AudySpacing.radiusMedium),
         border: Border.all(color: AudyColors.skyBlue, width: 2),
         boxShadow: AudyShadows.cardShadow,
       ),
@@ -29,17 +29,17 @@ class GameGuideBox extends StatelessWidget {
           const Icon(
             Icons.lightbulb_rounded,
             color: AudyColors.skyBlue,
-            size: AudySpacing.iconMedium,
+            size: AudySpacing.iconSmall,
           ),
-          const SizedBox(width: AudySpacing.elementGap),
+          const SizedBox(width: AudySpacing.smallGap),
           Expanded(
             child: Text(
               message,
-              style: AudyTypography.bodyMedium.copyWith(
+              style: AudyTypography.bodySmall.copyWith(
                 color: AudyColors.textPrimary,
                 fontWeight: FontWeight.w700,
               ),
-              maxLines: 2,
+              maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
           ),
