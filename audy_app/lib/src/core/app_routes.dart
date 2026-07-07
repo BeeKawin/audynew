@@ -13,6 +13,7 @@ final class AppRoutes {
   static const miniPuzzleGame = '/games/mini-puzzle/play';
   static const miniPuzzleResult = '/games/mini-puzzle/result';
   static const sortingGame = '/games/sorting';
+  static const flashcard = '/games/flashcard';
   static const fruitCatchingBear = '/games/fruit-catching-bear';
   static const reactionTime = '/games/reaction-time';
   static const readingHub = '/reading';
@@ -29,7 +30,10 @@ final class AppRoutes {
   /// Navigate after game completion, checking if meltdown protection should trigger.
   /// If 5 games have been played, navigates to meltdown screen.
   /// Otherwise, pops back to the games hub.
-  static void navigateAfterGameCompletion(BuildContext context, AudyController controller) {
+  static void navigateAfterGameCompletion(
+    BuildContext context,
+    AudyController controller,
+  ) {
     if (controller.shouldTriggerMeltdown) {
       // Navigate to meltdown screen with gentle transition
       Navigator.of(context).pushNamed(meltdown);

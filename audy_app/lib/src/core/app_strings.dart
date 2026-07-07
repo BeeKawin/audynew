@@ -76,6 +76,7 @@ class AppStrings {
     'emotion_mimic': {'en': 'Make this emotion!', 'th': 'ทำหน้าให้ถูก!'},
     'mini_puzzle': {'en': 'MiniPuzzle', 'th': 'แก้ปัญหาฝึกสมอง!'},
     'sorting_game': {'en': 'Sorting Game', 'th': 'จำแนกสิ่งของ!'},
+    'flashcard_game': {'en': 'Flashcard', 'th': 'แฟลชการ์ด'},
     'fruit_catching_bear': {'en': 'Fruit Catch', 'th': 'รับผลไม้!'},
     'reaction_time': {'en': 'Reaction Time', 'th': 'กดให้เร็วที่สุด!'},
     'play_and_learn': {
@@ -99,6 +100,10 @@ class AppStrings {
     'guide_sorting_game': {
       'en': 'Tap a piece. Then tap the matching basket.',
       'th': 'แตะชิ้นงาน แล้วแตะตะกร้าที่ตรงกัน',
+    },
+    'guide_flashcard_game': {
+      'en': 'Listen. Tap cards to build a sentence.',
+      'th': 'ฟัง แล้วแตะการ์ดเพื่อสร้างประโยค',
     },
     'guide_fruit_catching_bear': {
       'en': 'Tilt the device. Catch the fruit.',
@@ -425,6 +430,35 @@ class AppStrings {
     'you_sorted': {
       'en': 'You sorted all the items!',
       'th': 'คุณจัดเรียงทุกอย่างเสร็จแล้ว!',
+    },
+
+    // Flashcard Game
+    'flashcard_word_count': {'en': '{count} words', 'th': '{count} คำ'},
+    'flashcard_loading': {
+      'en': 'Getting cards ready...',
+      'th': 'กำลังเตรียมการ์ด...',
+    },
+    'flashcard_load_error': {
+      'en': 'Cards are not ready. Try again.',
+      'th': 'การ์ดยังไม่พร้อม ลองอีกครั้ง',
+    },
+    'flashcard_check_error': {
+      'en': 'Could not check yet. Try again.',
+      'th': 'ยังตรวจไม่ได้ ลองอีกครั้ง',
+    },
+    'flashcard_listen': {'en': 'Listen to this card', 'th': 'ฟังการ์ดนี้'},
+    'flashcard_card_count': {
+      'en': '{current} / {total}',
+      'th': '{current} / {total}',
+    },
+    'flashcard_build_sentence': {'en': 'Build a sentence', 'th': 'สร้างประโยค'},
+    'flashcard_tap_cards': {'en': 'Tap cards below', 'th': 'แตะการ์ดด้านล่าง'},
+    'flashcard_submit': {'en': 'Submit', 'th': 'ตรวจ'},
+    'flashcard_checking': {'en': 'Checking...', 'th': 'กำลังตรวจ...'},
+    'flashcard_good_sentence': {'en': 'Good sentence!', 'th': 'ประโยคดีมาก!'},
+    'flashcard_try_change': {
+      'en': 'Try a small change.',
+      'th': 'ลองเปลี่ยนนิดหน่อย',
     },
 
     // Emotion Game
