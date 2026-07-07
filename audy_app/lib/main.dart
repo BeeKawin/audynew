@@ -9,7 +9,6 @@ import 'src/features/dashboard_page.dart';
 import 'src/features/emotion_classify_game/emotion_classify_screen.dart';
 import 'src/features/emotion_mimic_game/emotion_mimic_screen.dart';
 import 'src/features/feature_pages.dart';
-import 'src/features/flashcard_game/flashcard_level_select_screen.dart';
 import 'src/features/fruit_catching_bear/fruit_catching_bear_screen.dart';
 import 'src/features/meltdown/meltdown_screen.dart';
 import 'src/features/minipuzzle_game/minipuzzle_game.dart';
@@ -162,7 +161,9 @@ class _AudyAppState extends State<AudyApp> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                const CircularProgressIndicator(color: AudyColors.skyBlue),
+                const CircularProgressIndicator(
+                  color: AudyColors.skyBlue,
+                ),
               ],
             ),
           ),
@@ -171,9 +172,8 @@ class _AudyAppState extends State<AudyApp> {
     }
 
     // Determine initial route based on auth state
-    final initialRoute = controller.isLoggedIn
-        ? AppRoutes.dashboard
-        : AppRoutes.login;
+    final initialRoute =
+        controller.isLoggedIn ? AppRoutes.dashboard : AppRoutes.login;
 
     return AudyScope(
       controller: controller,
@@ -252,7 +252,6 @@ class _AudyAppState extends State<AudyApp> {
           AppRoutes.emotionMimic: (_) => const EmotionMimicScreen(),
           AppRoutes.miniPuzzle: (_) => const MiniPuzzleGameSelection(),
           AppRoutes.sortingGame: (_) => const SortLevelSelectScreen(),
-          AppRoutes.flashcard: (_) => const FlashcardLevelSelectScreen(),
           AppRoutes.fruitCatchingBear: (_) => const FruitCatchingBearScreen(),
           AppRoutes.reactionTime: (_) => const ReactionTimePage(),
           AppRoutes.readingHub: (_) => const ReadPronounceHub(),
@@ -274,8 +273,7 @@ class _AudyAppState extends State<AudyApp> {
           AppRoutes.social: (_) => const SocialPracticePage(),
           AppRoutes.rewards: (_) => _HomeShell(currentIndex: 2),
           AppRoutes.profile: (_) => _HomeShell(currentIndex: 3),
-          AppRoutes.preferences: (_) =>
-              const PreferencesPage(isOnboarding: true),
+          AppRoutes.preferences: (_) => const PreferencesPage(isOnboarding: true),
           AppRoutes.meltdown: (_) => const MeltdownScreen(),
           AppRoutes.device: (_) => const DeviceConnectionPage(),
         },
@@ -287,21 +285,16 @@ class _AudyAppState extends State<AudyApp> {
               return PageRouteBuilder(
                 pageBuilder: (context, animation, secondaryAnimation) =>
                     const MeltdownScreen(),
-                transitionsBuilder:
-                    (context, animation, secondaryAnimation, child) {
-                      return FadeTransition(
-                        opacity: animation.drive(
-                          CurveTween(
-                            curve: const Interval(
-                              0.0,
-                              1.0,
-                              curve: Curves.easeInOut,
-                            ),
-                          ),
-                        ),
-                        child: child,
-                      );
-                    },
+                transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                  return FadeTransition(
+                    opacity: animation.drive(
+                      CurveTween(
+                        curve: const Interval(0.0, 1.0, curve: Curves.easeInOut),
+                      ),
+                    ),
+                    child: child,
+                  );
+                },
                 transitionDuration: const Duration(seconds: 2),
                 reverseTransitionDuration: const Duration(seconds: 1),
               );

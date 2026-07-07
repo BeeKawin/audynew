@@ -97,9 +97,10 @@ class _DashboardPageState extends State<DashboardPage> {
 
       final assignment = _assignments[index];
       _assignments[index] = assignment.copyWith(
-        currentProgress: (assignment.currentProgress + 1)
-            .clamp(0, assignment.targetCount)
-            .toInt(),
+        currentProgress: (assignment.currentProgress + 1).clamp(
+          0,
+          assignment.targetCount,
+        ).toInt(),
       );
     });
   }
@@ -180,7 +181,8 @@ class _DashboardPageState extends State<DashboardPage> {
             _LanguageToggle(controller: controller),
             const SizedBox(height: AudySpacing.elementGap),
             ValueListenableBuilder<bool>(
-              valueListenable: AudyBluetoothService.instance.connectionNotifier,
+              valueListenable:
+                  AudyBluetoothService.instance.connectionNotifier,
               builder: (context, isDeviceConnected, _) {
                 return AudyGreetingHeader(
                   greeting: controller.tr('dashboard_greeting'),
@@ -333,13 +335,6 @@ List<_AssignmentOption> _assignmentOptions(BuildContext context) {
       icon: Icons.category_rounded,
       color: const Color(0xFFFFF2A8),
       route: AppRoutes.sortingGame,
-    ),
-    _AssignmentOption(
-      gameType: 'flashcard',
-      title: controller.tr('flashcard_game'),
-      icon: Icons.style_rounded,
-      color: const Color(0xFFC9E8C1),
-      route: AppRoutes.flashcard,
     ),
     _AssignmentOption(
       gameType: 'reaction_time',
@@ -623,8 +618,9 @@ class _AssignmentRecommendationPanel extends StatelessWidget {
                           recommendation: recommendation,
                           onUse: onUseRecommendation == null
                               ? null
-                              : () =>
-                                    onUseRecommendation!(recommendation.option),
+                              : () => onUseRecommendation!(
+                                    recommendation.option,
+                                  ),
                         ),
                       )
                       .toList(),
@@ -811,9 +807,7 @@ class _AssignmentCard extends StatelessWidget {
         color: AudyColors.backgroundCard,
         borderRadius: BorderRadius.circular(adaptive.space(24)),
         border: Border.all(
-          color: isCompleted
-              ? const Color(0xFF69E0A0)
-              : assignment.option.color,
+          color: isCompleted ? const Color(0xFF69E0A0) : assignment.option.color,
           width: 2,
         ),
         boxShadow: AudyShadows.cardShadow,
@@ -870,8 +864,7 @@ class _AssignmentCard extends StatelessWidget {
               _AssignmentInfoChip(
                 adaptive: adaptive,
                 icon: Icons.repeat_rounded,
-                label:
-                    '${assignment.currentProgress}/${assignment.targetCount}',
+                label: '${assignment.currentProgress}/${assignment.targetCount}',
               ),
             ],
           ),
@@ -893,10 +886,7 @@ class _AssignmentCard extends StatelessWidget {
               Expanded(
                 child: ElevatedButton.icon(
                   onPressed: onStart,
-                  icon: Icon(
-                    Icons.play_arrow_rounded,
-                    size: adaptive.space(20),
-                  ),
+                  icon: Icon(Icons.play_arrow_rounded, size: adaptive.space(20)),
                   label: Text(controller.tr('start')),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: assignment.option.color,
@@ -912,7 +902,9 @@ class _AssignmentCard extends StatelessWidget {
               IconButton.filled(
                 onPressed: onCompleteStep,
                 icon: Icon(
-                  isCompleted ? Icons.check_rounded : Icons.task_alt_rounded,
+                  isCompleted
+                      ? Icons.check_rounded
+                      : Icons.task_alt_rounded,
                 ),
                 style: IconButton.styleFrom(
                   backgroundColor: isCompleted
@@ -1042,8 +1034,7 @@ class _AddAssignmentDialogState extends State<_AddAssignmentDialog> {
                 spacing: widget.adaptive.space(8),
                 runSpacing: widget.adaptive.space(8),
                 children: options.map((option) {
-                  final isSelected =
-                      option.gameType == _selectedOption.gameType;
+                  final isSelected = option.gameType == _selectedOption.gameType;
                   return _AssignmentChoiceChip(
                     adaptive: widget.adaptive,
                     icon: option.icon,
@@ -1195,7 +1186,10 @@ class _AddAssignmentDialogState extends State<_AddAssignmentDialog> {
 }
 
 class _AssignmentDialogLabel extends StatelessWidget {
-  const _AssignmentDialogLabel({required this.adaptive, required this.label});
+  const _AssignmentDialogLabel({
+    required this.adaptive,
+    required this.label,
+  });
 
   final AudyAdaptive adaptive;
   final String label;
