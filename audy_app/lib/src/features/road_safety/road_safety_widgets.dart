@@ -51,9 +51,11 @@ class RoadScene extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final sceneHeight = adaptive.isPhone ? 300.0 : 360.0;
+
     return Container(
       width: double.infinity,
-      constraints: BoxConstraints(minHeight: adaptive.isPhone ? 300 : 360),
+      height: sceneHeight,
       padding: EdgeInsets.all(adaptive.space(18)),
       decoration: BoxDecoration(
         color: const Color(0xFFEAF7F6),
