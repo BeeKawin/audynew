@@ -1496,6 +1496,15 @@ class AudyController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Track flashcard game completion.
+  Future<void> trackFlashcardCompleted() async {
+    gamesPlayed += 1;
+    _trackGameInSession();
+    _checkAchievements();
+    await _saveProgress();
+    notifyListeners();
+  }
+
   /// Track reaction game completed
   Future<void> trackReactionCompleted() async {
     gamesPlayed += 1;

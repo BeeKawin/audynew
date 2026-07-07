@@ -57,6 +57,13 @@ class GamesHubPage extends StatelessWidget {
         AppRoutes.sortingGame,
       ),
       _RouteCard(
+        controller.tr('flashcard_game'),
+        null,
+        Icons.style_rounded,
+        const Color(0xFFBFE7F2),
+        AppRoutes.flashcard,
+      ),
+      _RouteCard(
         controller.tr('fruit_catching_bear'),
         null,
         Icons.shopping_basket_rounded,

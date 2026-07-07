@@ -9,6 +9,7 @@ import 'src/features/dashboard_page.dart';
 import 'src/features/emotion_classify_game/emotion_classify_screen.dart';
 import 'src/features/emotion_mimic_game/emotion_mimic_screen.dart';
 import 'src/features/feature_pages.dart';
+import 'src/features/flashcard/flashcard_screen.dart';
 import 'src/features/fruit_catching_bear/fruit_catching_bear_screen.dart';
 import 'src/features/meltdown/meltdown_screen.dart';
 import 'src/features/minipuzzle_game/minipuzzle_game.dart';
@@ -252,6 +253,7 @@ class _AudyAppState extends State<AudyApp> {
           AppRoutes.emotionMimic: (_) => const EmotionMimicScreen(),
           AppRoutes.miniPuzzle: (_) => const MiniPuzzleGameSelection(),
           AppRoutes.sortingGame: (_) => const SortLevelSelectScreen(),
+          AppRoutes.flashcard: (_) => const FlashcardScreen(),
           AppRoutes.fruitCatchingBear: (_) => const FruitCatchingBearScreen(),
           AppRoutes.reactionTime: (_) => const ReactionTimePage(),
           AppRoutes.readingHub: (_) => const ReadPronounceHub(),

@@ -76,6 +76,7 @@ class AppStrings {
     'emotion_mimic': {'en': 'Make this emotion!', 'th': 'ทำหน้าให้ถูก!'},
     'mini_puzzle': {'en': 'MiniPuzzle', 'th': 'แก้ปัญหาฝึกสมอง!'},
     'sorting_game': {'en': 'Sorting Game', 'th': 'จำแนกสิ่งของ!'},
+    'flashcard_game': {'en': 'Flashcard', 'th': 'แฟลชการ์ด'},
     'fruit_catching_bear': {'en': 'Fruit Catch', 'th': 'รับผลไม้!'},
     'reaction_time': {'en': 'Reaction Time', 'th': 'กดให้เร็วที่สุด!'},
     'play_and_learn': {
@@ -99,6 +100,10 @@ class AppStrings {
     'guide_sorting_game': {
       'en': 'Tap a piece. Then tap the matching basket.',
       'th': 'แตะชิ้นงาน แล้วแตะตะกร้าที่ตรงกัน',
+    },
+    'guide_flashcard': {
+      'en': 'Watch the cards. Tap them in order.',
+      'th': 'ดูการ์ด แล้วแตะเรียงตามลำดับ',
     },
     'guide_fruit_catching_bear': {
       'en': 'Tilt the device. Catch the fruit.',
@@ -720,6 +725,17 @@ class AppStrings {
 
     // Common
     'continue': {'en': 'Continue', 'th': 'ดำเนินการต่อ'},
+    'submit': {'en': 'Submit', 'th': 'ส่งคำตอบ'},
+    'checking': {'en': 'Checking...', 'th': 'กำลังตรวจ'},
+    'flashcard_loading': {
+      'en': 'Getting cards ready...',
+      'th': 'กำลังเตรียมการ์ด',
+    },
+    'flashcard_complete': {'en': 'All done!', 'th': 'เสร็จแล้ว!'},
+    'flashcard_error': {
+      'en': 'Cards are not ready. Try again.',
+      'th': 'การ์ดยังไม่พร้อม ลองอีกครั้ง',
+    },
     'skip': {'en': 'Skip', 'th': 'ข้าม'},
     'cancel': {'en': 'Cancel', 'th': 'ยกเลิก'},
     'yes': {'en': 'Yes', 'th': 'ใช่'},

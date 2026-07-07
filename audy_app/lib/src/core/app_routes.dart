@@ -13,6 +13,7 @@ final class AppRoutes {
   static const miniPuzzleGame = '/games/mini-puzzle/play';
   static const miniPuzzleResult = '/games/mini-puzzle/result';
   static const sortingGame = '/games/sorting';
+  static const flashcard = '/games/flashcard';
   static const fruitCatchingBear = '/games/fruit-catching-bear';
   static const reactionTime = '/games/reaction-time';
   static const readingHub = '/reading';
