@@ -77,6 +77,7 @@ class AppStrings {
     'mini_puzzle': {'en': 'MiniPuzzle', 'th': 'แก้ปัญหาฝึกสมอง!'},
     'sorting_game': {'en': 'Sorting Game', 'th': 'จำแนกสิ่งของ!'},
     'flashcard_game': {'en': 'Flashcard', 'th': 'แฟลชการ์ด'},
+    'road_safety_game': {'en': 'Road Safety', 'th': 'ข้ามถนนปลอดภัย'},
     'fruit_catching_bear': {'en': 'Fruit Catch', 'th': 'รับผลไม้!'},
     'reaction_time': {'en': 'Reaction Time', 'th': 'กดให้เร็วที่สุด!'},
     'play_and_learn': {
@@ -104,6 +105,10 @@ class AppStrings {
     'guide_flashcard': {
       'en': 'Watch the cards. Tap them in order.',
       'th': 'ดูการ์ด แล้วแตะเรียงตามลำดับ',
+    },
+    'guide_road_safety': {
+      'en': 'Stop, look, listen, wait, then cross.',
+      'th': 'หยุด มอง ฟัง รอสัญญาณ แล้วข้าม',
     },
     'guide_fruit_catching_bear': {
       'en': 'Tilt the device. Catch the fruit.',
@@ -736,6 +741,84 @@ class AppStrings {
       'en': 'Cards are not ready. Try again.',
       'th': 'การ์ดยังไม่พร้อม ลองอีกครั้ง',
     },
+    'road_safety_intro': {
+      'en': 'Let us cross safely.',
+      'th': 'มาข้ามถนนอย่างปลอดภัย',
+    },
+    'road_safety_stop': {'en': 'Stop at the curb.', 'th': 'หยุดที่ขอบทาง'},
+    'road_safety_look_left': {'en': 'Look left.', 'th': 'มองซ้าย'},
+    'road_safety_look_right': {'en': 'Look right.', 'th': 'มองขวา'},
+    'road_safety_look_left_again': {
+      'en': 'Look left again.',
+      'th': 'มองซ้ายอีกครั้ง',
+    },
+    'road_safety_listen': {'en': 'Listen for cars.', 'th': 'ฟังเสียงรถ'},
+    'road_safety_wait': {
+      'en': 'Wait for the green walk signal.',
+      'th': 'รอสัญญาณเดินสีเขียว',
+    },
+    'road_safety_cross': {
+      'en': 'Cross on the crosswalk.',
+      'th': 'ข้ามบนทางม้าลาย',
+    },
+    'road_safety_safe': {
+      'en': 'You crossed safely.',
+      'th': 'ข้ามถนนปลอดภัยแล้ว',
+    },
+    'road_safety_complete': {'en': 'Safe crossing!', 'th': 'ข้ามถนนปลอดภัย!'},
+    'road_safety_intro_feedback': {
+      'en': 'Tap start when you are ready.',
+      'th': 'แตะเริ่มเมื่อพร้อม',
+    },
+    'road_safety_stop_feedback': {
+      'en': 'First, stop your feet.',
+      'th': 'ก่อนอื่น หยุดเท้าก่อน',
+    },
+    'road_safety_good_stop': {'en': 'Good stop.', 'th': 'หยุดได้ดี'},
+    'road_safety_good_look': {'en': 'Good looking.', 'th': 'มองได้ดี'},
+    'road_safety_good_listen': {'en': 'Good listening.', 'th': 'ฟังได้ดี'},
+    'road_safety_green_ready': {
+      'en': 'Green walk signal. Ready to cross.',
+      'th': 'ไฟเขียว พร้อมข้าม',
+    },
+    'road_safety_crossing_feedback': {
+      'en': 'Walk calmly on the crosswalk.',
+      'th': 'เดินอย่างสงบบนทางม้าลาย',
+    },
+    'road_safety_safe_feedback': {'en': 'You are safe.', 'th': 'ปลอดภัยแล้ว'},
+    'road_safety_complete_feedback': {
+      'en': 'Great safe crossing.',
+      'th': 'ข้ามถนนได้ปลอดภัยมาก',
+    },
+    'road_safety_hint_stop': {
+      'en': 'Stop at the curb first.',
+      'th': 'หยุดที่ขอบทางก่อน',
+    },
+    'road_safety_hint_left': {'en': 'Look left first.', 'th': 'มองซ้ายก่อน'},
+    'road_safety_hint_right': {'en': 'Now look right.', 'th': 'ตอนนี้มองขวา'},
+    'road_safety_hint_left_again': {
+      'en': 'Look left one more time.',
+      'th': 'มองซ้ายอีกครั้ง',
+    },
+    'road_safety_hint_listen': {
+      'en': 'Use your ears. Listen.',
+      'th': 'ใช้หูฟังเสียง',
+    },
+    'road_safety_hint_wait': {
+      'en': 'Wait for the green walk signal.',
+      'th': 'รอสัญญาณเดินสีเขียว',
+    },
+    'road_safety_hint_cross': {
+      'en': 'Cross only when the walk signal is green.',
+      'th': 'ข้ามเมื่อสัญญาณเดินเป็นสีเขียว',
+    },
+    'road_safety_stop_button': {'en': 'Stop', 'th': 'หยุด'},
+    'road_safety_listen_button': {'en': 'Listen', 'th': 'ฟัง'},
+    'road_safety_wait_button': {'en': 'Wait', 'th': 'รอ'},
+    'road_safety_cross_button': {'en': 'Cross', 'th': 'ข้าม'},
+    'road_safety_left': {'en': 'Left', 'th': 'ซ้าย'},
+    'road_safety_right': {'en': 'Right', 'th': 'ขวา'},
+    'road_safety_curb': {'en': 'Curb', 'th': 'ขอบทาง'},
     'skip': {'en': 'Skip', 'th': 'ข้าม'},
     'cancel': {'en': 'Cancel', 'th': 'ยกเลิก'},
     'yes': {'en': 'Yes', 'th': 'ใช่'},
