@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import '../../services/bluetooth_service.dart';
 import '../../services/sound_service.dart';
+import '../../services/auth_service.dart';
 import '../../state/audy_controller.dart';
 import '../../widgets/game_guide_box.dart';
 import 'read_pronounce_controller.dart';
@@ -58,8 +59,27 @@ class _ReadPronouncePracticeScreenState
     super.initState();
     _controller = ReadPronounceController();
     _service = ReadPronounceService();
+    _initPracticeSession();
+  }
+
+  Future<void> _initPracticeSession() async {
+    final audyController = AudyScope.of(context);
+    final user = audyController.currentUser;
+    if (widget.module == ReadPronounceModule.words && user != null && user.teacherId != null) {
+      try {
+        final customWords = await AuthService().fetchClassWords(user.teacherId!);
+        _controller.addCustomWords(customWords);
+      } catch (e) {
+        debugPrint('Failed to load custom words: $e');
+      }
+    }
     _controller.startSession(widget.module);
     _controller.addListener(_onControllerChanged);
+
+    if (mounted) {
+      setState(() {});
+    }
+
     unawaited(_sendGameEnterBleState());
     SoundService.instance.playInstructionReadPronounce();
     _bleMicSub = AudyBluetoothService.instance.incomingMessages.listen(

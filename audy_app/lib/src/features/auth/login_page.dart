@@ -26,6 +26,7 @@ class _LoginPageState extends State<LoginPage> {
 
   // Age picker state
   int _selectedAge = 10;
+  String _selectedRole = 'child';
 
   // Loading and error states
   bool _isLoading = false;
@@ -211,11 +212,88 @@ class _LoginPageState extends State<LoginPage> {
             ),
             SizedBox(height: adaptive.space(16)),
 
+            // Role selector
+            _buildRoleSelector(adaptive),
+
             // Age picker
-            _buildAgePicker(adaptive),
+            if (_selectedRole == 'child') ...[
+              SizedBox(height: adaptive.space(16)),
+              _buildAgePicker(adaptive),
+            ],
           ],
         ],
       ),
+    );
+  }
+
+  Widget _buildRoleSelector(AudyAdaptive adaptive) {
+    final roles = [
+      {'key': 'child', 'label': 'Child', 'icon': Icons.child_care_rounded},
+      {'key': 'parent', 'label': 'Parent', 'icon': Icons.supervisor_account_rounded},
+      {'key': 'teacher', 'label': 'Teacher', 'icon': Icons.school_rounded},
+    ];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'I am a...',
+          style: TextStyle(
+            fontSize: adaptive.space(14),
+            fontWeight: FontWeight.w700,
+            color: AudyColors.textLight,
+          ),
+        ),
+        SizedBox(height: adaptive.space(8)),
+        Row(
+          children: roles.map((role) {
+            final isSelected = _selectedRole == role['key'];
+            return Expanded(
+              child: GestureDetector(
+                onTap: () {
+                  SoundService.instance.playTap();
+                  setState(() {
+                    _selectedRole = role['key'] as String;
+                  });
+                },
+                child: Container(
+                  height: 56,
+                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? AudyColors.skyBlue
+                        : AudyColors.backgroundCard,
+                    borderRadius: BorderRadius.circular(AudySpacing.radiusMedium),
+                    border: Border.all(
+                      color: isSelected ? AudyColors.skyBlue : AudyColors.borderLight,
+                      width: 2,
+                    ),
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        role['icon'] as IconData,
+                        color: isSelected ? AudyColors.textOnColor : AudyColors.textLight,
+                        size: 20,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        role['label'] as String,
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          color: isSelected ? AudyColors.textOnColor : AudyColors.textLight,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+      ],
     );
   }
 
@@ -470,12 +548,19 @@ class _LoginPageState extends State<LoginPage> {
           email: email,
           password: password,
           name: _nameController.text.trim(),
-          age: _selectedAge,
+          age: _selectedRole == 'child' ? _selectedAge : 0,
+          role: _selectedRole,
         );
 
-        // Navigate to preferences onboarding instead of showing success message
-        if (mounted) {
-          Navigator.pushReplacementNamed(context, AppRoutes.preferences);
+        // Get profile and set in controller
+        final profile = await _authService.getCurrentProfile();
+        if (profile != null && mounted) {
+          AudyScope.of(context).setUser(profile);
+          if (profile.role == 'child') {
+            Navigator.pushReplacementNamed(context, AppRoutes.preferences);
+          } else {
+            Navigator.pushReplacementNamed(context, AppRoutes.dashboard);
+          }
           return;
         }
       } else {

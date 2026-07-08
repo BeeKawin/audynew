@@ -1320,6 +1320,19 @@ class AudyController extends ChangeNotifier {
   /// Used by UI components that need to persist progress changes
   Future<void> saveProgress() async {
     await _saveProgress();
+    final user = _currentUser;
+    if (user != null) {
+      try {
+        await _authService.syncStudentStats(
+          user.id,
+          learningPoints: learningPoints,
+          gamesPlayed: gamesPlayed,
+          dayStreak: dayStreak,
+        );
+      } catch (e) {
+        debugPrint('Online stats sync error: $e');
+      }
+    }
     notifyListeners();
   }
 
@@ -1348,6 +1361,19 @@ class AudyController extends ChangeNotifier {
 
     try {
       await storage!.saveGameSession(session);
+      final user = _currentUser;
+      if (user != null) {
+        try {
+          await _authService.syncStudentStats(
+            user.id,
+            learningPoints: learningPoints,
+            gamesPlayed: gamesPlayed,
+            dayStreak: dayStreak,
+          );
+        } catch (e) {
+          debugPrint('Online stats sync error: $e');
+        }
+      }
       notifyListeners();
     } catch (e) {
       debugPrint('Failed to record analytics session: $e');

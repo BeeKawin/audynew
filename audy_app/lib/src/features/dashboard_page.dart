@@ -4,9 +4,12 @@ import '../core/app_routes.dart';
 import '../core/audy_theme.dart';
 import '../core/audy_ui.dart';
 import '../data/models/progress_model.dart';
+import '../services/auth_service.dart';
 import '../services/bluetooth_service.dart';
 import '../services/sound_service.dart';
 import '../state/audy_controller.dart';
+import 'parent/parent_dashboard.dart';
+import 'teacher/teacher_dashboard.dart';
 
 /// Language toggle button widget
 class _LanguageToggle extends StatelessWidget {
@@ -72,8 +75,48 @@ class DashboardPage extends StatefulWidget {
 }
 
 class _DashboardPageState extends State<DashboardPage> {
-  final List<_DashboardAssignment> _assignments = [];
+  List<_DashboardAssignment> _assignments = [];
   int _nextAssignmentId = 1;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSupabaseAssignments();
+  }
+
+  Future<void> _loadSupabaseAssignments() async {
+    final controller = AudyScope.of(context);
+    final user = controller.currentUser;
+    if (user != null && user.role == 'child') {
+      final options = _assignmentOptions(context);
+      try {
+        final assignmentsData = await AuthService().fetchAssignments(user.id);
+        final loaded = assignmentsData.map((data) {
+          final gameType = data['game_type'] as String;
+          final option = options.firstWhere(
+            (o) => o.gameType == gameType,
+            orElse: () => options.first,
+          );
+          return _DashboardAssignment(
+            id: data['id'].hashCode,
+            supabaseId: data['id'] as String?,
+            option: option,
+            difficulty: 'Normal',
+            targetCount: data['target_count'] as int,
+            currentProgress: data['current_count'] as int,
+          );
+        }).toList();
+        
+        if (mounted) {
+          setState(() {
+            _assignments = loaded;
+          });
+        }
+      } catch (e) {
+        debugPrint('Failed to load assignments: $e');
+      }
+    }
+  }
 
   void _addAssignment(_AssignmentOption option, String difficulty, int target) {
     if (_assignments.length >= 3) return;
@@ -90,19 +133,31 @@ class _DashboardPageState extends State<DashboardPage> {
     });
   }
 
-  void _completeAssignmentStep(int assignmentId) {
-    setState(() {
-      final index = _assignments.indexWhere((item) => item.id == assignmentId);
-      if (index == -1) return;
+  Future<void> _completeAssignmentStep(int assignmentId) async {
+    final index = _assignments.indexWhere((item) => item.id == assignmentId);
+    if (index == -1) return;
 
-      final assignment = _assignments[index];
+    final assignment = _assignments[index];
+    final newProgress = (assignment.currentProgress + 1).clamp(0, assignment.targetCount);
+    final isCompleted = newProgress >= assignment.targetCount;
+
+    setState(() {
       _assignments[index] = assignment.copyWith(
-        currentProgress: (assignment.currentProgress + 1).clamp(
-          0,
-          assignment.targetCount,
-        ).toInt(),
+        currentProgress: newProgress,
       );
     });
+
+    if (assignment.supabaseId != null) {
+      try {
+        await AuthService().updateAssignmentProgress(
+          assignment.supabaseId!,
+          newProgress,
+          isCompleted,
+        );
+      } catch (e) {
+        debugPrint('Failed to sync assignment progress: $e');
+      }
+    }
   }
 
   void _startAssignment(BuildContext context, _DashboardAssignment assignment) {
@@ -130,11 +185,23 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
+
+
   @override
   Widget build(BuildContext context) {
+    final controller = AudyScope.of(context);
+    final user = controller.currentUser;
+
+    if (user != null) {
+      if (user.role == 'parent') {
+        return const ParentDashboard();
+      } else if (user.role == 'teacher') {
+        return const TeacherDashboard();
+      }
+    }
+
     return AudyResponsivePage(
       builder: (context, adaptive) {
-        final controller = AudyScope.of(context);
 
         final activities = [
           _ActivityData(
@@ -252,6 +319,7 @@ const double _assignmentRecommendationThreshold = 0.80;
 class _DashboardAssignment {
   const _DashboardAssignment({
     required this.id,
+    this.supabaseId,
     required this.option,
     required this.difficulty,
     required this.targetCount,
@@ -259,6 +327,7 @@ class _DashboardAssignment {
   });
 
   final int id;
+  final String? supabaseId;
   final _AssignmentOption option;
   final String difficulty;
   final int targetCount;
@@ -270,6 +339,7 @@ class _DashboardAssignment {
   _DashboardAssignment copyWith({int? currentProgress}) {
     return _DashboardAssignment(
       id: id,
+      supabaseId: supabaseId,
       option: option,
       difficulty: difficulty,
       targetCount: targetCount,

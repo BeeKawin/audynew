@@ -462,4 +462,18 @@ class ReadPronounceController extends ChangeNotifier {
   }
 
   String? getCurrentImagePath() => currentPrompt?.imagePath;
+
+  void addCustomWords(List<String> customWords) {
+    if (customWords.isEmpty) return;
+    final existingPool = _promptPools[ReadPronounceModule.words] ?? [];
+    final newPrompts = customWords.map((word) => ReadPronouncePrompt(
+      text: word,
+      acceptedAnswers: [word.toLowerCase()],
+      imagePath: null,
+    )).toList();
+    _promptPools[ReadPronounceModule.words] = [
+      ...existingPool,
+      ...newPrompts,
+    ];
+  }
 }
