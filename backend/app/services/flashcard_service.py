@@ -182,14 +182,13 @@ class FlashcardService:
             }
             for entry in WORD_BANK
         ]
-        language_name = "Thai" if language == "th" else "English"
         return f"""
-You generate flashcard sentences for autistic children.
+You pick vocabulary word groups for autistic children to learn.
 Return JSON only: {{"card_ids": ["..."]}}.
-Use exactly {word_count} card ids.
+Pick exactly {word_count} card ids that belong to a meaningful group.
+Good groups: animals together, fruits together, actions together, feelings together,
+or a thematic mix like "kitchen items" or "things at school".
 Use only ids from this word bank. Do not invent words or ids.
-The sentence must be natural enough in {language_name}.
-For Thai, use Thai word order. For English, use English word order.
 Word bank:
 {json.dumps(bank, ensure_ascii=False)}
 """
@@ -200,32 +199,8 @@ Word bank:
         target_ids: list[str],
         selected_ids: list[str],
     ) -> list[dict]:
-        target_words = self._words_for_ids(target_ids, language)
-        selected_words = self._words_for_ids(selected_ids, language)
-        prompt = f"""
-Validate a child-built flashcard sentence.
-Return JSON only: {{"results":[{{"card_id":"id","status":"correct|move|remove","current_index":0,"target_index":0}}]}}.
-Mark correct if a selected card is already at the correct index.
-Mark move if the card belongs in the sentence but is at a different index.
-Mark remove if the selected card is not needed.
-Use every selected card exactly once in results.
-Target ids: {target_ids}
-Target words: {target_words}
-Selected ids: {selected_ids}
-Selected words: {selected_words}
-Language: {language}
-"""
-        response = self.client.models.generate_content(
-            model=self.model,
-            contents=prompt,
-            config={
-                "temperature": 0.1,
-                "max_output_tokens": 240,
-                "response_mime_type": "application/json",
-            },
-        )
-        data = json.loads(response.text or "{}")
-        return data.get("results", [])
+        # Set-match validation: no LLM needed, use deterministic
+        return self._deterministic_set_results(target_ids, selected_ids)
 
     def _target_ids_are_valid(self, ids: list[str], word_count: int) -> bool:
         return (
@@ -246,16 +221,16 @@ Language: {language}
 
     def _fallback_target_ids(self, word_count: int) -> list[str]:
         templates = {
-            3: ["verb_eat", "noun_apple", "noun_home"],
-            5: ["noun_cat", "verb_eat", "noun_goldfish", "noun_home", "adj_happy"],
+            3: ["noun_cat", "noun_dog", "noun_rabbit"],
+            5: ["noun_apple", "noun_banana", "noun_mango", "noun_orange", "noun_lime"],
             7: [
-                "noun_rabbit",
-                "verb_play",
-                "noun_garden",
-                "noun_home",
-                "adj_happy",
+                "verb_eat",
+                "verb_drink",
                 "verb_sleep",
-                "adj_sleepy",
+                "verb_walk",
+                "verb_run",
+                "verb_play",
+                "verb_read",
             ],
         }
         return templates[word_count]
@@ -295,30 +270,39 @@ Language: {language}
             if card_id in ENTRY_BY_ID
         ]
 
+    def _deterministic_set_results(
+        self,
+        target_ids: list[str],
+        selected_ids: list[str],
+    ) -> list[dict]:
+        target_set = set(target_ids)
+        results = []
+        for i, card_id in enumerate(selected_ids):
+            if card_id in target_set:
+                results.append({"card_id": card_id, "status": "correct", "current_index": i, "target_index": i})
+            else:
+                results.append({"card_id": card_id, "status": "remove", "current_index": i})
+        return results
+
     def _deterministic_validation(
         self,
         language: Language,
         target_ids: list[str],
         selected_ids: list[str],
     ) -> FlashcardValidationResponse:
+        target_set = set(target_ids)
+        selected_set = set(selected_ids)
+        is_correct = target_set == selected_set
+
         results: list[FlashcardValidationResult] = []
-        for current_index, card_id in enumerate(selected_ids):
-            if current_index < len(target_ids) and target_ids[current_index] == card_id:
+        for i, card_id in enumerate(selected_ids):
+            if card_id in target_set:
                 results.append(
                     FlashcardValidationResult(
                         card_id=card_id,
                         status="correct",
-                        current_index=current_index,
-                        target_index=current_index,
-                    )
-                )
-            elif card_id in target_ids:
-                results.append(
-                    FlashcardValidationResult(
-                        card_id=card_id,
-                        status="move",
-                        current_index=current_index,
-                        target_index=target_ids.index(card_id),
+                        current_index=i,
+                        target_index=i,
                     )
                 )
             else:
@@ -326,11 +310,10 @@ Language: {language}
                     FlashcardValidationResult(
                         card_id=card_id,
                         status="remove",
-                        current_index=current_index,
+                        current_index=i,
                     )
                 )
 
-        is_correct = selected_ids == target_ids
         return FlashcardValidationResponse(
             is_correct=is_correct,
             feedback=self._feedback(language, is_correct),

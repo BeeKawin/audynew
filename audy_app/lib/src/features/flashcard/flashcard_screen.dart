@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:math';
-import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_tts/flutter_tts.dart';
@@ -199,8 +198,6 @@ class _FlashcardScreenState extends State<FlashcardScreen> {
         return _PlayState(
           adaptive: adaptive,
           controller: _controller,
-          onCardSelected: _controller.selectCard,
-          onPlacedCardTap: _controller.removeSelectedCard,
           onSubmit: _handleSubmit,
         );
       case FlashcardGamePhase.complete:
@@ -224,6 +221,10 @@ class _FlashcardScreenState extends State<FlashcardScreen> {
     }
   }
 }
+
+// ---------------------------------------------------------------------------
+// Header
+// ---------------------------------------------------------------------------
 
 class _Header extends StatelessWidget {
   const _Header({
@@ -289,6 +290,10 @@ class _Header extends StatelessWidget {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Loading
+// ---------------------------------------------------------------------------
+
 class _LoadingState extends StatelessWidget {
   const _LoadingState({required this.adaptive});
 
@@ -311,6 +316,10 @@ class _LoadingState extends StatelessWidget {
     );
   }
 }
+
+// ---------------------------------------------------------------------------
+// Preview
+// ---------------------------------------------------------------------------
 
 class _PreviewState extends StatelessWidget {
   const _PreviewState({required this.controller});
@@ -346,90 +355,55 @@ class _PreviewState extends StatelessWidget {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Play — pure drag-and-drop
+// ---------------------------------------------------------------------------
+
 class _PlayState extends StatelessWidget {
   const _PlayState({
     required this.adaptive,
     required this.controller,
-    required this.onCardSelected,
-    required this.onPlacedCardTap,
     required this.onSubmit,
   });
 
   final AudyAdaptive adaptive;
   final FlashcardController controller;
-  final ValueChanged<FlashcardCard> onCardSelected;
-  final ValueChanged<FlashcardCard> onPlacedCardTap;
   final VoidCallback onSubmit;
 
   @override
   Widget build(BuildContext context) {
     final isBusy = controller.phase == FlashcardGamePhase.validating;
+    final wordCount = controller.currentRound?.wordCount ?? 3;
+
     return Column(
       children: [
-        _SentenceSlots(
+        // --- Drop zone (selected cards) ---
+        _DropZone(
           adaptive: adaptive,
           controller: controller,
-          onPlacedCardTap: onPlacedCardTap,
+          wordCount: wordCount,
         ),
-        SizedBox(height: adaptive.space(18)),
+        SizedBox(height: adaptive.space(14)),
+
+        // Label
+        Text(
+          '⬆ Drag cards here',
+          style: AudyTypography.labelMedium.copyWith(
+            color: AudyColors.textLight,
+          ),
+        ),
+        SizedBox(height: adaptive.space(8)),
+
+        // --- Hand zone (available cards) ---
         Expanded(
-          child: DragTarget<FlashcardCard>(
-            onWillAcceptWithDetails: (details) =>
-                controller.phase == FlashcardGamePhase.playing &&
-                controller.selectedCards.any((c) => c.id == details.data.id),
-            onAcceptWithDetails: (details) {
-              onPlacedCardTap(details.data);
-            },
-            builder: (context, candidateData, rejectedData) {
-              final isHovering = candidateData.isNotEmpty;
-              return AnimatedContainer(
-                duration: AudyAnimation.normal,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(AudySpacing.radiusLarge),
-                  color: isHovering
-                      ? AudyColors.warning.withValues(alpha: 0.08)
-                      : Colors.transparent,
-                ),
-                child: SingleChildScrollView(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8.0),
-                    child: Wrap(
-                      alignment: WrapAlignment.center,
-                      spacing: adaptive.space(12),
-                      runSpacing: adaptive.space(12),
-                      children: controller.handCards
-                          .map(
-                            (card) => Draggable<FlashcardCard>(
-                              data: card,
-                              feedback: Material(
-                                color: Colors.transparent,
-                                child: Transform.scale(
-                                  scale: 1.06,
-                                  child: Transform.rotate(
-                                    angle: 0.04,
-                                    child: FlashcardWordCard(card: card),
-                                  ),
-                                ),
-                              ),
-                              childWhenDragging: Opacity(
-                                opacity: 0.35,
-                                child: FlashcardWordCard(card: card),
-                              ),
-                              child: FlashcardWordCard(
-                                card: card,
-                                onTap: isBusy ? null : () => onCardSelected(card),
-                              ),
-                            ),
-                          )
-                          .toList(),
-                    ),
-                  ),
-                ),
-              );
-            },
+          child: _HandZone(
+            adaptive: adaptive,
+            controller: controller,
           ),
         ),
         SizedBox(height: adaptive.space(14)),
+
+        // Submit button
         SizedBox(
           width: double.infinity,
           child: ElevatedButton.icon(
@@ -456,319 +430,191 @@ class _PlayState extends StatelessWidget {
   }
 }
 
-class _SentenceSlots extends StatefulWidget {
-  const _SentenceSlots({
+// ---------------------------------------------------------------------------
+// Drop Zone — accepts cards from the hand, shows placed cards
+// ---------------------------------------------------------------------------
+
+class _DropZone extends StatelessWidget {
+  const _DropZone({
     required this.adaptive,
     required this.controller,
-    required this.onPlacedCardTap,
+    required this.wordCount,
   });
 
   final AudyAdaptive adaptive;
   final FlashcardController controller;
-  final ValueChanged<FlashcardCard> onPlacedCardTap;
-
-  @override
-  State<_SentenceSlots> createState() => _SentenceSlotsState();
-}
-
-class _SentenceSlotsState extends State<_SentenceSlots> {
-  int? _hoverIndex;
-  FlashcardCard? _draggingCard;
+  final int wordCount;
 
   @override
   Widget build(BuildContext context) {
-    final round = widget.controller.currentRound;
-    final slotCount = round?.wordCount ?? 3;
-    final selectedCards = widget.controller.selectedCards;
-
-    // Compute the preview list based on active drag and hover position
-    final List<FlashcardCard> previewList = [];
-    final activeCards = List<FlashcardCard>.from(selectedCards);
-
-    if (_draggingCard != null && _hoverIndex != null) {
-      final existingIndex = activeCards.indexWhere((c) => c.id == _draggingCard!.id);
-      if (existingIndex != -1) {
-        activeCards.removeAt(existingIndex);
-      }
-
-      var index = _hoverIndex!;
-      if (index > activeCards.length) {
-        index = activeCards.length;
-      }
-      activeCards.insert(index, _draggingCard!);
-    }
-
-    previewList.addAll(activeCards);
-
-    // Build the grid slots at fixed locations
-    final List<Widget> items = List.generate(slotCount, (index) {
-      return _buildSlot(index, previewList, _draggingCard);
-    });
+    final selectedCards = controller.selectedCards;
+    final emptySlots = wordCount - selectedCards.length;
 
     return DragTarget<FlashcardCard>(
       onWillAcceptWithDetails: (details) {
-        if (widget.controller.phase != FlashcardGamePhase.playing) return false;
-        if (_draggingCard == null) {
-          setState(() {
-            _draggingCard = details.data;
-          });
-        }
-        return true;
-      },
-      onLeave: (details) {
-        setState(() {
-          _hoverIndex = null;
-          _draggingCard = null;
-        });
+        if (controller.phase != FlashcardGamePhase.playing) return false;
+        // Only accept cards that are NOT already in selectedCards
+        return !controller.selectedCards.any((c) => c.id == details.data.id);
       },
       onAcceptWithDetails: (details) {
-        final index = _hoverIndex ?? selectedCards.length;
-        widget.controller.insertCard(details.data, index);
-        setState(() {
-          _hoverIndex = null;
-          _draggingCard = null;
-        });
+        controller.selectCard(details.data);
       },
       builder: (context, candidateData, rejectedData) {
-        return Container(
+        final isHovering = candidateData.isNotEmpty;
+        return AnimatedContainer(
+          duration: AudyAnimation.normal,
           width: double.infinity,
-          constraints: BoxConstraints(minHeight: widget.adaptive.space(184)),
-          padding: EdgeInsets.all(widget.adaptive.space(14)),
+          constraints: BoxConstraints(minHeight: adaptive.space(184)),
+          padding: EdgeInsets.all(adaptive.space(14)),
           decoration: BoxDecoration(
-            color: AudyColors.skyBlue.withValues(alpha: 0.12),
+            color: isHovering
+                ? AudyColors.skyBlue.withValues(alpha: 0.22)
+                : AudyColors.skyBlue.withValues(alpha: 0.10),
             borderRadius: BorderRadius.circular(AudySpacing.radiusLarge),
             border: Border.all(
-              color: AudyColors.skyBlue.withValues(alpha: 0.35),
+              color: isHovering
+                  ? AudyColors.skyBlue.withValues(alpha: 0.7)
+                  : AudyColors.skyBlue.withValues(alpha: 0.3),
               width: 2,
             ),
           ),
           child: Wrap(
             alignment: WrapAlignment.center,
-            spacing: widget.adaptive.space(10),
-            runSpacing: widget.adaptive.space(10),
-            children: items,
+            spacing: adaptive.space(10),
+            runSpacing: adaptive.space(10),
+            children: [
+              // Already-placed cards (draggable back to hand)
+              for (final card in selectedCards)
+                _DraggablePlacedCard(
+                  card: card,
+                  controller: controller,
+                  adaptive: adaptive,
+                ),
+              // Empty placeholder slots
+              for (int i = 0; i < emptySlots; i++)
+                _EmptySlot(key: ValueKey('empty_$i'), adaptive: adaptive),
+            ],
           ),
         );
       },
     );
   }
+}
 
-  Widget _buildSlot(int index, List<FlashcardCard> previewList, FlashcardCard? draggingCard) {
-    return DragTarget<FlashcardCard>(
-      onWillAcceptWithDetails: (details) => widget.controller.phase == FlashcardGamePhase.playing,
-      onMove: (details) {
-        if (_hoverIndex != index) {
-          setState(() {
-            _hoverIndex = index;
-          });
-        }
-      },
-      onAcceptWithDetails: (details) {
-        widget.controller.insertCard(details.data, index);
-        setState(() {
-          _hoverIndex = null;
-          _draggingCard = null;
-        });
-      },
-      builder: (context, candidateData, rejectedData) {
-        Widget child;
-        if (index < previewList.length) {
-          final card = previewList[index];
-          child = _buildDraggableCard(card, index, draggingCard);
-        } else {
-          child = _EmptySlot(
-            key: ValueKey('empty_$index'),
-            adaptive: widget.adaptive,
-          );
-        }
+// ---------------------------------------------------------------------------
+// Draggable placed card — can be dragged back to the hand zone
+// ---------------------------------------------------------------------------
 
-        return AnimatedSwitcher(
-          duration: const Duration(milliseconds: 180),
-          switchInCurve: Curves.easeOutCubic,
-          switchOutCurve: Curves.easeInCubic,
-          child: child,
-        );
-      },
-    );
-  }
+class _DraggablePlacedCard extends StatelessWidget {
+  const _DraggablePlacedCard({
+    required this.card,
+    required this.controller,
+    required this.adaptive,
+  });
 
-  Widget _buildDraggableCard(FlashcardCard card, int index, FlashcardCard? draggingCard) {
-    final isCurrentDragging = draggingCard != null && draggingCard.id == card.id;
+  final FlashcardCard card;
+  final FlashcardController controller;
+  final AudyAdaptive adaptive;
 
-    Widget childWidget;
-    Widget childWhenDraggingWidget;
-
-    if (isCurrentDragging) {
-      childWidget = _AnimatedPlaceholder(
-        key: ValueKey('placeholder_${card.id}'),
-        adaptive: widget.adaptive,
-      );
-      childWhenDraggingWidget = _AnimatedPlaceholder(
-        key: ValueKey('placeholder_dragging_${card.id}'),
-        adaptive: widget.adaptive,
-      );
-    } else {
-      childWidget = FlashcardWordCard(
-        key: ValueKey('card_${card.id}'),
-        card: card,
-        status: widget.controller.statusForCard(card.id),
-        onTap: widget.controller.phase == FlashcardGamePhase.playing
-            ? () => widget.onPlacedCardTap(card)
-            : null,
-      );
-      childWhenDraggingWidget = Opacity(
-        opacity: 0.25,
-        child: FlashcardWordCard(card: card),
-      );
-    }
-
+  @override
+  Widget build(BuildContext context) {
     return Draggable<FlashcardCard>(
-      key: ValueKey('draggable_${card.id}'),
       data: card,
       feedback: Material(
         color: Colors.transparent,
         child: Transform.scale(
           scale: 1.06,
           child: Transform.rotate(
-            angle: 0.04,
+            angle: -0.04,
             child: FlashcardWordCard(card: card),
           ),
         ),
       ),
-      childWhenDragging: childWhenDraggingWidget,
-      onDragStarted: () {
-        setState(() {
-          _draggingCard = card;
-          _hoverIndex = index;
-        });
-      },
-      onDragEnd: (details) {
-        setState(() {
-          _draggingCard = null;
-          _hoverIndex = null;
-        });
-      },
-      child: childWidget,
+      childWhenDragging: Opacity(
+        opacity: 0.25,
+        child: FlashcardWordCard(card: card),
+      ),
+      child: FlashcardWordCard(
+        card: card,
+        status: controller.statusForCard(card.id),
+      ),
     );
   }
 }
 
-class _AnimatedPlaceholder extends StatefulWidget {
-  const _AnimatedPlaceholder({super.key, required this.adaptive});
+// ---------------------------------------------------------------------------
+// Hand Zone — shows the shuffled deck, accepts cards dragged back from drop zone
+// ---------------------------------------------------------------------------
+
+class _HandZone extends StatelessWidget {
+  const _HandZone({
+    required this.adaptive,
+    required this.controller,
+  });
 
   final AudyAdaptive adaptive;
-
-  @override
-  State<_AnimatedPlaceholder> createState() => _AnimatedPlaceholderState();
-}
-
-class _AnimatedPlaceholderState extends State<_AnimatedPlaceholder> {
-  double _width = 0.0;
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        setState(() {
-          _width = 132.0;
-        });
-      }
-    });
-  }
+  final FlashcardController controller;
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
-      curve: Curves.easeOutCubic,
-      width: _width,
-      height: 172,
-      child: _width > 10
-          ? Container(
-              margin: const EdgeInsets.symmetric(horizontal: 2),
-              child: CustomPaint(
-                painter: _DashedRectPainter(
-                  color: AudyColors.skyBlue.withValues(alpha: 0.5),
-                  strokeWidth: 3,
-                  gap: 6,
-                  dash: 10,
-                  radius: AudySpacing.radiusLarge,
-                ),
-                child: Container(
-                  color: AudyColors.skyBlue.withValues(alpha: 0.08),
-                  child: Center(
-                    child: Icon(
-                      Icons.arrow_downward_rounded,
-                      size: widget.adaptive.space(38),
-                      color: AudyColors.skyBlue.withValues(alpha: 0.6),
+    return DragTarget<FlashcardCard>(
+      onWillAcceptWithDetails: (details) {
+        if (controller.phase != FlashcardGamePhase.playing) return false;
+        // Only accept cards that ARE in selectedCards (returning them)
+        return controller.selectedCards.any((c) => c.id == details.data.id);
+      },
+      onAcceptWithDetails: (details) {
+        controller.removeSelectedCard(details.data);
+      },
+      builder: (context, candidateData, rejectedData) {
+        final isHovering = candidateData.isNotEmpty;
+        return AnimatedContainer(
+          duration: AudyAnimation.normal,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(AudySpacing.radiusLarge),
+            color: isHovering
+                ? AudyColors.warning.withValues(alpha: 0.08)
+                : Colors.transparent,
+          ),
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8.0),
+              child: Wrap(
+                alignment: WrapAlignment.center,
+                spacing: adaptive.space(12),
+                runSpacing: adaptive.space(12),
+                children: controller.handCards.map((card) {
+                  return Draggable<FlashcardCard>(
+                    data: card,
+                    feedback: Material(
+                      color: Colors.transparent,
+                      child: Transform.scale(
+                        scale: 1.06,
+                        child: Transform.rotate(
+                          angle: 0.04,
+                          child: FlashcardWordCard(card: card),
+                        ),
+                      ),
                     ),
-                  ),
-                ),
+                    childWhenDragging: Opacity(
+                      opacity: 0.35,
+                      child: FlashcardWordCard(card: card),
+                    ),
+                    child: FlashcardWordCard(card: card),
+                  );
+                }).toList(),
               ),
-            )
-          : const SizedBox.shrink(),
-    );
-  }
-}
-
-class _DashedRectPainter extends CustomPainter {
-  const _DashedRectPainter({
-    required this.color,
-    required this.strokeWidth,
-    required this.gap,
-    required this.dash,
-    required this.radius,
-  });
-
-  final Color color;
-  final double strokeWidth;
-  final double gap;
-  final double dash;
-  final double radius;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..strokeWidth = strokeWidth
-      ..style = PaintingStyle.stroke;
-
-    final RRect rrect = RRect.fromRectAndRadius(
-      Rect.fromLTWH(
-        strokeWidth / 2,
-        strokeWidth / 2,
-        size.width - strokeWidth,
-        size.height - strokeWidth,
-      ),
-      Radius.circular(radius),
-    );
-
-    final Path path = Path()..addRRect(rrect);
-    final Path dashedPath = Path();
-
-    double distance = 0.0;
-    for (final PathMetric measurePath in path.computeMetrics()) {
-      while (distance < measurePath.length) {
-        dashedPath.addPath(
-          measurePath.extractPath(distance, distance + dash),
-          Offset.zero,
+            ),
+          ),
         );
-        distance += dash + gap;
-      }
-    }
-    canvas.drawPath(dashedPath, paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant _DashedRectPainter oldDelegate) {
-    return oldDelegate.color != color ||
-        oldDelegate.strokeWidth != strokeWidth ||
-        oldDelegate.gap != gap ||
-        oldDelegate.dash != dash ||
-        oldDelegate.radius != radius;
+      },
+    );
   }
 }
+
+// ---------------------------------------------------------------------------
+// Empty Slot
+// ---------------------------------------------------------------------------
 
 class _EmptySlot extends StatelessWidget {
   const _EmptySlot({super.key, required this.adaptive});
@@ -799,6 +645,10 @@ class _EmptySlot extends StatelessWidget {
     );
   }
 }
+
+// ---------------------------------------------------------------------------
+// Complete
+// ---------------------------------------------------------------------------
 
 class _CompleteState extends StatelessWidget {
   const _CompleteState({
@@ -856,6 +706,10 @@ class _CompleteState extends StatelessWidget {
     );
   }
 }
+
+// ---------------------------------------------------------------------------
+// Error
+// ---------------------------------------------------------------------------
 
 class _ErrorState extends StatelessWidget {
   const _ErrorState({required this.adaptive, required this.onRetry});
