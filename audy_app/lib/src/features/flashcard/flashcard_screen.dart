@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math';
+import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_tts/flutter_tts.dart';
@@ -372,20 +373,60 @@ class _PlayState extends StatelessWidget {
         ),
         SizedBox(height: adaptive.space(18)),
         Expanded(
-          child: SingleChildScrollView(
-            child: Wrap(
-              alignment: WrapAlignment.center,
-              spacing: adaptive.space(12),
-              runSpacing: adaptive.space(12),
-              children: controller.handCards
-                  .map(
-                    (card) => FlashcardWordCard(
-                      card: card,
-                      onTap: isBusy ? null : () => onCardSelected(card),
+          child: DragTarget<FlashcardCard>(
+            onWillAcceptWithDetails: (details) =>
+                controller.phase == FlashcardGamePhase.playing &&
+                controller.selectedCards.any((c) => c.id == details.data.id),
+            onAcceptWithDetails: (details) {
+              onPlacedCardTap(details.data);
+            },
+            builder: (context, candidateData, rejectedData) {
+              final isHovering = candidateData.isNotEmpty;
+              return AnimatedContainer(
+                duration: AudyAnimation.normal,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(AudySpacing.radiusLarge),
+                  color: isHovering
+                      ? AudyColors.warning.withValues(alpha: 0.08)
+                      : Colors.transparent,
+                ),
+                child: SingleChildScrollView(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8.0),
+                    child: Wrap(
+                      alignment: WrapAlignment.center,
+                      spacing: adaptive.space(12),
+                      runSpacing: adaptive.space(12),
+                      children: controller.handCards
+                          .map(
+                            (card) => Draggable<FlashcardCard>(
+                              data: card,
+                              feedback: Material(
+                                color: Colors.transparent,
+                                child: Transform.scale(
+                                  scale: 1.06,
+                                  child: Transform.rotate(
+                                    angle: 0.04,
+                                    child: FlashcardWordCard(card: card),
+                                  ),
+                                ),
+                              ),
+                              childWhenDragging: Opacity(
+                                opacity: 0.35,
+                                child: FlashcardWordCard(card: card),
+                              ),
+                              child: FlashcardWordCard(
+                                card: card,
+                                onTap: isBusy ? null : () => onCardSelected(card),
+                              ),
+                            ),
+                          )
+                          .toList(),
                     ),
-                  )
-                  .toList(),
-            ),
+                  ),
+                ),
+              );
+            },
           ),
         ),
         SizedBox(height: adaptive.space(14)),
@@ -415,7 +456,7 @@ class _PlayState extends StatelessWidget {
   }
 }
 
-class _SentenceSlots extends StatelessWidget {
+class _SentenceSlots extends StatefulWidget {
   const _SentenceSlots({
     required this.adaptive,
     required this.controller,
@@ -427,41 +468,314 @@ class _SentenceSlots extends StatelessWidget {
   final ValueChanged<FlashcardCard> onPlacedCardTap;
 
   @override
-  Widget build(BuildContext context) {
-    final round = controller.currentRound;
-    final slotCount = round?.wordCount ?? 3;
+  State<_SentenceSlots> createState() => _SentenceSlotsState();
+}
 
-    return Container(
-      width: double.infinity,
-      constraints: BoxConstraints(minHeight: adaptive.space(184)),
-      padding: EdgeInsets.all(adaptive.space(14)),
-      decoration: BoxDecoration(
-        color: AudyColors.skyBlue.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(AudySpacing.radiusLarge),
-        border: Border.all(
-          color: AudyColors.skyBlue.withValues(alpha: 0.35),
-          width: 2,
+class _SentenceSlotsState extends State<_SentenceSlots> {
+  int? _hoverIndex;
+  FlashcardCard? _draggingCard;
+
+  @override
+  Widget build(BuildContext context) {
+    final round = widget.controller.currentRound;
+    final slotCount = round?.wordCount ?? 3;
+    final selectedCards = widget.controller.selectedCards;
+
+    final List<Widget> items = [];
+    final hoverIdx = _hoverIndex;
+    final isDragging = _draggingCard != null;
+
+    final activeCards = List<FlashcardCard>.from(selectedCards);
+    if (_draggingCard != null) {
+      activeCards.removeWhere((c) => c.id == _draggingCard!.id);
+    }
+
+    final List<Widget> cardWidgets = [];
+    for (int i = 0; i < activeCards.length; i++) {
+      if (isDragging && hoverIdx == i) {
+        cardWidgets.add(
+          _AnimatedPlaceholder(
+            key: const ValueKey('drag_placeholder'),
+            adaptive: widget.adaptive,
+          ),
+        );
+      }
+      cardWidgets.add(_buildPlacedCard(activeCards[i], i));
+    }
+
+    if (isDragging && hoverIdx == activeCards.length) {
+      cardWidgets.add(
+        _AnimatedPlaceholder(
+          key: const ValueKey('drag_placeholder'),
+          adaptive: widget.adaptive,
         ),
-      ),
-      child: Wrap(
-        alignment: WrapAlignment.center,
-        spacing: adaptive.space(10),
-        runSpacing: adaptive.space(10),
-        children: List.generate(slotCount, (index) {
-          if (index < controller.selectedCards.length) {
-            final card = controller.selectedCards[index];
-            return FlashcardWordCard(
-              card: card,
-              status: controller.statusForCard(card.id),
-              onTap: controller.phase == FlashcardGamePhase.playing
-                  ? () => onPlacedCardTap(card)
-                  : null,
-            );
-          }
-          return _EmptySlot(adaptive: adaptive);
-        }),
-      ),
+      );
+    }
+
+    items.addAll(cardWidgets);
+
+    final int neededEmptySlots = slotCount - items.length;
+    for (int i = 0; i < neededEmptySlots; i++) {
+      items.add(_buildEmptySlot(items.length));
+    }
+
+    return DragTarget<FlashcardCard>(
+      onWillAcceptWithDetails: (details) => widget.controller.phase == FlashcardGamePhase.playing,
+      onLeave: (details) {
+        setState(() {
+          _hoverIndex = null;
+          _draggingCard = null;
+        });
+      },
+      onAcceptWithDetails: (details) {
+        final index = _hoverIndex ?? selectedCards.length;
+        widget.controller.insertCard(details.data, index);
+        setState(() {
+          _hoverIndex = null;
+          _draggingCard = null;
+        });
+      },
+      builder: (context, candidateData, rejectedData) {
+        if (candidateData.isNotEmpty && _draggingCard == null) {
+          final card = candidateData.first;
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted && _draggingCard == null) {
+              setState(() {
+                _draggingCard = card;
+              });
+            }
+          });
+        }
+
+        return Container(
+          width: double.infinity,
+          constraints: BoxConstraints(minHeight: widget.adaptive.space(184)),
+          padding: EdgeInsets.all(widget.adaptive.space(14)),
+          decoration: BoxDecoration(
+            color: AudyColors.skyBlue.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(AudySpacing.radiusLarge),
+            border: Border.all(
+              color: AudyColors.skyBlue.withValues(alpha: 0.35),
+              width: 2,
+            ),
+          ),
+          child: Wrap(
+            alignment: WrapAlignment.center,
+            spacing: widget.adaptive.space(10),
+            runSpacing: widget.adaptive.space(10),
+            children: items,
+          ),
+        );
+      },
     );
+  }
+
+  Widget _buildPlacedCard(FlashcardCard card, int targetIndex) {
+    final cardWidget = FlashcardWordCard(
+      card: card,
+      status: widget.controller.statusForCard(card.id),
+      onTap: widget.controller.phase == FlashcardGamePhase.playing
+          ? () => widget.onPlacedCardTap(card)
+          : null,
+    );
+
+    return DragTarget<FlashcardCard>(
+      onWillAcceptWithDetails: (details) => widget.controller.phase == FlashcardGamePhase.playing,
+      onMove: (details) {
+        setState(() {
+          _hoverIndex = targetIndex;
+        });
+      },
+      onAcceptWithDetails: (details) {
+        widget.controller.insertCard(details.data, targetIndex);
+        setState(() {
+          _hoverIndex = null;
+          _draggingCard = null;
+        });
+      },
+      builder: (context, candidateData, rejectedData) {
+        return Draggable<FlashcardCard>(
+          data: card,
+          feedback: Material(
+            color: Colors.transparent,
+            child: Transform.scale(
+              scale: 1.06,
+              child: Transform.rotate(
+                angle: 0.04,
+                child: FlashcardWordCard(card: card),
+              ),
+            ),
+          ),
+          childWhenDragging: const SizedBox.shrink(),
+          onDragStarted: () {
+            setState(() {
+              _draggingCard = card;
+            });
+          },
+          onDragEnd: (details) {
+            setState(() {
+              _draggingCard = null;
+              _hoverIndex = null;
+            });
+          },
+          child: cardWidget,
+        );
+      },
+    );
+  }
+
+  Widget _buildEmptySlot(int targetIndex) {
+    return DragTarget<FlashcardCard>(
+      onWillAcceptWithDetails: (details) => widget.controller.phase == FlashcardGamePhase.playing,
+      onMove: (details) {
+        setState(() {
+          _hoverIndex = widget.controller.selectedCards.length;
+        });
+      },
+      onAcceptWithDetails: (details) {
+        widget.controller.insertCard(details.data, widget.controller.selectedCards.length);
+        setState(() {
+          _hoverIndex = null;
+          _draggingCard = null;
+        });
+      },
+      builder: (context, candidateData, rejectedData) {
+        final isHovered = candidateData.isNotEmpty;
+        return AnimatedContainer(
+          duration: AudyAnimation.normal,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(AudySpacing.radiusLarge),
+            boxShadow: isHovered
+                ? [
+                    BoxShadow(
+                      color: AudyColors.skyBlue.withValues(alpha: 0.3),
+                      blurRadius: 12,
+                      spreadRadius: 2,
+                    )
+                  ]
+                : null,
+          ),
+          child: _EmptySlot(adaptive: widget.adaptive),
+        );
+      },
+    );
+  }
+}
+
+class _AnimatedPlaceholder extends StatefulWidget {
+  const _AnimatedPlaceholder({super.key, required this.adaptive});
+
+  final AudyAdaptive adaptive;
+
+  @override
+  State<_AnimatedPlaceholder> createState() => _AnimatedPlaceholderState();
+}
+
+class _AnimatedPlaceholderState extends State<_AnimatedPlaceholder> {
+  double _width = 0.0;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        setState(() {
+          _width = 132.0;
+        });
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeOutCubic,
+      width: _width,
+      height: 172,
+      child: _width > 10
+          ? Container(
+              margin: const EdgeInsets.symmetric(horizontal: 2),
+              child: CustomPaint(
+                painter: _DashedRectPainter(
+                  color: AudyColors.skyBlue.withValues(alpha: 0.5),
+                  strokeWidth: 3,
+                  gap: 6,
+                  dash: 10,
+                  radius: AudySpacing.radiusLarge,
+                ),
+                child: Container(
+                  color: AudyColors.skyBlue.withValues(alpha: 0.08),
+                  child: Center(
+                    child: Icon(
+                      Icons.arrow_downward_rounded,
+                      size: widget.adaptive.space(38),
+                      color: AudyColors.skyBlue.withValues(alpha: 0.6),
+                    ),
+                  ),
+                ),
+              ),
+            )
+          : const SizedBox.shrink(),
+    );
+  }
+}
+
+class _DashedRectPainter extends CustomPainter {
+  const _DashedRectPainter({
+    required this.color,
+    required this.strokeWidth,
+    required this.gap,
+    required this.dash,
+    required this.radius,
+  });
+
+  final Color color;
+  final double strokeWidth;
+  final double gap;
+  final double dash;
+  final double radius;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = strokeWidth
+      ..style = PaintingStyle.stroke;
+
+    final RRect rrect = RRect.fromRectAndRadius(
+      Rect.fromLTWH(
+        strokeWidth / 2,
+        strokeWidth / 2,
+        size.width - strokeWidth,
+        size.height - strokeWidth,
+      ),
+      Radius.circular(radius),
+    );
+
+    final Path path = Path()..addRRect(rrect);
+    final Path dashedPath = Path();
+
+    double distance = 0.0;
+    for (final PathMetric measurePath in path.computeMetrics()) {
+      while (distance < measurePath.length) {
+        dashedPath.addPath(
+          measurePath.extractPath(distance, distance + dash),
+          Offset.zero,
+        );
+        distance += dash + gap;
+      }
+    }
+    canvas.drawPath(dashedPath, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _DashedRectPainter oldDelegate) {
+    return oldDelegate.color != color ||
+        oldDelegate.strokeWidth != strokeWidth ||
+        oldDelegate.gap != gap ||
+        oldDelegate.dash != dash ||
+        oldDelegate.radius != radius;
   }
 }
 

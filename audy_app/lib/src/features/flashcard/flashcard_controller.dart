@@ -103,6 +103,27 @@ class FlashcardController extends ChangeNotifier {
     notifyListeners();
   }
 
+  void insertCard(FlashcardCard card, int targetIndex) {
+    if (phase != FlashcardGamePhase.playing) return;
+    final existingIndex = _selectedCards.indexWhere((item) => item.id == card.id);
+    if (existingIndex != -1) {
+      _selectedCards.removeAt(existingIndex);
+      var index = targetIndex;
+      if (index > _selectedCards.length) {
+        index = _selectedCards.length;
+      }
+      _selectedCards.insert(index, card);
+    } else {
+      _handCards.removeWhere((item) => item.id == card.id);
+      var index = targetIndex;
+      if (index > _selectedCards.length) {
+        index = _selectedCards.length;
+      }
+      _selectedCards.insert(index, card);
+    }
+    notifyListeners();
+  }
+
   void removeSelectedCard(FlashcardCard card) {
     if (phase != FlashcardGamePhase.playing) return;
     _selectedCards.removeWhere((item) => item.id == card.id);

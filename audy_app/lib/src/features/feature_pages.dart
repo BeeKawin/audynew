@@ -63,13 +63,13 @@ class GamesHubPage extends StatelessWidget {
         const Color(0xFFBFE7F2),
         AppRoutes.flashcard,
       ),
-      _RouteCard(
-        controller.tr('road_safety_game'),
-        null,
-        Icons.traffic_rounded,
-        const Color(0xFFFFE1B8),
-        AppRoutes.roadSafety,
-      ),
+      // _RouteCard(
+      //   controller.tr('road_safety_game'),
+      //   null,
+      //   Icons.traffic_rounded,
+      //   const Color(0xFFFFE1B8),
+      //   AppRoutes.roadSafety,
+      // ),
       _RouteCard(
         controller.tr('fruit_catching_bear'),
         null,
