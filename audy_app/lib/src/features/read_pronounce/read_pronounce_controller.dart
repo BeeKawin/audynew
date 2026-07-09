@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:flutter/foundation.dart';
+import '../../services/auth_service.dart';
 
 enum ReadPronounceModule { letters, words, sentences }
 
@@ -463,13 +464,13 @@ class ReadPronounceController extends ChangeNotifier {
 
   String? getCurrentImagePath() => currentPrompt?.imagePath;
 
-  void addCustomWords(List<String> customWords) {
+  void addCustomWords(List<ClassWord> customWords) {
     if (customWords.isEmpty) return;
     final existingPool = _promptPools[ReadPronounceModule.words] ?? [];
-    final newPrompts = customWords.map((word) => ReadPronouncePrompt(
-      text: word,
-      acceptedAnswers: [word.toLowerCase()],
-      imagePath: null,
+    final newPrompts = customWords.map((cw) => ReadPronouncePrompt(
+      text: cw.word,
+      acceptedAnswers: [cw.word.toLowerCase()],
+      imagePath: cw.imageUrl,
     )).toList();
     _promptPools[ReadPronounceModule.words] = [
       ...existingPool,

@@ -27,32 +27,76 @@ class WordBankEntry:
 
 
 WORD_BANK: tuple[WordBankEntry, ...] = (
-    WordBankEntry("noun_apple", "noun", "apple", "แอปเปิล", "assets/images/sorting/apple.png"),
-    WordBankEntry("noun_ball", "noun", "ball", "ลูกบอล", "assets/images/sorting/ball.png"),
-    WordBankEntry("noun_dog", "noun", "dog", "สุนัข", "assets/images/sorting/dog.png"),
-    WordBankEntry("noun_cat", "noun", "cat", "แมว", "assets/images/sorting/cat.png"),
-    WordBankEntry("noun_book", "noun", "book", "หนังสือ", "assets/images/sorting/book.png"),
-    WordBankEntry("noun_cup", "noun", "cup", "แก้ว", "assets/images/sorting/cup.png"),
-    WordBankEntry("pronoun_i", "pronoun", "I", "ฉัน", "assets/mascot/Neutral.png"),
-    WordBankEntry("pronoun_you", "pronoun", "you", "เธอ", "assets/mascot/Neutral.png"),
-    WordBankEntry("pronoun_we", "pronoun", "we", "เรา", "assets/mascot/Heart.png"),
-    WordBankEntry("pronoun_he", "pronoun", "he", "เขา", "assets/mascot/Neutral.png"),
-    WordBankEntry("pronoun_she", "pronoun", "she", "เธอ", "assets/mascot/Sparkles.png"),
-    WordBankEntry("verb_eat", "verb", "eat", "กิน", "assets/images/sorting/spoon.png"),
-    WordBankEntry("verb_see", "verb", "see", "เห็น", "assets/images/sorting/circle.png"),
-    WordBankEntry("verb_like", "verb", "like", "ชอบ", "assets/mascot/Heart.png"),
-    WordBankEntry("verb_want", "verb", "want", "อยากได้", "assets/images/sorting/bag.png"),
-    WordBankEntry("verb_read", "verb", "read", "อ่าน", "assets/images/sorting/book.png"),
-    WordBankEntry("verb_play", "verb", "play", "เล่น", "assets/images/sorting/toy.png"),
-    WordBankEntry("adverb_fast", "adverb", "fast", "เร็ว", "assets/images/sorting/star.png"),
-    WordBankEntry("adverb_slowly", "adverb", "slowly", "ช้าๆ", "assets/images/sorting/turtle.png"),
-    WordBankEntry("adverb_now", "adverb", "now", "ตอนนี้", "assets/images/sorting/dot.png"),
-    WordBankEntry("adverb_here", "adverb", "here", "ที่นี่", "assets/images/sorting/circle.png"),
-    WordBankEntry("adjective_red", "adjective", "red", "สีแดง", "assets/images/sorting/circle.png"),
-    WordBankEntry("adjective_big", "adjective", "big", "ใหญ่", "assets/images/sorting/ball.png"),
-    WordBankEntry("adjective_small", "adjective", "small", "เล็ก", "assets/images/sorting/dot.png"),
-    WordBankEntry("adjective_happy", "adjective", "happy", "มีความสุข", "assets/images/sorting/happy.png"),
-    WordBankEntry("adjective_soft", "adjective", "soft", "นุ่ม", "assets/images/sorting/towel.png"),
+    # Actions (verbs)
+    WordBankEntry("verb_eat", "verb", "eat", "กิน", "emoji:🍽️"),
+    WordBankEntry("verb_drink", "verb", "drink", "ดื่ม", "emoji:🥤"),
+    WordBankEntry("verb_sleep", "verb", "sleep", "นอน", "emoji:😴"),
+    WordBankEntry("verb_walk", "verb", "walk", "เดิน", "emoji:🚶"),
+    WordBankEntry("verb_run", "verb", "run", "วิ่ง", "emoji:🏃"),
+    WordBankEntry("verb_play", "verb", "play", "เล่น", "emoji:🧸"),
+    WordBankEntry("verb_read", "verb", "read", "อ่าน", "emoji:📖"),
+    WordBankEntry("verb_write", "verb", "write", "เขียน", "emoji:📝"),
+    WordBankEntry("verb_wash", "verb", "wash", "ล้าง", "emoji:🧼"),
+    WordBankEntry("verb_open", "verb", "open", "เปิด", "emoji:🔓"),
+    WordBankEntry("verb_close", "verb", "close", "ปิด", "emoji:🔒"),
+
+    # Feelings (adjectives)
+    WordBankEntry("adj_happy", "adjective", "happy", "ดีใจ", "emoji:😊"),
+    WordBankEntry("adj_sad", "adjective", "sad", "เศร้า", "emoji:😢"),
+    WordBankEntry("adj_hungry", "adjective", "hungry", "หิว", "emoji:😋"),
+    WordBankEntry("adj_sleepy", "adjective", "sleepy", "ง่วง", "emoji:😴"),
+    WordBankEntry("adj_hot", "adjective", "hot", "ร้อน", "emoji:🥵"),
+    WordBankEntry("adj_cold", "adjective", "cold", "หนาว", "emoji:🥶"),
+
+    # Places (nouns)
+    WordBankEntry("noun_home", "noun", "home", "บ้าน", "emoji:🏠"),
+    WordBankEntry("noun_school", "noun", "school", "โรงเรียน", "emoji:🏫"),
+    WordBankEntry("noun_bathroom", "noun", "bathroom", "ห้องน้ำ", "emoji:🚽"),
+    WordBankEntry("noun_kitchen", "noun", "kitchen", "ครัว", "emoji:🍳"),
+    WordBankEntry("noun_garden", "noun", "garden", "สวน", "emoji:🌳"),
+    WordBankEntry("noun_shop", "noun", "shop", "ร้านค้า", "emoji:🏪"),
+
+    # Objects (nouns)
+    WordBankEntry("noun_table", "noun", "table", "โต๊ะ", "emoji:🪵"),
+    WordBankEntry("noun_chair", "noun", "chair", "เก้าอี้", "emoji:🪑"),
+    WordBankEntry("noun_book", "noun", "book", "หนังสือ", "emoji:📚"),
+    WordBankEntry("noun_pencil", "noun", "pencil", "ดินสอ", "emoji:✏️"),
+    WordBankEntry("noun_glass", "noun", "glass", "แก้ว", "emoji:🥛"),
+    WordBankEntry("noun_spoon", "noun", "spoon", "ช้อน", "emoji:🥄"),
+
+    # Animals (nouns from directory)
+    WordBankEntry("noun_bird", "noun", "bird", "นก", "assets/images/games/flashcard/animals/bird.png"),
+    WordBankEntry("noun_cat", "noun", "cat", "แมว", "assets/images/games/flashcard/animals/cat.png"),
+    WordBankEntry("noun_chicken", "noun", "chicken", "ไก่", "assets/images/games/flashcard/animals/chicken.png"),
+    WordBankEntry("noun_cow", "noun", "cow", "วัว", "assets/images/games/flashcard/animals/cow.png"),
+    WordBankEntry("noun_dog", "noun", "dog", "สุนัข", "assets/images/games/flashcard/animals/dog.png"),
+    WordBankEntry("noun_elephant", "noun", "elephant", "ช้าง", "assets/images/games/flashcard/animals/elephant.png"),
+    WordBankEntry("noun_goldfish", "noun", "goldfish", "ปลาทอง", "assets/images/games/flashcard/animals/gold-fish.png"),
+    WordBankEntry("noun_goose", "noun", "goose", "ห่าน", "assets/images/games/flashcard/animals/goose.png"),
+    WordBankEntry("noun_horse", "noun", "horse", "ม้า", "assets/images/games/flashcard/animals/horse.png"),
+    WordBankEntry("noun_mouse", "noun", "mouse", "หนู", "assets/images/games/flashcard/animals/mouse.png"),
+    WordBankEntry("noun_pig", "noun", "pig", "หมู", "assets/images/games/flashcard/animals/pig.png"),
+    WordBankEntry("noun_rabbit", "noun", "rabbit", "กระต่าย", "assets/images/games/flashcard/animals/rabbit.png"),
+
+    # Fruits (nouns from directory)
+    WordBankEntry("noun_apple", "noun", "apple", "แอปเปิล", "assets/images/games/flashcard/fruits/apple.png"),
+    WordBankEntry("noun_banana", "noun", "banana", "กล้วย", "assets/images/games/flashcard/fruits/banana.png"),
+    WordBankEntry("noun_lime", "noun", "lime", "มะนาว", "assets/images/games/flashcard/fruits/lime.png"),
+    WordBankEntry("noun_mango", "noun", "mango", "มะม่วง", "assets/images/games/flashcard/fruits/mango.png"),
+    WordBankEntry("noun_orange", "noun", "orange", "ส้ม", "assets/images/games/flashcard/fruits/orange.png"),
+    WordBankEntry("noun_pineapple", "noun", "pineapple", "สับปะรด", "assets/images/games/flashcard/fruits/pineapple.png"),
+    WordBankEntry("noun_strawberry", "noun", "strawberry", "สตรอว์เบอร์รี", "assets/images/games/flashcard/fruits/strawberry.png"),
+    WordBankEntry("noun_watermelon", "noun", "watermelon", "แตงโม", "assets/images/games/flashcard/fruits/watermelon.png"),
+
+    # Vegetables (nouns from directory)
+    WordBankEntry("noun_broccoli", "noun", "broccoli", "บรอกโคลี", "assets/images/games/flashcard/vetgetable/broccoli.png"),
+    WordBankEntry("noun_carrot", "noun", "carrot", "แครอท", "assets/images/games/flashcard/vetgetable/carrot.png"),
+    WordBankEntry("noun_corn", "noun", "corn", "ข้าวโพด", "assets/images/games/flashcard/vetgetable/corn.png"),
+    WordBankEntry("noun_cucumber", "noun", "cucumber", "แตงกวา", "assets/images/games/flashcard/vetgetable/cucumber.png"),
+    WordBankEntry("noun_mushroom", "noun", "mushroom", "เห็ด", "assets/images/games/flashcard/vetgetable/mushroom.png"),
+    WordBankEntry("noun_potato", "noun", "potato", "มันฝรั่ง", "assets/images/games/flashcard/vetgetable/potato.png"),
+    WordBankEntry("noun_pumpkin", "noun", "pumpkin", "ฟักทอง", "assets/images/games/flashcard/vetgetable/pumpkin.png"),
+    WordBankEntry("noun_tomato", "noun", "tomato", "มะเขือเทศ", "assets/images/games/flashcard/vetgetable/tomato.png"),
 )
 
 ENTRY_BY_ID = {entry.id: entry for entry in WORD_BANK}
@@ -202,16 +246,16 @@ Language: {language}
 
     def _fallback_target_ids(self, word_count: int) -> list[str]:
         templates = {
-            3: ["adjective_red", "noun_ball", "adverb_here"],
-            5: ["pronoun_i", "verb_see", "adjective_red", "noun_ball", "adverb_now"],
+            3: ["verb_eat", "noun_apple", "noun_home"],
+            5: ["noun_cat", "verb_eat", "noun_goldfish", "noun_home", "adj_happy"],
             7: [
-                "pronoun_we",
-                "verb_like",
-                "adjective_big",
-                "noun_book",
-                "adverb_here",
-                "verb_read",
-                "adverb_slowly",
+                "noun_rabbit",
+                "verb_play",
+                "noun_garden",
+                "noun_home",
+                "adj_happy",
+                "verb_sleep",
+                "adj_sleepy",
             ],
         }
         return templates[word_count]

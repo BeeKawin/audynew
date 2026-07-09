@@ -32,7 +32,7 @@ dependencies:
   model_viewer_plus: ^1.10.0
   sensors_plus: ^7.0.0
   shared_preferences: ^2.5.3
-
+  image_picker: ^1.2.3
 
 dev_dependencies:
   flutter_test:
@@ -52,3 +52,6 @@ flutter:
     - assets/images/sorting/
     - assets/mascot/
     - assets/3d/
+    - assets/images/games/flashcard/animals/
+    - assets/images/games/flashcard/fruits/
+    - assets/images/games/flashcard/vetgetable/

@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:convert';
+
 
 import 'package:avatar_glow/avatar_glow.dart';
 import 'package:flutter/material.dart';
@@ -620,18 +622,31 @@ class _PromptCard extends StatelessWidget {
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(adaptive.space(24)),
                   child: imagePath != null
-                      ? Image.asset(
-                          imagePath!,
-                          width: imageSize,
-                          height: imageSize,
-                          fit: BoxFit.contain,
-                          errorBuilder: (context, error, stackTrace) {
-                            return _ImageFallback(
-                              adaptive: adaptive,
-                              size: imageSize,
-                            );
-                          },
-                        )
+                      ? (imagePath!.startsWith('data:image') || !imagePath!.startsWith('assets/'))
+                          ? Image.memory(
+                              base64Decode(imagePath!.contains(',') ? imagePath!.split(',')[1] : imagePath!),
+                              width: imageSize,
+                              height: imageSize,
+                              fit: BoxFit.contain,
+                              errorBuilder: (context, error, stackTrace) {
+                                return _ImageFallback(
+                                  adaptive: adaptive,
+                                  size: imageSize,
+                                );
+                              },
+                            )
+                          : Image.asset(
+                              imagePath!,
+                              width: imageSize,
+                              height: imageSize,
+                              fit: BoxFit.contain,
+                              errorBuilder: (context, error, stackTrace) {
+                                return _ImageFallback(
+                                  adaptive: adaptive,
+                                  size: imageSize,
+                                );
+                              },
+                            )
                       : _ImageFallback(adaptive: adaptive, size: imageSize),
                 ),
               ),

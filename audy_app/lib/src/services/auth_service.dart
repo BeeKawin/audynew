@@ -338,12 +338,13 @@ class AuthService {
   }
 
   /// Add custom classmate name/noun to class word bank
-  Future<void> addClassWord(String teacherId, String word) async {
+  Future<void> addClassWord(String teacherId, String word, {String? imageUrl}) async {
     try {
       await _client.from('class_words').insert({
         'teacher_id': teacherId,
         'word': word.trim(),
         'category': 'noun',
+        'image_url': imageUrl,
       });
     } catch (e) {
       debugPrint('addClassWord error: $e');
@@ -352,13 +353,13 @@ class AuthService {
   }
 
   /// Fetch custom words for a classroom (from teacher ID)
-  Future<List<String>> fetchClassWords(String teacherId) async {
+  Future<List<ClassWord>> fetchClassWords(String teacherId) async {
     try {
       final response = await _client
           .from('class_words')
-          .select('word')
+          .select('*')
           .eq('teacher_id', teacherId);
-      return (response as List).map((json) => json['word'] as String).toList();
+      return (response as List).map((json) => ClassWord.fromJson(json as Map<String, dynamic>)).toList();
     } catch (e) {
       debugPrint('fetchClassWords error: $e');
       return [];
@@ -387,5 +388,28 @@ class AuthService {
     }
 
     return 'Something went wrong. Please try again.';
+  }
+}
+
+class ClassWord {
+  final String id;
+  final String word;
+  final String? category;
+  final String? imageUrl;
+
+  const ClassWord({
+    required this.id,
+    required this.word,
+    this.category,
+    this.imageUrl,
+  });
+
+  factory ClassWord.fromJson(Map<String, dynamic> json) {
+    return ClassWord(
+      id: json['id'] as String? ?? '',
+      word: json['word'] as String? ?? '',
+      category: json['category'] as String?,
+      imageUrl: json['image_url'] as String?,
+    );
   }
 }

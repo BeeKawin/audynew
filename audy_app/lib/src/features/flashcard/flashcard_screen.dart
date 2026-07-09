@@ -481,46 +481,40 @@ class _SentenceSlotsState extends State<_SentenceSlots> {
     final slotCount = round?.wordCount ?? 3;
     final selectedCards = widget.controller.selectedCards;
 
-    final List<Widget> items = [];
-    final hoverIdx = _hoverIndex;
-    final isDragging = _draggingCard != null;
-
+    // Compute the preview list based on active drag and hover position
+    final List<FlashcardCard> previewList = [];
     final activeCards = List<FlashcardCard>.from(selectedCards);
-    if (_draggingCard != null) {
-      activeCards.removeWhere((c) => c.id == _draggingCard!.id);
-    }
 
-    final List<Widget> cardWidgets = [];
-    for (int i = 0; i < activeCards.length; i++) {
-      if (isDragging && hoverIdx == i) {
-        cardWidgets.add(
-          _AnimatedPlaceholder(
-            key: const ValueKey('drag_placeholder'),
-            adaptive: widget.adaptive,
-          ),
-        );
+    if (_draggingCard != null && _hoverIndex != null) {
+      final existingIndex = activeCards.indexWhere((c) => c.id == _draggingCard!.id);
+      if (existingIndex != -1) {
+        activeCards.removeAt(existingIndex);
       }
-      cardWidgets.add(_buildPlacedCard(activeCards[i], i));
+
+      var index = _hoverIndex!;
+      if (index > activeCards.length) {
+        index = activeCards.length;
+      }
+      activeCards.insert(index, _draggingCard!);
     }
 
-    if (isDragging && hoverIdx == activeCards.length) {
-      cardWidgets.add(
-        _AnimatedPlaceholder(
-          key: const ValueKey('drag_placeholder'),
-          adaptive: widget.adaptive,
-        ),
-      );
-    }
+    previewList.addAll(activeCards);
 
-    items.addAll(cardWidgets);
-
-    final int neededEmptySlots = slotCount - items.length;
-    for (int i = 0; i < neededEmptySlots; i++) {
-      items.add(_buildEmptySlot(items.length));
-    }
+    // Build the grid slots at fixed locations
+    final List<Widget> items = List.generate(slotCount, (index) {
+      return _buildSlot(index, previewList, _draggingCard);
+    });
 
     return DragTarget<FlashcardCard>(
-      onWillAcceptWithDetails: (details) => widget.controller.phase == FlashcardGamePhase.playing,
+      onWillAcceptWithDetails: (details) {
+        if (widget.controller.phase != FlashcardGamePhase.playing) return false;
+        if (_draggingCard == null) {
+          setState(() {
+            _draggingCard = details.data;
+          });
+        }
+        return true;
+      },
       onLeave: (details) {
         setState(() {
           _hoverIndex = null;
@@ -536,17 +530,6 @@ class _SentenceSlotsState extends State<_SentenceSlots> {
         });
       },
       builder: (context, candidateData, rejectedData) {
-        if (candidateData.isNotEmpty && _draggingCard == null) {
-          final card = candidateData.first;
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted && _draggingCard == null) {
-              setState(() {
-                _draggingCard = card;
-              });
-            }
-          });
-        }
-
         return Container(
           width: double.infinity,
           constraints: BoxConstraints(minHeight: widget.adaptive.space(184)),
@@ -570,94 +553,102 @@ class _SentenceSlotsState extends State<_SentenceSlots> {
     );
   }
 
-  Widget _buildPlacedCard(FlashcardCard card, int targetIndex) {
-    final cardWidget = FlashcardWordCard(
-      card: card,
-      status: widget.controller.statusForCard(card.id),
-      onTap: widget.controller.phase == FlashcardGamePhase.playing
-          ? () => widget.onPlacedCardTap(card)
-          : null,
-    );
-
+  Widget _buildSlot(int index, List<FlashcardCard> previewList, FlashcardCard? draggingCard) {
     return DragTarget<FlashcardCard>(
       onWillAcceptWithDetails: (details) => widget.controller.phase == FlashcardGamePhase.playing,
       onMove: (details) {
-        setState(() {
-          _hoverIndex = targetIndex;
-        });
+        if (_hoverIndex != index) {
+          setState(() {
+            _hoverIndex = index;
+          });
+        }
       },
       onAcceptWithDetails: (details) {
-        widget.controller.insertCard(details.data, targetIndex);
+        widget.controller.insertCard(details.data, index);
         setState(() {
           _hoverIndex = null;
           _draggingCard = null;
         });
       },
       builder: (context, candidateData, rejectedData) {
-        return Draggable<FlashcardCard>(
-          data: card,
-          feedback: Material(
-            color: Colors.transparent,
-            child: Transform.scale(
-              scale: 1.06,
-              child: Transform.rotate(
-                angle: 0.04,
-                child: FlashcardWordCard(card: card),
-              ),
-            ),
-          ),
-          childWhenDragging: const SizedBox.shrink(),
-          onDragStarted: () {
-            setState(() {
-              _draggingCard = card;
-            });
-          },
-          onDragEnd: (details) {
-            setState(() {
-              _draggingCard = null;
-              _hoverIndex = null;
-            });
-          },
-          child: cardWidget,
+        Widget child;
+        if (index < previewList.length) {
+          final card = previewList[index];
+          child = _buildDraggableCard(card, index, draggingCard);
+        } else {
+          child = _EmptySlot(
+            key: ValueKey('empty_$index'),
+            adaptive: widget.adaptive,
+          );
+        }
+
+        return AnimatedSwitcher(
+          duration: const Duration(milliseconds: 180),
+          switchInCurve: Curves.easeOutCubic,
+          switchOutCurve: Curves.easeInCubic,
+          child: child,
         );
       },
     );
   }
 
-  Widget _buildEmptySlot(int targetIndex) {
-    return DragTarget<FlashcardCard>(
-      onWillAcceptWithDetails: (details) => widget.controller.phase == FlashcardGamePhase.playing,
-      onMove: (details) {
-        setState(() {
-          _hoverIndex = widget.controller.selectedCards.length;
-        });
-      },
-      onAcceptWithDetails: (details) {
-        widget.controller.insertCard(details.data, widget.controller.selectedCards.length);
-        setState(() {
-          _hoverIndex = null;
-          _draggingCard = null;
-        });
-      },
-      builder: (context, candidateData, rejectedData) {
-        final isHovered = candidateData.isNotEmpty;
-        return AnimatedContainer(
-          duration: AudyAnimation.normal,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(AudySpacing.radiusLarge),
-            boxShadow: isHovered
-                ? [
-                    BoxShadow(
-                      color: AudyColors.skyBlue.withValues(alpha: 0.3),
-                      blurRadius: 12,
-                      spreadRadius: 2,
-                    )
-                  ]
-                : null,
+  Widget _buildDraggableCard(FlashcardCard card, int index, FlashcardCard? draggingCard) {
+    final isCurrentDragging = draggingCard != null && draggingCard.id == card.id;
+
+    Widget childWidget;
+    Widget childWhenDraggingWidget;
+
+    if (isCurrentDragging) {
+      childWidget = _AnimatedPlaceholder(
+        key: ValueKey('placeholder_${card.id}'),
+        adaptive: widget.adaptive,
+      );
+      childWhenDraggingWidget = _AnimatedPlaceholder(
+        key: ValueKey('placeholder_dragging_${card.id}'),
+        adaptive: widget.adaptive,
+      );
+    } else {
+      childWidget = FlashcardWordCard(
+        key: ValueKey('card_${card.id}'),
+        card: card,
+        status: widget.controller.statusForCard(card.id),
+        onTap: widget.controller.phase == FlashcardGamePhase.playing
+            ? () => widget.onPlacedCardTap(card)
+            : null,
+      );
+      childWhenDraggingWidget = Opacity(
+        opacity: 0.25,
+        child: FlashcardWordCard(card: card),
+      );
+    }
+
+    return Draggable<FlashcardCard>(
+      key: ValueKey('draggable_${card.id}'),
+      data: card,
+      feedback: Material(
+        color: Colors.transparent,
+        child: Transform.scale(
+          scale: 1.06,
+          child: Transform.rotate(
+            angle: 0.04,
+            child: FlashcardWordCard(card: card),
           ),
-          child: _EmptySlot(adaptive: widget.adaptive),
-        );
+        ),
+      ),
+      childWhenDragging: childWhenDraggingWidget,
+      onDragStarted: () {
+        setState(() {
+          _draggingCard = card;
+          _hoverIndex = index;
+        });
       },
+      onDragEnd: (details) {
+        setState(() {
+          _draggingCard = null;
+          _hoverIndex = null;
+        });
+      },
+      child: childWidget,
     );
   }
 }
@@ -780,7 +771,7 @@ class _DashedRectPainter extends CustomPainter {
 }
 
 class _EmptySlot extends StatelessWidget {
-  const _EmptySlot({required this.adaptive});
+  const _EmptySlot({super.key, required this.adaptive});
 
   final AudyAdaptive adaptive;
 

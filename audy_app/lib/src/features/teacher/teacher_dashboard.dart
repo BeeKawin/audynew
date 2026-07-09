@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'dart:convert';
+import 'package:image_picker/image_picker.dart';
 import '../../core/audy_theme.dart';
 import '../../core/audy_ui.dart';
 import '../../services/auth_service.dart';
 import '../../services/sound_service.dart';
 import '../../state/audy_controller.dart';
+
 
 class TeacherDashboard extends StatefulWidget {
   const TeacherDashboard({super.key});
@@ -20,11 +23,33 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
   List<UserProfile> _students = [];
   final Map<String, Map<String, dynamic>> _studentStats = {};
   final Map<String, List<Map<String, dynamic>>> _studentAssignments = {};
-  List<String> _classWords = [];
+  List<ClassWord> _classWords = [];
   bool _isLoading = true;
   bool _isLinking = false;
   bool _isAddingWord = false;
   bool _isAssigning = false;
+
+  String? _selectedImageBase64;
+
+  Future<void> _pickImage() async {
+    try {
+      final picker = ImagePicker();
+      final XFile? image = await picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 400,
+        maxHeight: 400,
+        imageQuality: 70,
+      );
+      if (image != null) {
+        final bytes = await image.readAsBytes();
+        setState(() {
+          _selectedImageBase64 = 'data:image/png;base64,${base64Encode(bytes)}';
+        });
+      }
+    } catch (e) {
+      debugPrint('Pick image error: $e');
+    }
+  }
 
   String? _linkMessage;
   bool _linkIsError = false;
@@ -157,11 +182,12 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
     try {
       final user = AudyScope.of(context).currentUser;
       if (user != null) {
-        await _authService.addClassWord(user.id, word);
+        await _authService.addClassWord(user.id, word, imageUrl: _selectedImageBase64);
         setState(() {
           _wordMessage = 'Added "$word" to class word bank!';
           _wordIsError = false;
           _wordController.clear();
+          _selectedImageBase64 = null;
         });
         await _loadTeacherData();
       }
@@ -435,12 +461,12 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              'Class Vocabulary Word Bank',
+              'Class Vocabulary Word Bank (Cards)',
               style: AudyTypography.headingSmall.copyWith(fontSize: 18),
             ),
             SizedBox(height: adaptive.space(6)),
             Text(
-              'Add classmates\' names as custom nouns for the "Read & Speak" word category.',
+              'Add custom cards with a subject name and an optional image for the "Read & Speak" game.',
               style: TextStyle(fontSize: 13, color: AudyColors.textLight),
             ),
             SizedBox(height: adaptive.space(16)),
@@ -450,7 +476,7 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                   child: TextField(
                     controller: _wordController,
                     decoration: InputDecoration(
-                      hintText: 'Enter classmate\'s name (e.g. Alex)',
+                      hintText: 'Enter subject name (e.g. Apple)',
                       prefixIcon: const Icon(Icons.label_outline_rounded),
                       filled: true,
                       fillColor: AudyColors.backgroundSoft.withValues(alpha: 0.1),
@@ -489,6 +515,41 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                 ),
               ],
             ),
+            SizedBox(height: adaptive.space(12)),
+            Row(
+              children: [
+                ElevatedButton.icon(
+                  onPressed: _pickImage,
+                  icon: const Icon(Icons.image_outlined),
+                  label: const Text('Add Image'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AudyColors.backgroundSoft,
+                    foregroundColor: AudyColors.textPrimary,
+                    minimumSize: const Size(120, 48),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AudySpacing.radiusMedium),
+                    ),
+                  ),
+                ),
+                if (_selectedImageBase64 != null) ...[
+                  const SizedBox(width: 12),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Image.memory(
+                      base64Decode(_selectedImageBase64!.split(',')[1]),
+                      width: 48,
+                      height: 48,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  IconButton(
+                    onPressed: () => setState(() => _selectedImageBase64 = null),
+                    icon: const Icon(Icons.delete_outline, color: AudyColors.error),
+                  ),
+                ],
+              ],
+            ),
             if (_wordMessage != null) ...[
               SizedBox(height: adaptive.space(12)),
               Container(
@@ -518,7 +579,7 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
             if (_classWords.isNotEmpty) ...[
               SizedBox(height: adaptive.space(16)),
               Text(
-                'Class Nouns Added:',
+                'Class Nouns / Cards Added:',
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
@@ -529,10 +590,26 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
-                children: _classWords.map((word) {
+                children: _classWords.map((classWord) {
+                  final hasImage = classWord.imageUrl != null && classWord.imageUrl!.isNotEmpty;
+                  Widget? avatar;
+                  if (hasImage) {
+                    final imgStr = classWord.imageUrl!;
+                    if (imgStr.startsWith('data:image')) {
+                      final bytes = base64Decode(imgStr.split(',')[1]);
+                      avatar = ClipOval(
+                        child: Image.memory(bytes, width: 24, height: 24, fit: BoxFit.cover),
+                      );
+                    } else if (imgStr.startsWith('assets/')) {
+                      avatar = ClipOval(
+                        child: Image.asset(imgStr, width: 24, height: 24, fit: BoxFit.cover),
+                      );
+                    }
+                  }
                   return Chip(
+                    avatar: avatar,
                     label: Text(
-                      word,
+                      classWord.word,
                       style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
                     ),
                     backgroundColor: AudyColors.skyBlue.withValues(alpha: 0.15),

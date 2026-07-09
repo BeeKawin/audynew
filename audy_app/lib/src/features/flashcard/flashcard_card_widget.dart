@@ -68,16 +68,27 @@ class FlashcardWordCard extends StatelessWidget {
                         color: color.withValues(alpha: 0.16),
                         shape: BoxShape.circle,
                       ),
-                      padding: EdgeInsets.all(isPreview ? 18 : 10),
-                      child: Image.asset(
-                        card.imageAsset,
-                        fit: BoxFit.contain,
-                        errorBuilder: (context, error, stackTrace) => Icon(
-                          Icons.style_rounded,
-                          color: color,
-                          size: isPreview ? 72 : 42,
-                        ),
-                      ),
+                      padding: card.imageAsset.startsWith('emoji:')
+                          ? EdgeInsets.zero
+                          : EdgeInsets.all(isPreview ? 18 : 10),
+                      child: card.imageAsset.startsWith('emoji:')
+                          ? Center(
+                              child: Text(
+                                card.imageAsset.substring(6),
+                                style: TextStyle(
+                                  fontSize: isPreview ? 56 : 32,
+                                ),
+                              ),
+                            )
+                          : Image.asset(
+                              card.imageAsset,
+                              fit: BoxFit.contain,
+                              errorBuilder: (context, error, stackTrace) => Icon(
+                                Icons.style_rounded,
+                                color: color,
+                                size: isPreview ? 72 : 42,
+                              ),
+                            ),
                     ),
                   ),
                 ),
