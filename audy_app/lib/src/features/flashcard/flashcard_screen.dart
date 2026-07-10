@@ -612,22 +612,21 @@ class _DraggablePlacedCard extends StatelessWidget {
           ),
         ),
       ),
-      childWhenDragging: Opacity(
-        opacity: 0.25,
+      childWhenDragging: SizedBox(
+        width: width,
+        height: height,
+      ),
+      child: AnimatedEntrance(
+        key: ValueKey('placed_${card.id}'),
         child: FlashcardWordCard(
           card: card,
           width: width,
           height: height,
+          status: controller.statusForCard(card.id),
+          onTap: () {
+            controller.removeSelectedCard(card);
+          },
         ),
-      ),
-      child: FlashcardWordCard(
-        card: card,
-        width: width,
-        height: height,
-        status: controller.statusForCard(card.id),
-        onTap: () {
-          controller.removeSelectedCard(card);
-        },
       ),
     );
   }
@@ -709,13 +708,16 @@ class _HandZone extends StatelessWidget {
                         height: cardHeight,
                       ),
                     ),
-                    child: FlashcardWordCard(
-                      card: card,
-                      width: cardWidth,
-                      height: cardHeight,
-                      onTap: () {
-                        controller.selectCard(card);
-                      },
+                    child: AnimatedEntrance(
+                      key: ValueKey('hand_${card.id}'),
+                      child: FlashcardWordCard(
+                        card: card,
+                        width: cardWidth,
+                        height: cardHeight,
+                        onTap: () {
+                          controller.selectCard(card);
+                        },
+                      ),
                     ),
                   );
                 }).toList(),
@@ -826,6 +828,38 @@ class _ErrorState extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Animated Entrance
+// ---------------------------------------------------------------------------
+
+class AnimatedEntrance extends StatelessWidget {
+  const AnimatedEntrance({
+    super.key,
+    required this.child,
+  });
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween<double>(begin: 0.0, end: 1.0),
+      duration: AudyAnimation.normal,
+      curve: Curves.easeOutCubic,
+      builder: (context, value, child) {
+        return Transform.scale(
+          scale: 0.84 + 0.16 * value,
+          child: Opacity(
+            opacity: value,
+            child: child,
+          ),
+        );
+      },
+      child: child,
     );
   }
 }
