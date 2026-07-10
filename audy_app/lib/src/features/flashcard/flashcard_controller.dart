@@ -5,8 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'flashcard_api_service.dart';
 import 'flashcard_models.dart';
 
-/// Extra distractor cards so the hand has more cards than needed.
-/// Maps category to extra entries the child must ignore.
+/*
 const _distractorPool = <String, List<Map<String, String>>>{
   'noun': [
     {'id': 'noun_table', 'en': 'table', 'th': 'โต๊ะ', 'image': 'emoji:🪵'},
@@ -28,6 +27,7 @@ const _distractorPool = <String, List<Map<String, String>>>{
     {'id': 'adj_sad', 'en': 'sad', 'th': 'เศร้า', 'image': 'emoji:😢'},
   ],
 };
+*/
 
 enum FlashcardGamePhase {
   loading,
@@ -158,6 +158,29 @@ class FlashcardController extends ChangeNotifier {
     );
   }
   */
+
+  void placeCardAt(FlashcardCard card, int targetIndex) {
+    if (phase != FlashcardGamePhase.playing) return;
+
+    final existingIndex = _selectedCards.indexWhere((c) => c.id == card.id);
+
+    if (existingIndex != -1) {
+      _selectedCards.removeAt(existingIndex);
+      if (targetIndex >= _selectedCards.length) {
+        _selectedCards.add(card);
+      } else {
+        _selectedCards.insert(targetIndex, card);
+      }
+    } else {
+      _handCards.removeWhere((item) => item.id == card.id);
+      if (targetIndex >= _selectedCards.length) {
+        _selectedCards.add(card);
+      } else {
+        _selectedCards.insert(targetIndex, card);
+      }
+    }
+    notifyListeners();
+  }
 
   void selectCard(FlashcardCard card) {
     if (phase != FlashcardGamePhase.playing) return;

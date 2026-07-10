@@ -385,15 +385,6 @@ class _PlayState extends StatelessWidget {
         ),
         SizedBox(height: adaptive.space(14)),
 
-        // Label
-        Text(
-          '⬆ Drag cards here',
-          style: AudyTypography.labelMedium.copyWith(
-            color: AudyColors.textLight,
-          ),
-        ),
-        SizedBox(height: adaptive.space(8)),
-
         // --- Hand zone (available cards) ---
         Expanded(
           child: _HandZone(
@@ -448,66 +439,87 @@ class _DropZone extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final selectedCards = controller.selectedCards;
-    final emptySlots = wordCount - selectedCards.length;
 
     // Calculate responsive card dimensions based on wordCount
     final cardWidth = wordCount <= 3 ? 120.0 : (wordCount <= 5 ? 96.0 : 76.0);
     final cardHeight = cardWidth * 1.3;
 
-    return DragTarget<FlashcardCard>(
-      onWillAcceptWithDetails: (details) {
-        if (controller.phase != FlashcardGamePhase.playing) return false;
-        // Only accept cards that are NOT already in selectedCards
-        return !controller.selectedCards.any((c) => c.id == details.data.id);
-      },
-      onAcceptWithDetails: (details) {
-        controller.selectCard(details.data);
-      },
-      builder: (context, candidateData, rejectedData) {
-        final isHovering = candidateData.isNotEmpty;
-        return AnimatedContainer(
-          duration: AudyAnimation.normal,
-          width: double.infinity,
-          constraints: BoxConstraints(minHeight: cardHeight + adaptive.space(28)),
-          padding: EdgeInsets.all(adaptive.space(12)),
-          decoration: BoxDecoration(
-            color: isHovering
-                ? AudyColors.skyBlue.withValues(alpha: 0.22)
-                : AudyColors.skyBlue.withValues(alpha: 0.10),
-            borderRadius: BorderRadius.circular(AudySpacing.radiusLarge),
-            border: Border.all(
-              color: isHovering
-                  ? AudyColors.skyBlue.withValues(alpha: 0.7)
-                  : AudyColors.skyBlue.withValues(alpha: 0.3),
-              width: 2,
-            ),
-          ),
-          child: Wrap(
-            alignment: WrapAlignment.center,
-            spacing: adaptive.space(8),
-            runSpacing: adaptive.space(8),
-            children: [
-              // Already-placed cards (draggable back to hand)
-              for (final card in selectedCards)
-                _DraggablePlacedCard(
-                  card: card,
-                  controller: controller,
-                  adaptive: adaptive,
-                  width: cardWidth,
-                  height: cardHeight,
+    return Container(
+      width: double.infinity,
+      constraints: BoxConstraints(minHeight: cardHeight + adaptive.space(28)),
+      padding: EdgeInsets.all(adaptive.space(12)),
+      decoration: BoxDecoration(
+        color: AudyColors.skyBlue.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(AudySpacing.radiusLarge),
+        border: Border.all(
+          color: AudyColors.skyBlue.withValues(alpha: 0.3),
+          width: 2,
+        ),
+      ),
+      child: Wrap(
+        alignment: WrapAlignment.center,
+        spacing: adaptive.space(8),
+        runSpacing: adaptive.space(8),
+        children: List.generate(wordCount, (index) {
+          final card = index < selectedCards.length ? selectedCards[index] : null;
+
+          return DragTarget<FlashcardCard>(
+            onWillAcceptWithDetails: (details) {
+              if (controller.phase != FlashcardGamePhase.playing) return false;
+              return true;
+            },
+            onAcceptWithDetails: (details) {
+              controller.placeCardAt(details.data, index);
+            },
+            builder: (context, candidateData, rejectedData) {
+              final isHovering = candidateData.isNotEmpty;
+              return AnimatedScale(
+                scale: isHovering ? 1.06 : 1.0,
+                duration: AudyAnimation.quick,
+                curve: Curves.easeOutCubic,
+                child: AnimatedContainer(
+                  duration: AudyAnimation.quick,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(AudySpacing.radiusLarge),
+                    color: isHovering
+                        ? AudyColors.skyBlue.withValues(alpha: 0.16)
+                        : Colors.transparent,
+                    border: Border.all(
+                      color: isHovering
+                          ? AudyColors.skyBlue
+                          : Colors.transparent,
+                      width: 2,
+                    ),
+                    boxShadow: isHovering
+                        ? [
+                            BoxShadow(
+                              color: AudyColors.skyBlue.withValues(alpha: 0.3),
+                              blurRadius: 12,
+                              spreadRadius: 2,
+                            )
+                          ]
+                        : [],
+                  ),
+                  child: card != null
+                      ? _DraggablePlacedCard(
+                          card: card,
+                          controller: controller,
+                          adaptive: adaptive,
+                          width: cardWidth,
+                          height: cardHeight,
+                        )
+                      : _EmptySlot(
+                          key: ValueKey('empty_$index'),
+                          adaptive: adaptive,
+                          width: cardWidth,
+                          height: cardHeight,
+                        ),
                 ),
-              // Empty placeholder slots
-              for (int i = 0; i < emptySlots; i++)
-                _EmptySlot(
-                  key: ValueKey('empty_$i'),
-                  adaptive: adaptive,
-                  width: cardWidth,
-                  height: cardHeight,
-                ),
-            ],
-          ),
-        );
-      },
+              );
+            },
+          );
+        }),
+      ),
     );
   }
 }
@@ -562,6 +574,9 @@ class _DraggablePlacedCard extends StatelessWidget {
         width: width,
         height: height,
         status: controller.statusForCard(card.id),
+        onTap: () {
+          controller.removeSelectedCard(card);
+        },
       ),
     );
   }
@@ -599,6 +614,8 @@ class _HandZone extends StatelessWidget {
         final isHovering = candidateData.isNotEmpty;
         return AnimatedContainer(
           duration: AudyAnimation.normal,
+          width: double.infinity,
+          height: double.infinity,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(AudySpacing.radiusLarge),
             color: isHovering
@@ -606,8 +623,12 @@ class _HandZone extends StatelessWidget {
                 : Colors.transparent,
           ),
           child: SingleChildScrollView(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8.0),
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: Container(
+              constraints: BoxConstraints(
+                minHeight: adaptive.space(200),
+              ),
+              padding: const EdgeInsets.symmetric(vertical: 12.0),
               child: Wrap(
                 alignment: WrapAlignment.center,
                 spacing: adaptive.space(8),
@@ -641,6 +662,9 @@ class _HandZone extends StatelessWidget {
                       card: card,
                       width: cardWidth,
                       height: cardHeight,
+                      onTap: () {
+                        controller.selectCard(card);
+                      },
                     ),
                   );
                 }).toList(),
