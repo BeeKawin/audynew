@@ -114,8 +114,8 @@ class FlashcardController extends ChangeNotifier {
       _handCards
         ..clear()
         ..addAll(round.cards);
-      // Add distractor cards so the hand is larger than word count
-      _addDistractors(round);
+      // Removed distractors to simplify and keep exact sentence cards
+      // _addDistractors(round);
       _handCards.shuffle(_random);
       phase = FlashcardGamePhase.playing;
     } else {
@@ -124,6 +124,8 @@ class FlashcardController extends ChangeNotifier {
     notifyListeners();
   }
 
+  // Removed distractor logic to avoid unused element warnings
+  /*
   void _addDistractors(FlashcardRound round) {
     final targetIds = round.targetCardIds.toSet();
     final lang = round.language;
@@ -155,6 +157,7 @@ class FlashcardController extends ChangeNotifier {
       orElse: () => FlashcardCategory.noun,
     );
   }
+  */
 
   void selectCard(FlashcardCard card) {
     if (phase != FlashcardGamePhase.playing) return;

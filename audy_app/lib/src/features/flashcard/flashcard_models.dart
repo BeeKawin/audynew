@@ -1,4 +1,4 @@
-enum FlashcardCategory { noun, pronoun, verb, adverb, adjective }
+enum FlashcardCategory { noun, pronoun, verb, adverb, adjective, preposition, determiner, conjunction }
 
 enum FlashcardValidationStatus { correct, move, remove }
 

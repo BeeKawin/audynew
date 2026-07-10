@@ -14,7 +14,7 @@ from app.services.gemini_client import ThaiChatClient
 
 
 Language = Literal["en", "th"]
-Category = Literal["noun", "pronoun", "verb", "adverb", "adjective"]
+Category = Literal["noun", "pronoun", "verb", "adverb", "adjective", "preposition", "determiner", "conjunction"]
 
 
 @dataclass(frozen=True)
@@ -27,6 +27,15 @@ class WordBankEntry:
 
 
 WORD_BANK: tuple[WordBankEntry, ...] = (
+    # Pronouns
+    WordBankEntry("pronoun_i", "pronoun", "I", "ฉัน", "emoji:🙋"),
+    WordBankEntry("pronoun_you", "pronoun", "you", "คุณ", "emoji:🫵"),
+    WordBankEntry("pronoun_he", "pronoun", "he", "เขา", "emoji:🧑"),
+    WordBankEntry("pronoun_she", "pronoun", "she", "เธอ", "emoji:👩"),
+    WordBankEntry("pronoun_we", "pronoun", "we", "พวกเรา", "emoji:👥"),
+    WordBankEntry("pronoun_they", "pronoun", "they", "พวกเขา", "emoji:👥"),
+    WordBankEntry("pronoun_it", "pronoun", "it", "มัน", "emoji:🐾"),
+
     # Actions (verbs)
     WordBankEntry("verb_eat", "verb", "eat", "กิน", "emoji:🍽️"),
     WordBankEntry("verb_drink", "verb", "drink", "ดื่ม", "emoji:🥤"),
@@ -63,6 +72,26 @@ WORD_BANK: tuple[WordBankEntry, ...] = (
     WordBankEntry("noun_pencil", "noun", "pencil", "ดินสอ", "emoji:✏️"),
     WordBankEntry("noun_glass", "noun", "glass", "แก้ว", "emoji:🥛"),
     WordBankEntry("noun_spoon", "noun", "spoon", "ช้อน", "emoji:🥄"),
+
+    # Prepositions
+    WordBankEntry("prep_in", "preposition", "in", "ใน", "emoji:📥"),
+    WordBankEntry("prep_on", "preposition", "on", "บน", "emoji:📤"),
+    WordBankEntry("prep_at", "preposition", "at", "ที่", "emoji:📍"),
+    WordBankEntry("prep_with", "preposition", "with", "กับ", "emoji:🤝"),
+    WordBankEntry("prep_under", "preposition", "under", "ใต้", "emoji:👇"),
+
+    # Determiners
+    WordBankEntry("det_a", "determiner", "a", "หนึ่ง", "emoji:1️⃣"),
+    WordBankEntry("det_the", "determiner", "the", "นั้น", "emoji:👈"),
+
+    # Conjunctions
+    WordBankEntry("conj_and", "conjunction", "and", "และ", "emoji:➕"),
+
+    # Adverbs
+    WordBankEntry("adv_here", "adverb", "here", "ที่นี่", "emoji:📍"),
+    WordBankEntry("adv_now", "adverb", "now", "ตอนนี้", "emoji:⏰"),
+    WordBankEntry("adv_slowly", "adverb", "slowly", "ช้าๆ", "emoji:🐢"),
+    WordBankEntry("adv_quickly", "adverb", "quickly", "เร็วๆ", "emoji:⚡"),
 
     # Animals (nouns from directory)
     WordBankEntry("noun_bird", "noun", "bird", "นก", "assets/images/games/flashcard/animals/bird.png"),
@@ -183,14 +212,20 @@ class FlashcardService:
             for entry in WORD_BANK
         ]
         return f"""
-You pick vocabulary word groups for autistic children to learn.
-Return JSON only: {{"card_ids": ["..."]}}.
-Pick exactly {word_count} card ids that belong to a meaningful group.
-Good groups: animals together, fruits together, actions together, feelings together,
-or a thematic mix like "kitchen items" or "things at school".
-Use only ids from this word bank. Do not invent words or ids.
+You are a content designer for an autism education app.
+Your task is to form a grammatically correct, simple, and meaningful sentence in the selected language ({language}) using exactly {word_count} words from the word bank below.
+The words must be returned as a list of card IDs in the correct sentence order (e.g. Subject Verb Object / Subject Verb Preposition Object).
+
+Rules:
+1. The list of card_ids must have exactly {word_count} IDs.
+2. The ordered list of cards MUST form a grammatically correct, simple, and meaningful sentence in {language}.
+3. Do NOT invent words or IDs. Use ONLY the IDs from the word bank.
+4. Ensure the sentence is easy to understand for children.
+
 Word bank:
 {json.dumps(bank, ensure_ascii=False)}
+
+Return JSON only in this format: {{"card_ids": ["..."]}}.
 """
 
     def _validate_with_llm(
@@ -221,16 +256,16 @@ Word bank:
 
     def _fallback_target_ids(self, word_count: int) -> list[str]:
         templates = {
-            3: ["noun_cat", "noun_dog", "noun_rabbit"],
-            5: ["noun_apple", "noun_banana", "noun_mango", "noun_orange", "noun_lime"],
+            3: ["pronoun_i", "verb_eat", "noun_apple"],
+            5: ["pronoun_he", "verb_read", "noun_book", "prep_at", "noun_school"],
             7: [
+                "pronoun_she",
                 "verb_eat",
-                "verb_drink",
-                "verb_sleep",
-                "verb_walk",
-                "verb_run",
-                "verb_play",
-                "verb_read",
+                "noun_banana",
+                "conj_and",
+                "noun_apple",
+                "prep_at",
+                "noun_home",
             ],
         }
         return templates[word_count]
@@ -275,11 +310,12 @@ Word bank:
         target_ids: list[str],
         selected_ids: list[str],
     ) -> list[dict]:
-        target_set = set(target_ids)
         results = []
         for i, card_id in enumerate(selected_ids):
-            if card_id in target_set:
+            if i < len(target_ids) and target_ids[i] == card_id:
                 results.append({"card_id": card_id, "status": "correct", "current_index": i, "target_index": i})
+            elif card_id in target_ids:
+                results.append({"card_id": card_id, "status": "move", "current_index": i, "target_index": target_ids.index(card_id)})
             else:
                 results.append({"card_id": card_id, "status": "remove", "current_index": i})
         return results
@@ -290,19 +326,26 @@ Word bank:
         target_ids: list[str],
         selected_ids: list[str],
     ) -> FlashcardValidationResponse:
-        target_set = set(target_ids)
-        selected_set = set(selected_ids)
-        is_correct = target_set == selected_set
+        is_correct = target_ids == selected_ids
 
         results: list[FlashcardValidationResult] = []
         for i, card_id in enumerate(selected_ids):
-            if card_id in target_set:
+            if i < len(target_ids) and target_ids[i] == card_id:
                 results.append(
                     FlashcardValidationResult(
                         card_id=card_id,
                         status="correct",
                         current_index=i,
                         target_index=i,
+                    )
+                )
+            elif card_id in target_ids:
+                results.append(
+                    FlashcardValidationResult(
+                        card_id=card_id,
+                        status="move",
+                        current_index=i,
+                        target_index=target_ids.index(card_id),
                     )
                 )
             else:

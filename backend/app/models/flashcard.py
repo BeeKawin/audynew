@@ -3,7 +3,7 @@ from typing import Literal, Optional
 
 
 FlashcardLanguage = Literal["en", "th"]
-FlashcardCategory = Literal["noun", "pronoun", "verb", "adverb", "adjective"]
+FlashcardCategory = Literal["noun", "pronoun", "verb", "adverb", "adjective", "preposition", "determiner", "conjunction"]
 FlashcardStatus = Literal["correct", "move", "remove"]
 
 

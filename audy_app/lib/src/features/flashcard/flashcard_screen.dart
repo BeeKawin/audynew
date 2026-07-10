@@ -450,6 +450,10 @@ class _DropZone extends StatelessWidget {
     final selectedCards = controller.selectedCards;
     final emptySlots = wordCount - selectedCards.length;
 
+    // Calculate responsive card dimensions based on wordCount
+    final cardWidth = wordCount <= 3 ? 120.0 : (wordCount <= 5 ? 96.0 : 76.0);
+    final cardHeight = cardWidth * 1.3;
+
     return DragTarget<FlashcardCard>(
       onWillAcceptWithDetails: (details) {
         if (controller.phase != FlashcardGamePhase.playing) return false;
@@ -464,8 +468,8 @@ class _DropZone extends StatelessWidget {
         return AnimatedContainer(
           duration: AudyAnimation.normal,
           width: double.infinity,
-          constraints: BoxConstraints(minHeight: adaptive.space(184)),
-          padding: EdgeInsets.all(adaptive.space(14)),
+          constraints: BoxConstraints(minHeight: cardHeight + adaptive.space(28)),
+          padding: EdgeInsets.all(adaptive.space(12)),
           decoration: BoxDecoration(
             color: isHovering
                 ? AudyColors.skyBlue.withValues(alpha: 0.22)
@@ -480,8 +484,8 @@ class _DropZone extends StatelessWidget {
           ),
           child: Wrap(
             alignment: WrapAlignment.center,
-            spacing: adaptive.space(10),
-            runSpacing: adaptive.space(10),
+            spacing: adaptive.space(8),
+            runSpacing: adaptive.space(8),
             children: [
               // Already-placed cards (draggable back to hand)
               for (final card in selectedCards)
@@ -489,10 +493,17 @@ class _DropZone extends StatelessWidget {
                   card: card,
                   controller: controller,
                   adaptive: adaptive,
+                  width: cardWidth,
+                  height: cardHeight,
                 ),
               // Empty placeholder slots
               for (int i = 0; i < emptySlots; i++)
-                _EmptySlot(key: ValueKey('empty_$i'), adaptive: adaptive),
+                _EmptySlot(
+                  key: ValueKey('empty_$i'),
+                  adaptive: adaptive,
+                  width: cardWidth,
+                  height: cardHeight,
+                ),
             ],
           ),
         );
@@ -510,11 +521,15 @@ class _DraggablePlacedCard extends StatelessWidget {
     required this.card,
     required this.controller,
     required this.adaptive,
+    required this.width,
+    required this.height,
   });
 
   final FlashcardCard card;
   final FlashcardController controller;
   final AudyAdaptive adaptive;
+  final double width;
+  final double height;
 
   @override
   Widget build(BuildContext context) {
@@ -526,16 +541,26 @@ class _DraggablePlacedCard extends StatelessWidget {
           scale: 1.06,
           child: Transform.rotate(
             angle: -0.04,
-            child: FlashcardWordCard(card: card),
+            child: FlashcardWordCard(
+              card: card,
+              width: width,
+              height: height,
+            ),
           ),
         ),
       ),
       childWhenDragging: Opacity(
         opacity: 0.25,
-        child: FlashcardWordCard(card: card),
+        child: FlashcardWordCard(
+          card: card,
+          width: width,
+          height: height,
+        ),
       ),
       child: FlashcardWordCard(
         card: card,
+        width: width,
+        height: height,
         status: controller.statusForCard(card.id),
       ),
     );
@@ -557,6 +582,10 @@ class _HandZone extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final wordCount = controller.currentRound?.wordCount ?? 3;
+    final cardWidth = wordCount <= 3 ? 120.0 : (wordCount <= 5 ? 96.0 : 76.0);
+    final cardHeight = cardWidth * 1.3;
+
     return DragTarget<FlashcardCard>(
       onWillAcceptWithDetails: (details) {
         if (controller.phase != FlashcardGamePhase.playing) return false;
@@ -581,8 +610,8 @@ class _HandZone extends StatelessWidget {
               padding: const EdgeInsets.symmetric(vertical: 8.0),
               child: Wrap(
                 alignment: WrapAlignment.center,
-                spacing: adaptive.space(12),
-                runSpacing: adaptive.space(12),
+                spacing: adaptive.space(8),
+                runSpacing: adaptive.space(8),
                 children: controller.handCards.map((card) {
                   return Draggable<FlashcardCard>(
                     data: card,
@@ -592,15 +621,27 @@ class _HandZone extends StatelessWidget {
                         scale: 1.06,
                         child: Transform.rotate(
                           angle: 0.04,
-                          child: FlashcardWordCard(card: card),
+                          child: FlashcardWordCard(
+                            card: card,
+                            width: cardWidth,
+                            height: cardHeight,
+                          ),
                         ),
                       ),
                     ),
                     childWhenDragging: Opacity(
                       opacity: 0.35,
-                      child: FlashcardWordCard(card: card),
+                      child: FlashcardWordCard(
+                        card: card,
+                        width: cardWidth,
+                        height: cardHeight,
+                      ),
                     ),
-                    child: FlashcardWordCard(card: card),
+                    child: FlashcardWordCard(
+                      card: card,
+                      width: cardWidth,
+                      height: cardHeight,
+                    ),
                   );
                 }).toList(),
               ),
@@ -617,15 +658,22 @@ class _HandZone extends StatelessWidget {
 // ---------------------------------------------------------------------------
 
 class _EmptySlot extends StatelessWidget {
-  const _EmptySlot({super.key, required this.adaptive});
+  const _EmptySlot({
+    super.key,
+    required this.adaptive,
+    required this.width,
+    required this.height,
+  });
 
   final AudyAdaptive adaptive;
+  final double width;
+  final double height;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 132,
-      height: 172,
+      width: width,
+      height: height,
       decoration: BoxDecoration(
         color: AudyColors.backgroundCard.withValues(alpha: 0.75),
         borderRadius: BorderRadius.circular(AudySpacing.radiusLarge),
@@ -638,7 +686,7 @@ class _EmptySlot extends StatelessWidget {
       child: Center(
         child: Icon(
           Icons.add_rounded,
-          size: adaptive.space(38),
+          size: width * 0.3,
           color: AudyColors.textLight,
         ),
       ),
