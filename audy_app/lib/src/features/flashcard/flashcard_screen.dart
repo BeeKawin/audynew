@@ -425,7 +425,7 @@ class _PlayState extends StatelessWidget {
 // Drop Zone — accepts cards from the hand, shows placed cards
 // ---------------------------------------------------------------------------
 
-class _DropZone extends StatelessWidget {
+class _DropZone extends StatefulWidget {
   const _DropZone({
     required this.adaptive,
     required this.controller,
@@ -437,89 +437,140 @@ class _DropZone extends StatelessWidget {
   final int wordCount;
 
   @override
+  State<_DropZone> createState() => _DropZoneState();
+}
+
+class _DropZoneState extends State<_DropZone> {
+  int? _hoveredIndex;
+
+  @override
   Widget build(BuildContext context) {
-    final selectedCards = controller.selectedCards;
+    final selectedCards = widget.controller.selectedCards;
+    final wordCount = widget.wordCount;
 
     // Calculate responsive card dimensions based on wordCount
     final cardWidth = wordCount <= 3 ? 120.0 : (wordCount <= 5 ? 96.0 : 76.0);
     final cardHeight = cardWidth * 1.3;
 
-    return Container(
-      width: double.infinity,
-      constraints: BoxConstraints(minHeight: cardHeight + adaptive.space(28)),
-      padding: EdgeInsets.all(adaptive.space(12)),
-      decoration: BoxDecoration(
-        color: AudyColors.skyBlue.withValues(alpha: 0.10),
-        borderRadius: BorderRadius.circular(AudySpacing.radiusLarge),
-        border: Border.all(
-          color: AudyColors.skyBlue.withValues(alpha: 0.3),
-          width: 2,
-        ),
-      ),
-      child: Wrap(
-        alignment: WrapAlignment.center,
-        spacing: adaptive.space(8),
-        runSpacing: adaptive.space(8),
-        children: List.generate(wordCount, (index) {
-          final card = index < selectedCards.length ? selectedCards[index] : null;
+    final lang = AudyScope.of(context).currentLanguage;
+    final placeholderText = lang == 'th' ? 'วางการ์ดที่นี่' : 'Place card here';
 
-          return DragTarget<FlashcardCard>(
-            onWillAcceptWithDetails: (details) {
-              if (controller.phase != FlashcardGamePhase.playing) return false;
-              return true;
-            },
-            onAcceptWithDetails: (details) {
-              controller.placeCardAt(details.data, index);
-            },
-            builder: (context, candidateData, rejectedData) {
-              final isHovering = candidateData.isNotEmpty;
-              return AnimatedScale(
-                scale: isHovering ? 1.06 : 1.0,
-                duration: AudyAnimation.quick,
-                curve: Curves.easeOutCubic,
-                child: AnimatedContainer(
-                  duration: AudyAnimation.quick,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(AudySpacing.radiusLarge),
-                    color: isHovering
-                        ? AudyColors.skyBlue.withValues(alpha: 0.16)
-                        : Colors.transparent,
-                    border: Border.all(
-                      color: isHovering
-                          ? AudyColors.skyBlue
-                          : Colors.transparent,
-                      width: 2,
+    return DragTarget<FlashcardCard>(
+      onWillAcceptWithDetails: (details) {
+        if (widget.controller.phase != FlashcardGamePhase.playing) return false;
+        return true;
+      },
+      onAcceptWithDetails: (details) {
+        setState(() {
+          _hoveredIndex = null;
+        });
+        widget.controller.placeCardAt(details.data, selectedCards.length);
+      },
+      builder: (context, candidateData, rejectedData) {
+        final isHoveringBackground = candidateData.isNotEmpty;
+        return AnimatedContainer(
+          duration: AudyAnimation.normal,
+          width: double.infinity,
+          constraints: BoxConstraints(minHeight: cardHeight + widget.adaptive.space(28)),
+          padding: EdgeInsets.all(widget.adaptive.space(12)),
+          decoration: BoxDecoration(
+            color: isHoveringBackground
+                ? AudyColors.skyBlue.withValues(alpha: 0.16)
+                : AudyColors.skyBlue.withValues(alpha: 0.10),
+            borderRadius: BorderRadius.circular(AudySpacing.radiusLarge),
+            border: Border.all(
+              color: isHoveringBackground
+                  ? AudyColors.skyBlue
+                  : AudyColors.skyBlue.withValues(alpha: 0.3),
+              width: 2,
+            ),
+          ),
+          child: selectedCards.isEmpty
+              ? Center(
+                  child: Text(
+                    placeholderText,
+                    style: AudyTypography.bodyMedium.copyWith(
+                      color: AudyColors.textLight,
+                      fontWeight: FontWeight.w600,
                     ),
-                    boxShadow: isHovering
-                        ? [
-                            BoxShadow(
-                              color: AudyColors.skyBlue.withValues(alpha: 0.3),
-                              blurRadius: 12,
-                              spreadRadius: 2,
-                            )
-                          ]
-                        : [],
                   ),
-                  child: card != null
-                      ? _DraggablePlacedCard(
-                          card: card,
-                          controller: controller,
-                          adaptive: adaptive,
-                          width: cardWidth,
-                          height: cardHeight,
-                        )
-                      : _EmptySlot(
-                          key: ValueKey('empty_$index'),
-                          adaptive: adaptive,
-                          width: cardWidth,
-                          height: cardHeight,
-                        ),
+                )
+              : Wrap(
+                  alignment: WrapAlignment.center,
+                  spacing: widget.adaptive.space(8),
+                  runSpacing: widget.adaptive.space(8),
+                  children: List.generate(selectedCards.length, (index) {
+                    final card = selectedCards[index];
+
+                    return DragTarget<FlashcardCard>(
+                      onWillAcceptWithDetails: (details) {
+                        if (widget.controller.phase != FlashcardGamePhase.playing) return false;
+                        return true;
+                      },
+                      onAcceptWithDetails: (details) {
+                        setState(() {
+                          _hoveredIndex = null;
+                        });
+                        widget.controller.placeCardAt(details.data, index);
+                      },
+                      onMove: (details) {
+                        if (_hoveredIndex != index) {
+                          setState(() {
+                            _hoveredIndex = index;
+                          });
+                        }
+                      },
+                      onLeave: (data) {
+                        if (_hoveredIndex == index) {
+                          setState(() {
+                            _hoveredIndex = null;
+                          });
+                        }
+                      },
+                      builder: (context, candidateData, rejectedData) {
+                        final isHoveringSlot = candidateData.isNotEmpty;
+                        final isShifted = _hoveredIndex != null && index >= _hoveredIndex!;
+                        final spacingFraction = 8.0 / cardWidth;
+                        final slideOffset = isShifted ? Offset(1.0 + spacingFraction, 0.0) : Offset.zero;
+
+                        return AnimatedScale(
+                          scale: isHoveringSlot ? 1.06 : 1.0,
+                          duration: AudyAnimation.quick,
+                          curve: Curves.easeOutCubic,
+                          child: AnimatedContainer(
+                            duration: AudyAnimation.quick,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(AudySpacing.radiusLarge),
+                              color: isHoveringSlot
+                                  ? AudyColors.skyBlue.withValues(alpha: 0.16)
+                                  : Colors.transparent,
+                              border: Border.all(
+                                color: isHoveringSlot
+                                    ? AudyColors.skyBlue
+                                    : Colors.transparent,
+                                width: 2,
+                              ),
+                            ),
+                            child: AnimatedSlide(
+                              offset: slideOffset,
+                              duration: AudyAnimation.normal,
+                              curve: Curves.easeOutCubic,
+                              child: _DraggablePlacedCard(
+                                card: card,
+                                controller: widget.controller,
+                                adaptive: widget.adaptive,
+                                width: cardWidth,
+                                height: cardHeight,
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    );
+                  }),
                 ),
-              );
-            },
-          );
-        }),
-      ),
+        );
+      },
     );
   }
 }
@@ -677,46 +728,7 @@ class _HandZone extends StatelessWidget {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Empty Slot
-// ---------------------------------------------------------------------------
-
-class _EmptySlot extends StatelessWidget {
-  const _EmptySlot({
-    super.key,
-    required this.adaptive,
-    required this.width,
-    required this.height,
-  });
-
-  final AudyAdaptive adaptive;
-  final double width;
-  final double height;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: width,
-      height: height,
-      decoration: BoxDecoration(
-        color: AudyColors.backgroundCard.withValues(alpha: 0.75),
-        borderRadius: BorderRadius.circular(AudySpacing.radiusLarge),
-        border: Border.all(
-          color: AudyColors.borderLight,
-          width: 3,
-          strokeAlign: BorderSide.strokeAlignInside,
-        ),
-      ),
-      child: Center(
-        child: Icon(
-          Icons.add_rounded,
-          size: width * 0.3,
-          color: AudyColors.textLight,
-        ),
-      ),
-    );
-  }
-}
+// Empty slot removed
 
 // ---------------------------------------------------------------------------
 // Complete
