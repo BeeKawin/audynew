@@ -1373,6 +1373,8 @@ class AudyController extends ChangeNotifier {
         } catch (e) {
           debugPrint('Online stats sync error: $e');
         }
+        // Per-session analytics for parent/teacher dashboard graphs.
+        await _authService.syncGameSession(user.id, session);
       }
       notifyListeners();
     } catch (e) {

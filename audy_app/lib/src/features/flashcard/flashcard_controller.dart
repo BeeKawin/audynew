@@ -5,30 +5,6 @@ import 'package:flutter/foundation.dart';
 import 'flashcard_api_service.dart';
 import 'flashcard_models.dart';
 
-/*
-const _distractorPool = <String, List<Map<String, String>>>{
-  'noun': [
-    {'id': 'noun_table', 'en': 'table', 'th': 'โต๊ะ', 'image': 'emoji:🪵'},
-    {'id': 'noun_chair', 'en': 'chair', 'th': 'เก้าอี้', 'image': 'emoji:🪑'},
-    {'id': 'noun_spoon', 'en': 'spoon', 'th': 'ช้อน', 'image': 'emoji:🥄'},
-    {'id': 'noun_glass', 'en': 'glass', 'th': 'แก้ว', 'image': 'emoji:🥛'},
-    {'id': 'noun_home', 'en': 'home', 'th': 'บ้าน', 'image': 'emoji:🏠'},
-    {'id': 'noun_shop', 'en': 'shop', 'th': 'ร้านค้า', 'image': 'emoji:🏪'},
-  ],
-  'verb': [
-    {'id': 'verb_wash', 'en': 'wash', 'th': 'ล้าง', 'image': 'emoji:🧼'},
-    {'id': 'verb_open', 'en': 'open', 'th': 'เปิด', 'image': 'emoji:🔓'},
-    {'id': 'verb_close', 'en': 'close', 'th': 'ปิด', 'image': 'emoji:🔒'},
-    {'id': 'verb_write', 'en': 'write', 'th': 'เขียน', 'image': 'emoji:📝'},
-  ],
-  'adjective': [
-    {'id': 'adj_hot', 'en': 'hot', 'th': 'ร้อน', 'image': 'emoji:🥵'},
-    {'id': 'adj_cold', 'en': 'cold', 'th': 'หนาว', 'image': 'emoji:🥶'},
-    {'id': 'adj_sad', 'en': 'sad', 'th': 'เศร้า', 'image': 'emoji:😢'},
-  ],
-};
-*/
-
 enum FlashcardGamePhase {
   loading,
   previewing,
@@ -40,10 +16,13 @@ enum FlashcardGamePhase {
 }
 
 class FlashcardController extends ChangeNotifier {
-  FlashcardController({FlashcardApiService? api})
-    : _api = api ?? FlashcardApiService();
+  FlashcardController({
+    required this.difficulty,
+    FlashcardApiService? api,
+  }) : _api = api ?? FlashcardApiService();
 
-  static const List<int> wordCounts = [3, 5, 7];
+  /// Chosen difficulty. Drives sentence length and hint visibility.
+  final FlashcardDifficulty difficulty;
 
   final FlashcardApiService _api;
   final Random _random = Random();
@@ -52,21 +31,36 @@ class FlashcardController extends ChangeNotifier {
   FlashcardRound? currentRound;
   FlashcardValidation? lastValidation;
   String errorMessage = '';
-  int roundIndex = 0;
   int previewIndex = 0;
-  int correctRounds = 0;
+
+  /// Number of wrong placements across the session (used for accuracy/stars).
+  int mistakes = 0;
 
   final List<FlashcardCard> _handCards = [];
   final List<FlashcardCard> _selectedCards = [];
+  final Set<String> _lockedCardIds = {};
 
   List<FlashcardCard> get handCards => List.unmodifiable(_handCards);
   List<FlashcardCard> get selectedCards => List.unmodifiable(_selectedCards);
-  int get totalRounds => wordCounts.length;
-  int get currentRoundNumber => roundIndex + 1;
+
+  int get cardCount => difficulty.cardCount;
+
+  /// Cards locked into the deck as correct.
+  int get lockedCount => _lockedCardIds.length;
+
+  bool isLocked(String cardId) => _lockedCardIds.contains(cardId);
+
+  /// Deck is full when every slot holds a card (locked or not).
+  bool get isDeckFull => _selectedCards.length >= cardCount;
+
   bool get canSubmit =>
       phase == FlashcardGamePhase.playing &&
-      _selectedCards.length == (currentRound?.wordCount ?? 0);
-  bool get isLastRound => roundIndex >= wordCounts.length - 1;
+      isDeckFull &&
+      _selectedCards.any((c) => !isLocked(c.id));
+
+  /// How many correct cards the player placed, out of the sentence length.
+  int get correctCount => _lockedCardIds.length;
+  int get totalCards => cardCount;
 
   FlashcardCard? get previewCard {
     final round = currentRound;
@@ -74,9 +68,21 @@ class FlashcardController extends ChangeNotifier {
     return round.cards[previewIndex];
   }
 
+  /// Target card for a given deck slot, used to render placement ghost hints.
+  /// Returns null when hints are disabled or the target can't be resolved.
+  FlashcardCard? hintCardForSlot(int index) {
+    if (!difficulty.showHints) return null;
+    final round = currentRound;
+    if (round == null) return null;
+    if (index < 0 || index >= round.targetCardIds.length) return null;
+    final targetId = round.targetCardIds[index];
+    for (final card in round.cards) {
+      if (card.id == targetId) return card;
+    }
+    return null;
+  }
+
   Future<void> startSession(String language) async {
-    roundIndex = 0;
-    correctRounds = 0;
     await _loadRound(language);
   }
 
@@ -88,15 +94,17 @@ class FlashcardController extends ChangeNotifier {
     phase = FlashcardGamePhase.loading;
     errorMessage = '';
     lastValidation = null;
+    mistakes = 0;
     _handCards.clear();
     _selectedCards.clear();
+    _lockedCardIds.clear();
     previewIndex = 0;
     notifyListeners();
 
     try {
       currentRound = await _api.generateRound(
         language: language,
-        wordCount: wordCounts[roundIndex],
+        wordCount: difficulty.cardCount,
       );
       phase = FlashcardGamePhase.previewing;
     } catch (e) {
@@ -114,8 +122,6 @@ class FlashcardController extends ChangeNotifier {
       _handCards
         ..clear()
         ..addAll(round.cards);
-      // Removed distractors to simplify and keep exact sentence cards
-      // _addDistractors(round);
       _handCards.shuffle(_random);
       phase = FlashcardGamePhase.playing;
     } else {
@@ -124,75 +130,19 @@ class FlashcardController extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Removed distractor logic to avoid unused element warnings
-  /*
-  void _addDistractors(FlashcardRound round) {
-    final targetIds = round.targetCardIds.toSet();
-    final lang = round.language;
-    final distractorCount = (round.wordCount <= 3) ? 2 : 3;
-    final allDistractors = <FlashcardCard>[];
-
-    for (final entry in _distractorPool.entries) {
-      for (final d in entry.value) {
-        if (!targetIds.contains(d['id']!)) {
-          allDistractors.add(FlashcardCard(
-            id: d['id']!,
-            category: _categoryFromString(entry.key),
-            displayText: lang == 'th' ? d['th']! : d['en']!,
-            ttsText: lang == 'th' ? d['th']! : d['en']!,
-            imageAsset: d['image']!,
-            language: lang,
-          ));
-        }
-      }
-    }
-
-    allDistractors.shuffle(_random);
-    _handCards.addAll(allDistractors.take(distractorCount));
-  }
-
-  static FlashcardCategory _categoryFromString(String value) {
-    return FlashcardCategory.values.firstWhere(
-      (c) => c.name == value,
-      orElse: () => FlashcardCategory.noun,
-    );
-  }
-  */
-
-  void placeCardAt(FlashcardCard card, int targetIndex) {
-    if (phase != FlashcardGamePhase.playing) return;
-
-    final existingIndex = _selectedCards.indexWhere((c) => c.id == card.id);
-
-    if (existingIndex != -1) {
-      _selectedCards.removeAt(existingIndex);
-      if (targetIndex >= _selectedCards.length) {
-        _selectedCards.add(card);
-      } else {
-        _selectedCards.insert(targetIndex, card);
-      }
-    } else {
-      _handCards.removeWhere((item) => item.id == card.id);
-      if (targetIndex >= _selectedCards.length) {
-        _selectedCards.add(card);
-      } else {
-        _selectedCards.insert(targetIndex, card);
-      }
-    }
-    notifyListeners();
-  }
-
+  /// Tap a hand card to move it into the first open deck slot.
   void selectCard(FlashcardCard card) {
     if (phase != FlashcardGamePhase.playing) return;
+    if (isDeckFull) return;
     _handCards.removeWhere((item) => item.id == card.id);
     _selectedCards.add(card);
     notifyListeners();
   }
 
-
-
+  /// Tap a placed (non-locked) card to send it back to the hand.
   void removeSelectedCard(FlashcardCard card) {
     if (phase != FlashcardGamePhase.playing) return;
+    if (isLocked(card.id)) return;
     _selectedCards.removeWhere((item) => item.id == card.id);
     _handCards.add(card);
     notifyListeners();
@@ -212,7 +162,6 @@ class FlashcardController extends ChangeNotifier {
         targetCardIds: round.targetCardIds,
         selectedCardIds: _selectedCards.map((card) => card.id).toList(),
       );
-      if (lastValidation?.isCorrect == true) correctRounds++;
       phase = FlashcardGamePhase.feedback;
     } catch (e) {
       errorMessage = 'flashcard_error';
@@ -221,25 +170,46 @@ class FlashcardController extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> continueAfterFeedback(String language) async {
-    if (lastValidation?.isCorrect == true && isLastRound) {
-      phase = FlashcardGamePhase.complete;
-      notifyListeners();
-      return;
+  /// After feedback: lock the correct cards in place, bounce the rest back to
+  /// the hand for another try. Completes when every card is locked.
+  void continueAfterFeedback() {
+    final validation = lastValidation;
+    if (validation == null) return;
+
+    final wrongCards = <FlashcardCard>[];
+    for (final result in validation.results) {
+      if (result.status == FlashcardValidationStatus.correct) {
+        _lockedCardIds.add(result.cardId);
+      } else {
+        final idx = _selectedCards.indexWhere((c) => c.id == result.cardId);
+        if (idx != -1) {
+          wrongCards.add(_selectedCards[idx]);
+        }
+      }
     }
 
-    if (lastValidation?.isCorrect == true) {
-      roundIndex += 1;
-      await _loadRound(language);
-      return;
+    if (wrongCards.isNotEmpty) {
+      mistakes += wrongCards.length;
+      _selectedCards.removeWhere(
+        (c) => wrongCards.any((w) => w.id == c.id),
+      );
+      _handCards.addAll(wrongCards);
     }
 
     lastValidation = null;
-    phase = FlashcardGamePhase.playing;
+
+    if (_lockedCardIds.length >= cardCount) {
+      phase = FlashcardGamePhase.complete;
+    } else {
+      phase = FlashcardGamePhase.playing;
+    }
     notifyListeners();
   }
 
   FlashcardValidationStatus? statusForCard(String cardId) {
+    if (_lockedCardIds.contains(cardId)) {
+      return FlashcardValidationStatus.correct;
+    }
     final validation = lastValidation;
     if (validation == null) return null;
     for (final result in validation.results) {

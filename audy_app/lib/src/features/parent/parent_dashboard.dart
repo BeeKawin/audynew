@@ -4,6 +4,7 @@ import '../../core/audy_ui.dart';
 import '../../services/auth_service.dart';
 import '../../services/sound_service.dart';
 import '../../state/audy_controller.dart';
+import '../dashboard_analytics.dart';
 
 class ParentDashboard extends StatefulWidget {
   const ParentDashboard({super.key});
@@ -18,6 +19,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
 
   List<UserProfile> _children = [];
   final Map<String, Map<String, dynamic>> _childrenStats = {};
+  final Map<String, List<Map<String, dynamic>>> _childrenSessions = {};
   bool _isLoading = true;
   bool _isLinking = false;
   String? _message;
@@ -44,7 +46,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
         _children = children;
       });
 
-      // Load stats for each child
+      // Load stats & session analytics for each child
       for (final child in children) {
         final stats = await _authService.fetchStudentStats(child.id);
         if (stats != null) {
@@ -52,6 +54,10 @@ class _ParentDashboardState extends State<ParentDashboard> {
             _childrenStats[child.id] = stats;
           });
         }
+        final sessions = await _authService.fetchStudentSessions(child.id);
+        setState(() {
+          _childrenSessions[child.id] = sessions;
+        });
       }
     }
     setState(() => _isLoading = false);
@@ -400,6 +406,12 @@ class _ParentDashboardState extends State<ParentDashboard> {
                 _buildStatColumn('Games Played', '$gamesPlayed', Icons.sports_esports_rounded, AudyColors.skyBlue),
                 _buildStatColumn('Day Streak', '$dayStreak days', Icons.local_fire_department_rounded, Colors.orange),
               ],
+            ),
+            SizedBox(height: adaptive.space(20)),
+            const Divider(color: AudyColors.borderLight, height: 1),
+            SizedBox(height: adaptive.space(16)),
+            StudentAnalyticsCharts(
+              sessions: _childrenSessions[child.id] ?? const [],
             ),
             SizedBox(height: adaptive.space(16)),
             Row(

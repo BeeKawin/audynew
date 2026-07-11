@@ -2,6 +2,32 @@ enum FlashcardCategory { noun, pronoun, verb, adverb, adjective, preposition, de
 
 enum FlashcardValidationStatus { correct, move, remove }
 
+/// Difficulty modes for the flashcard game.
+///
+/// Each mode plays a single sentence sized to [cardCount]. When [showHints] is
+/// true, empty deck slots reveal a faded match-to-sample hint (target picture,
+/// plus word on the easiest tier) to lower the language demand for players.
+enum FlashcardDifficulty {
+  easy(cardCount: 3, showHints: true, showHintWord: true),
+  medium(cardCount: 5, showHints: true, showHintWord: false),
+  hard(cardCount: 5, showHints: false, showHintWord: false);
+
+  const FlashcardDifficulty({
+    required this.cardCount,
+    required this.showHints,
+    required this.showHintWord,
+  });
+
+  /// Number of cards (sentence length) in a session.
+  final int cardCount;
+
+  /// Whether empty deck slots show a ghost placement hint.
+  final bool showHints;
+
+  /// Whether the ghost hint includes the target word (in addition to picture).
+  final bool showHintWord;
+}
+
 class FlashcardCard {
   const FlashcardCard({
     required this.id,

@@ -6,6 +6,7 @@ import '../../core/audy_ui.dart';
 import '../../services/auth_service.dart';
 import '../../services/sound_service.dart';
 import '../../state/audy_controller.dart';
+import '../dashboard_analytics.dart';
 
 
 class TeacherDashboard extends StatefulWidget {
@@ -23,6 +24,7 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
   List<UserProfile> _students = [];
   final Map<String, Map<String, dynamic>> _studentStats = {};
   final Map<String, List<Map<String, dynamic>>> _studentAssignments = {};
+  final Map<String, List<Map<String, dynamic>>> _studentSessions = {};
   List<ClassWord> _classWords = [];
   bool _isLoading = true;
   bool _isLinking = false;
@@ -112,6 +114,10 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
         final assignments = await _authService.fetchAssignments(student.id);
         setState(() {
           _studentAssignments[student.id] = assignments;
+        });
+        final sessions = await _authService.fetchStudentSessions(student.id);
+        setState(() {
+          _studentSessions[student.id] = sessions;
         });
       }
 
@@ -819,6 +825,7 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
     final gamesPlayed = stats?['games_played'] ?? 0;
     final dayStreak = stats?['day_streak'] ?? 0;
     final assignments = _studentAssignments[student.id] ?? [];
+    final sessions = _studentSessions[student.id] ?? const [];
 
     return Card(
       elevation: 4,
@@ -875,6 +882,11 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                 _buildStatColumn('Day Streak', '$dayStreak days', Icons.local_fire_department_rounded, Colors.orange),
               ],
             ),
+
+            SizedBox(height: adaptive.space(20)),
+            const Divider(color: AudyColors.borderLight, height: 1),
+            SizedBox(height: adaptive.space(16)),
+            StudentAnalyticsCharts(sessions: sessions),
 
             if (assignments.isNotEmpty) ...[
               SizedBox(height: adaptive.space(20)),

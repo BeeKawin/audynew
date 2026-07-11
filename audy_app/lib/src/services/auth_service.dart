@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../data/models/game_session_model.dart';
+
 /// User profile model stored in Supabase profiles table
 class UserProfile {
   const UserProfile({
@@ -169,46 +171,39 @@ class AuthService {
     }
   }
 
-  /// Link a child to a parent by child's email
+  /// Link a child to a parent by child's email.
+  ///
+  /// Uses the `link_child_by_email` SECURITY DEFINER RPC: profiles RLS only
+  /// lets a user read/update their own row, so the parent cannot look up or
+  /// update the child's row directly. The RPC does the role-checked update.
   Future<void> linkChildToParent(String parentId, String childEmail) async {
     try {
-      final childProfile = await _client
-          .from('profiles')
-          .select()
-          .eq('email', childEmail.trim())
-          .maybeSingle();
-
-      if (childProfile == null) {
-        throw Exception('No student account found with email $childEmail');
-      }
-
-      await _client
-          .from('profiles')
-          .update({'parent_id': parentId})
-          .eq('id', childProfile['id']);
+      await _client.rpc(
+        'link_child_by_email',
+        params: {'child_email': childEmail.trim()},
+      );
+    } on PostgrestException catch (e) {
+      debugPrint('linkChildToParent error: ${e.message}');
+      throw Exception(e.message);
     } catch (e) {
       debugPrint('linkChildToParent error: $e');
       rethrow;
     }
   }
 
-  /// Link a student to a teacher by student's email
+  /// Link a student to a teacher by student's email.
+  ///
+  /// Uses the `link_student_by_email` SECURITY DEFINER RPC for the same RLS
+  /// reason as [linkChildToParent].
   Future<void> linkStudentToTeacher(String teacherId, String studentEmail) async {
     try {
-      final studentProfile = await _client
-          .from('profiles')
-          .select()
-          .eq('email', studentEmail.trim())
-          .maybeSingle();
-
-      if (studentProfile == null) {
-        throw Exception('No student account found with email $studentEmail');
-      }
-
-      await _client
-          .from('profiles')
-          .update({'teacher_id': teacherId})
-          .eq('id', studentProfile['id']);
+      await _client.rpc(
+        'link_student_by_email',
+        params: {'student_email': studentEmail.trim()},
+      );
+    } on PostgrestException catch (e) {
+      debugPrint('linkStudentToTeacher error: ${e.message}');
+      throw Exception(e.message);
     } catch (e) {
       debugPrint('linkStudentToTeacher error: $e');
       rethrow;
@@ -281,6 +276,47 @@ class AuthService {
       });
     } catch (e) {
       debugPrint('syncStudentStats error: $e');
+    }
+  }
+
+  /// Push a completed game session to Supabase for dashboard analytics.
+  ///
+  /// Best-effort: swallows errors like [syncStudentStats] so gameplay is never
+  /// blocked by a failed sync.
+  Future<void> syncGameSession(String studentId, GameSessionData session) async {
+    try {
+      await _client.from('game_sessions').insert({
+        'student_id': studentId,
+        'game_type': session.gameType,
+        'difficulty': session.difficulty,
+        'correct_actions': session.correctActions,
+        'total_actions': session.totalActions,
+        'accuracy_percent': session.accuracyPercent,
+        'stars_earned': session.starsEarned,
+        'duration_seconds': session.durationSeconds,
+        'session_ended_at': session.sessionEndedAt.toIso8601String(),
+      });
+    } catch (e) {
+      debugPrint('syncGameSession error: $e');
+    }
+  }
+
+  /// Fetch a student's recorded game sessions (newest first) for dashboards.
+  Future<List<Map<String, dynamic>>> fetchStudentSessions(
+    String studentId, {
+    int limit = 200,
+  }) async {
+    try {
+      final response = await _client
+          .from('game_sessions')
+          .select()
+          .eq('student_id', studentId)
+          .order('session_ended_at', ascending: false)
+          .limit(limit);
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      debugPrint('fetchStudentSessions error: $e');
+      return [];
     }
   }
 
