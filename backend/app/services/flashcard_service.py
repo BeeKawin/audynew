@@ -1,16 +1,14 @@
-import json
+import random
 import uuid
 from dataclasses import dataclass
 from typing import Literal
 
-from app.config import settings
 from app.models.flashcard import (
     FlashcardCard,
     FlashcardRoundResponse,
     FlashcardValidationResponse,
     FlashcardValidationResult,
 )
-from app.services.gemini_client import ThaiChatClient
 
 
 Language = Literal["en", "th"]
@@ -131,10 +129,49 @@ WORD_BANK: tuple[WordBankEntry, ...] = (
 ENTRY_BY_ID = {entry.id: entry for entry in WORD_BANK}
 
 
+# --- Semantic groups for deterministic, sensible sentence generation ---------
+# Only ids that exist in WORD_BANK above are referenced here.
+
+# Who can start a sentence.
+_SUBJECTS = [
+    "pronoun_i", "pronoun_you", "pronoun_he", "pronoun_she",
+    "pronoun_we", "pronoun_they",
+    "noun_cat", "noun_dog", "noun_bird", "noun_cow", "noun_pig",
+    "noun_horse", "noun_rabbit", "noun_chicken", "noun_elephant",
+    "noun_mouse", "noun_goose", "noun_goldfish",
+]
+
+# Edible objects (fruits + vegetables).
+_FOODS = [
+    "noun_apple", "noun_banana", "noun_lime", "noun_mango", "noun_orange",
+    "noun_pineapple", "noun_strawberry", "noun_watermelon",
+    "noun_broccoli", "noun_carrot", "noun_corn", "noun_cucumber",
+    "noun_mushroom", "noun_potato", "noun_pumpkin", "noun_tomato",
+]
+
+# Things that can be washed.
+_WASHABLES = ["noun_glass", "noun_spoon", "noun_table", "noun_chair"]
+
+# verb id -> the object group that keeps the sentence meaningful.
+_VERB_OBJECTS: dict[str, list[str]] = {
+    "verb_eat": _FOODS,
+    "verb_read": ["noun_book"],
+    "verb_wash": _WASHABLES,
+}
+
+# place id -> the preposition that reads naturally before it.
+_PLACE_PREP: dict[str, str] = {
+    "noun_home": "prep_at",
+    "noun_school": "prep_at",
+    "noun_shop": "prep_at",
+    "noun_kitchen": "prep_in",
+    "noun_garden": "prep_in",
+    "noun_bathroom": "prep_in",
+}
+
+
 class FlashcardService:
     def __init__(self):
-        self.client = ThaiChatClient().client
-        self.model = settings.GEMINI_MODEL
         self._round_targets: dict[str, list[str]] = {}
 
     def generate_round(self, language: Language, word_count: int) -> FlashcardRoundResponse:
@@ -180,53 +217,38 @@ class FlashcardService:
         return self._deterministic_validation(language, target_ids, selected_ids)
 
     def _generate_target_ids(self, language: Language, word_count: int) -> list[str]:
-        prompt = self._generation_prompt(language, word_count)
-        for _ in range(2):
-            try:
-                response = self.client.models.generate_content(
-                    model=self.model,
-                    contents=prompt,
-                    config={
-                        "temperature": 0.4,
-                        "max_output_tokens": 200,
-                        "response_mime_type": "application/json",
-                    },
-                )
-                data = json.loads(response.text or "{}")
-                ids = data.get("card_ids", [])
-                if self._target_ids_are_valid(ids, word_count):
-                    return ids
-            except Exception:
-                continue
-
+        """Deterministically assemble a simple, meaningful sentence from the
+        word bank using semantic templates, so the ordered card ids always read
+        sensibly (no LLM, no nonsense like "I eat apple a happy")."""
+        for _ in range(8):
+            ids = self._build_sentence_ids(word_count)
+            if ids and self._target_ids_are_valid(ids, word_count):
+                return ids
         return self._fallback_target_ids(word_count)
 
-    def _generation_prompt(self, language: Language, word_count: int) -> str:
-        bank = [
-            {
-                "id": entry.id,
-                "category": entry.category,
-                "en": entry.en,
-                "th": entry.th,
-            }
-            for entry in WORD_BANK
-        ]
-        return f"""
-You are a content designer for an autism education app.
-Your task is to form a grammatically correct, simple, and meaningful sentence in the selected language ({language}) using exactly {word_count} words from the word bank below.
-The words must be returned as a list of card IDs in the correct sentence order (e.g. Subject Verb Object / Subject Verb Preposition Object).
+    def _build_sentence_ids(self, word_count: int) -> list[str] | None:
+        subject = random.choice(_SUBJECTS)
+        verb = random.choice(list(_VERB_OBJECTS.keys()))
+        objects = _VERB_OBJECTS[verb]
 
-Rules:
-1. The list of card_ids must have exactly {word_count} IDs.
-2. The ordered list of cards MUST form a grammatically correct, simple, and meaningful sentence in {language}.
-3. Do NOT invent words or IDs. Use ONLY the IDs from the word bank.
-4. Ensure the sentence is easy to understand for children.
+        if word_count == 3:
+            # Subject + Verb + Object
+            return [subject, verb, random.choice(objects)]
 
-Word bank:
-{json.dumps(bank, ensure_ascii=False)}
+        if word_count == 5:
+            # Subject + Verb + Object + Preposition + Place
+            place = random.choice(list(_PLACE_PREP.keys()))
+            return [subject, verb, random.choice(objects), _PLACE_PREP[place], place]
 
-Return JSON only in this format: {{"card_ids": ["..."]}}.
-"""
+        if word_count == 7:
+            # Subject + Verb + Object + "and" + Object2 + Preposition + Place
+            if len(objects) < 2:
+                return None
+            obj1, obj2 = random.sample(objects, 2)
+            place = random.choice(list(_PLACE_PREP.keys()))
+            return [subject, verb, obj1, "conj_and", obj2, _PLACE_PREP[place], place]
+
+        return None
 
     def _validate_with_llm(
         self,

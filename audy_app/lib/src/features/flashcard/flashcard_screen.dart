@@ -92,7 +92,7 @@ class _FlashcardScreenState extends State<FlashcardScreen> {
     // return the wrong ones to the hand for another try.
     _feedbackTimer = Timer(const Duration(milliseconds: 1400), () {
       if (!mounted) return;
-      _controller.continueAfterFeedback();
+      unawaited(_controller.continueAfterFeedback());
     });
   }
 
@@ -138,12 +138,13 @@ class _FlashcardScreenState extends State<FlashcardScreen> {
 
     final appController = AudyScope.of(context);
     final endedAt = DateTime.now();
-    final correct = _controller.correctCount;
-    final total = _controller.totalCards;
-    final points = (correct * 5 - _controller.mistakes).clamp(0, correct * 5);
-    final stars = _controller.mistakes == 0
+    final correct = _controller.sessionCorrectCount;
+    final total = _controller.sessionTotalCards;
+    final mistakes = _controller.sessionMistakes;
+    final points = (correct * 5 - mistakes).clamp(0, correct * 5);
+    final stars = mistakes == 0
         ? 3
-        : (_controller.mistakes <= total ? 2 : 1);
+        : (mistakes <= total ? 2 : 1);
 
     await appController.trackFlashcardCompleted();
     if (points > 0) {
@@ -154,7 +155,7 @@ class _FlashcardScreenState extends State<FlashcardScreen> {
         gameType: 'flashcard',
         difficulty: widget.difficulty.name,
         correctActions: correct,
-        totalActions: total + _controller.mistakes,
+        totalActions: total + mistakes,
         starsEarned: stars,
         sessionStartedAt: _sessionStartedAt,
         sessionEndedAt: endedAt,
@@ -171,6 +172,8 @@ class _FlashcardScreenState extends State<FlashcardScreen> {
           children: [
             _Header(
               adaptive: adaptive,
+              roundNumber: _controller.roundNumber,
+              totalRounds: FlashcardController.totalRounds,
               lockedCount: _controller.lockedCount,
               totalCards: _controller.totalCards,
               guide: _showGuide
@@ -209,8 +212,8 @@ class _FlashcardScreenState extends State<FlashcardScreen> {
       case FlashcardGamePhase.complete:
         return _CompleteState(
           adaptive: adaptive,
-          correctCount: _controller.correctCount,
-          totalCards: _controller.totalCards,
+          correctCount: _controller.sessionCorrectCount,
+          totalCards: _controller.sessionTotalCards,
           onDone: () {
             final appController = AudyScope.of(context);
             AppRoutes.navigateAfterGameCompletion(context, appController);
@@ -235,6 +238,8 @@ class _FlashcardScreenState extends State<FlashcardScreen> {
 class _Header extends StatelessWidget {
   const _Header({
     required this.adaptive,
+    required this.roundNumber,
+    required this.totalRounds,
     required this.lockedCount,
     required this.totalCards,
     required this.onBack,
@@ -242,6 +247,8 @@ class _Header extends StatelessWidget {
   });
 
   final AudyAdaptive adaptive;
+  final int roundNumber;
+  final int totalRounds;
   final int lockedCount;
   final int totalCards;
   final VoidCallback onBack;
@@ -251,8 +258,8 @@ class _Header extends StatelessWidget {
   Widget build(BuildContext context) {
     final isThai = AudyScope.of(context).currentLanguage == 'th';
     final progress = isThai
-        ? 'ถูกแล้ว $lockedCount / $totalCards'
-        : 'Placed $lockedCount / $totalCards';
+        ? 'รอบ $roundNumber/$totalRounds  •  ถูกแล้ว $lockedCount/$totalCards'
+        : 'Round $roundNumber/$totalRounds  •  Placed $lockedCount/$totalCards';
 
     return Row(
       children: [

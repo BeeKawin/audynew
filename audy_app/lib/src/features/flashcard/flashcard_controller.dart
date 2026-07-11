@@ -27,14 +27,33 @@ class FlashcardController extends ChangeNotifier {
   final FlashcardApiService _api;
   final Random _random = Random();
 
+  /// A session plays this many sentences (rounds) at the chosen difficulty.
+  static const int totalRounds = 3;
+
   FlashcardGamePhase phase = FlashcardGamePhase.loading;
   FlashcardRound? currentRound;
   FlashcardValidation? lastValidation;
   String errorMessage = '';
   int previewIndex = 0;
 
-  /// Number of wrong placements across the session (used for accuracy/stars).
+  /// Current round (0-based) within the session.
+  int roundIndex = 0;
+
+  /// Language for the session, captured so later rounds can load themselves.
+  String _language = 'en';
+
+  /// Wrong placements in the current round (drives the shake feedback).
   int mistakes = 0;
+
+  /// Wrong placements across the whole session (accuracy / stars).
+  int sessionMistakes = 0;
+
+  /// Correctly placed cards across the whole session.
+  int sessionCorrect = 0;
+
+  /// Shuffled order in which preview cards are shown, so the preview never
+  /// spells out the correct sentence order.
+  final List<int> _previewOrder = [];
 
   final List<FlashcardCard> _handCards = [];
   final List<FlashcardCard> _selectedCards = [];
@@ -58,14 +77,21 @@ class FlashcardController extends ChangeNotifier {
       isDeckFull &&
       _selectedCards.any((c) => !isLocked(c.id));
 
-  /// How many correct cards the player placed, out of the sentence length.
+  /// Correct cards placed in the current round, out of the sentence length.
   int get correctCount => _lockedCardIds.length;
   int get totalCards => cardCount;
 
+  /// Session-wide totals used for the completion screen and analytics.
+  int get sessionCorrectCount => sessionCorrect;
+  int get sessionTotalCards => totalRounds * cardCount;
+
+  /// Human round number (1-based) for the header.
+  int get roundNumber => roundIndex + 1;
+
   FlashcardCard? get previewCard {
     final round = currentRound;
-    if (round == null || previewIndex >= round.cards.length) return null;
-    return round.cards[previewIndex];
+    if (round == null || previewIndex >= _previewOrder.length) return null;
+    return round.cards[_previewOrder[previewIndex]];
   }
 
   /// Target card for a given deck slot, used to render placement ghost hints.
@@ -83,14 +109,19 @@ class FlashcardController extends ChangeNotifier {
   }
 
   Future<void> startSession(String language) async {
-    await _loadRound(language);
+    _language = language;
+    roundIndex = 0;
+    sessionMistakes = 0;
+    sessionCorrect = 0;
+    await _loadRound();
   }
 
   Future<void> retry(String language) async {
-    await _loadRound(language);
+    _language = language;
+    await _loadRound();
   }
 
-  Future<void> _loadRound(String language) async {
+  Future<void> _loadRound() async {
     phase = FlashcardGamePhase.loading;
     errorMessage = '';
     lastValidation = null;
@@ -98,14 +129,20 @@ class FlashcardController extends ChangeNotifier {
     _handCards.clear();
     _selectedCards.clear();
     _lockedCardIds.clear();
+    _previewOrder.clear();
     previewIndex = 0;
     notifyListeners();
 
     try {
-      currentRound = await _api.generateRound(
-        language: language,
+      final round = await _api.generateRound(
+        language: _language,
         wordCount: difficulty.cardCount,
       );
+      currentRound = round;
+      // Preview cards in a random order so the sequence isn't the answer.
+      _previewOrder
+        ..clear()
+        ..addAll(List<int>.generate(round.cards.length, (i) => i)..shuffle(_random));
       phase = FlashcardGamePhase.previewing;
     } catch (e) {
       errorMessage = 'flashcard_error';
@@ -171,8 +208,9 @@ class FlashcardController extends ChangeNotifier {
   }
 
   /// After feedback: lock the correct cards in place, bounce the rest back to
-  /// the hand for another try. Completes when every card is locked.
-  void continueAfterFeedback() {
+  /// the hand for another try. When every card is locked, advance to the next
+  /// round — or complete the session after [totalRounds].
+  Future<void> continueAfterFeedback() async {
     final validation = lastValidation;
     if (validation == null) return;
 
@@ -190,6 +228,7 @@ class FlashcardController extends ChangeNotifier {
 
     if (wrongCards.isNotEmpty) {
       mistakes += wrongCards.length;
+      sessionMistakes += wrongCards.length;
       _selectedCards.removeWhere(
         (c) => wrongCards.any((w) => w.id == c.id),
       );
@@ -199,11 +238,18 @@ class FlashcardController extends ChangeNotifier {
     lastValidation = null;
 
     if (_lockedCardIds.length >= cardCount) {
-      phase = FlashcardGamePhase.complete;
+      sessionCorrect += cardCount;
+      if (roundIndex < totalRounds - 1) {
+        roundIndex += 1;
+        await _loadRound();
+      } else {
+        phase = FlashcardGamePhase.complete;
+        notifyListeners();
+      }
     } else {
       phase = FlashcardGamePhase.playing;
+      notifyListeners();
     }
-    notifyListeners();
   }
 
   FlashcardValidationStatus? statusForCard(String cardId) {
