@@ -69,7 +69,7 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
 
   final List<Map<String, String>> _gameTypes = [
     {'key': 'emotion_classify', 'label': 'Emotion Recognition'},
-    {'key': 'emotion_mimic', 'label': 'Emotion Mimicking'},
+    // {'key': 'emotion_mimic', 'label': 'Emotion Mimicking'},
     {'key': 'minipuzzle', 'label': 'Mini Puzzle'},
     {'key': 'sorting', 'label': 'Shape Sorting'},
     {'key': 'reaction_time', 'label': 'Reaction Time'},

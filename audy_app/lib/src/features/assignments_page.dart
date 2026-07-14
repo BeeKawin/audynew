@@ -256,13 +256,13 @@ List<_AssignmentOption> _assignmentOptions(BuildContext context) {
       color: const Color(0xFFF8C7DF),
       route: AppRoutes.emotionClassify,
     ),
-    _AssignmentOption(
-      gameType: 'emotion_mimic',
-      title: controller.tr('emotion_mimic'),
-      icon: Icons.face_retouching_natural_rounded,
-      color: const Color(0xFFE7D8FA),
-      route: AppRoutes.emotionMimic,
-    ),
+    // _AssignmentOption(
+    //   gameType: 'emotion_mimic',
+    //   title: controller.tr('emotion_mimic'),
+    //   icon: Icons.face_retouching_natural_rounded,
+    //   color: const Color(0xFFE7D8FA),
+    //   route: AppRoutes.emotionMimic,
+    // ),
     _AssignmentOption(
       gameType: 'minipuzzle',
       title: controller.tr('mini_puzzle'),

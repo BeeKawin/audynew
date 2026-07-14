@@ -3494,7 +3494,7 @@ class _AddRewardDialogState extends State<_AddRewardDialog> {
               Wrap(
                 spacing: widget.adaptive.space(8),
                 runSpacing: widget.adaptive.space(8),
-                children: RewardCondition.values.map((condition) {
+                children: RewardCondition.values.where((c) => c != RewardCondition.emotionMimic).map((condition) {
                   final isSelected = _selectedCondition == condition;
                   return InkWell(
                     onTap: () {

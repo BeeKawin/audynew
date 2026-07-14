@@ -35,13 +35,13 @@ class GamesHubPage extends StatelessWidget {
         const Color(0xFFF8C7DF),
         AppRoutes.emotionClassify,
       ),
-      _RouteCard(
-        controller.tr('emotion_mimic'),
-        null,
-        Icons.camera_alt_rounded,
-        const Color(0xFFDDD0F4),
-        AppRoutes.emotionMimic,
-      ),
+      // _RouteCard(
+      //   controller.tr('emotion_mimic'),
+      //   null,
+      //   Icons.camera_alt_rounded,
+      //   const Color(0xFFDDD0F4),
+      //   AppRoutes.emotionMimic,
+      // ),
       _RouteCard(
         controller.tr('mini_puzzle'),
         null,

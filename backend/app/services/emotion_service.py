@@ -66,18 +66,10 @@ class EmotionService:
             self._load_model()
 
     def _load_model(self):
-        """Load the ViT model and processor from HuggingFace."""
-        try:
-            logger.info(f"Loading emotion model: {self.model_name}")
-            self.processor = ViTImageProcessor.from_pretrained(self.model_name)
-            self.model = ViTForImageClassification.from_pretrained(self.model_name)
-            self.model.eval()  # Set to evaluation mode
-            self.initialized = True
-            logger.info("Emotion model loaded successfully")
-
-        except Exception as e:
-            self._load_error = str(e)
-            logger.error(f"Failed to load emotion model: {e}")
+        """Emotion model loading is disabled."""
+        self.initialized = False
+        self._load_error = "Model download and loading is disabled."
+        logger.info("Emotion model loading is disabled")
 
     def is_ready(self) -> bool:
         """Check if model is loaded and ready."""
