@@ -14,12 +14,17 @@ class FlashcardApiService {
   Future<FlashcardRound> generateRound({
     required String language,
     required int wordCount,
+    List<Map<String, dynamic>>? customCards,
   }) async {
     final response = await http
         .post(
           Uri.parse('$baseUrl/api/flashcard/round'),
           headers: {'Content-Type': 'application/json'},
-          body: jsonEncode({'language': language, 'word_count': wordCount}),
+          body: jsonEncode({
+            'language': language,
+            'word_count': wordCount,
+            'custom_cards': customCards,
+          }),
         )
         .timeout(const Duration(seconds: 20));
 
@@ -37,6 +42,7 @@ class FlashcardApiService {
     required String language,
     required List<String> targetCardIds,
     required List<String> selectedCardIds,
+    List<Map<String, dynamic>>? customCards,
   }) async {
     final response = await http
         .post(
@@ -47,6 +53,7 @@ class FlashcardApiService {
             'language': language,
             'target_card_ids': targetCardIds,
             'selected_card_ids': selectedCardIds,
+            'custom_cards': customCards,
           }),
         )
         .timeout(const Duration(seconds: 20));

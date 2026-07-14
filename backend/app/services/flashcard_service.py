@@ -180,11 +180,60 @@ class FlashcardService:
     def __init__(self):
         self._round_targets: dict[str, list[str]] = {}
 
-    def generate_round(self, language: Language, word_count: int) -> FlashcardRoundResponse:
-        target_ids = self._generate_target_ids(language, word_count)
+    def _create_context(self, custom_cards: list[dict] = None):
+        local_entry_by_id = dict(ENTRY_BY_ID)
+        local_subjects = list(_SUBJECTS)
+        local_foods = list(_FOODS)
+        local_washables = list(_WASHABLES)
+        local_verb_objects = {k: list(v) for k, v in _VERB_OBJECTS.items()}
+        local_place_prep = dict(_PLACE_PREP)
+
+        if custom_cards:
+            for card in custom_cards:
+                c_id = card.get("id") or str(uuid.uuid4())
+                category = card.get("category")
+                word = card.get("word") or ""
+                image_url = card.get("image_url") or "emoji:🃏"
+
+                valid_categories = ["noun", "pronoun", "verb", "adverb", "adjective", "preposition", "determiner", "conjunction"]
+                if category not in valid_categories:
+                    category = "noun"
+
+                entry = WordBankEntry(
+                    id=c_id,
+                    category=category,
+                    en=word,
+                    th=word,
+                    image_asset=image_url,
+                )
+                local_entry_by_id[c_id] = entry
+
+                if category == "pronoun":
+                    local_subjects.append(c_id)
+                elif category == "noun":
+                    local_foods.append(c_id)
+                    local_washables.append(c_id)
+                elif category == "verb":
+                    local_verb_objects[c_id] = local_foods
+
+        return {
+            "entry_by_id": local_entry_by_id,
+            "subjects": local_subjects,
+            "verb_objects": local_verb_objects,
+            "place_prep": local_place_prep,
+        }
+
+    def generate_round(
+        self,
+        language: Language,
+        word_count: int,
+        custom_cards: list[dict] = None,
+    ) -> FlashcardRoundResponse:
+        ctx = self._create_context(custom_cards)
+        target_ids = self._generate_target_ids(language, word_count, ctx)
         round_id = str(uuid.uuid4())
         self._round_targets[round_id] = target_ids
-        return self._build_round_response(round_id, language, word_count, target_ids)
+        return self._build_round_response(round_id, language, word_count, target_ids, ctx)
 
     def validate(
         self,
@@ -192,13 +241,17 @@ class FlashcardService:
         language: Language,
         target_card_ids: list[str],
         selected_card_ids: list[str],
+        custom_cards: list[dict] = None,
     ) -> FlashcardValidationResponse:
+        ctx = self._create_context(custom_cards)
+        entry_by_id = ctx["entry_by_id"]
+
         target_ids = self._round_targets.get(round_id) or target_card_ids
-        target_ids = [card_id for card_id in target_ids if card_id in ENTRY_BY_ID]
-        selected_ids = [card_id for card_id in selected_card_ids if card_id in ENTRY_BY_ID]
+        target_ids = [card_id for card_id in target_ids if card_id in entry_by_id]
+        selected_ids = [card_id for card_id in selected_card_ids if card_id in entry_by_id]
 
         if not target_ids:
-            return self._deterministic_validation(language, [], selected_ids)
+            return self._deterministic_validation(language, [], selected_ids, ctx)
 
         try:
             llm_results = self._validate_with_llm(language, target_ids, selected_ids)
@@ -220,39 +273,45 @@ class FlashcardService:
         except Exception:
             pass
 
-        return self._deterministic_validation(language, target_ids, selected_ids)
+        return self._deterministic_validation(language, target_ids, selected_ids, ctx)
 
-    def _generate_target_ids(self, language: Language, word_count: int) -> list[str]:
-        """Deterministically assemble a simple, meaningful sentence from the
-        word bank using semantic templates, so the ordered card ids always read
-        sensibly (no LLM, no nonsense like "I eat apple a happy")."""
+    def _generate_target_ids(self, language: Language, word_count: int, ctx: dict) -> list[str]:
         for _ in range(8):
-            ids = self._build_sentence_ids(word_count)
-            if ids and self._target_ids_are_valid(ids, word_count):
+            ids = self._build_sentence_ids(word_count, ctx)
+            if ids and self._target_ids_are_valid(ids, word_count, ctx):
                 return ids
         return self._fallback_target_ids(word_count)
 
-    def _build_sentence_ids(self, word_count: int) -> list[str] | None:
-        subject = random.choice(_SUBJECTS)
-        verb = random.choice(list(_VERB_OBJECTS.keys()))
-        objects = _VERB_OBJECTS[verb]
+    def _build_sentence_ids(self, word_count: int, ctx: dict) -> list[str] | None:
+        subjects = ctx["subjects"]
+        verb_objects = ctx["verb_objects"]
+        place_prep = ctx["place_prep"]
+
+        if not subjects or not verb_objects:
+            return None
+
+        subject = random.choice(subjects)
+        verb = random.choice(list(verb_objects.keys()))
+        objects = verb_objects[verb]
+
+        if not objects:
+            return None
 
         if word_count == 3:
-            # Subject + Verb + Object
             return [subject, verb, random.choice(objects)]
 
         if word_count == 5:
-            # Subject + Verb + Object + Preposition + Place
-            place = random.choice(list(_PLACE_PREP.keys()))
-            return [subject, verb, random.choice(objects), _PLACE_PREP[place], place]
+            if not place_prep:
+                return None
+            place = random.choice(list(place_prep.keys()))
+            return [subject, verb, random.choice(objects), place_prep[place], place]
 
         if word_count == 7:
-            # Subject + Verb + Object + "and" + Object2 + Preposition + Place
-            if len(objects) < 2:
+            if len(objects) < 2 or not place_prep:
                 return None
             obj1, obj2 = random.sample(objects, 2)
-            place = random.choice(list(_PLACE_PREP.keys()))
-            return [subject, verb, obj1, "conj_and", obj2, _PLACE_PREP[place], place]
+            place = random.choice(list(place_prep.keys()))
+            return [subject, verb, obj1, "conj_and", obj2, place_prep[place], place]
 
         return None
 
@@ -262,15 +321,15 @@ class FlashcardService:
         target_ids: list[str],
         selected_ids: list[str],
     ) -> list[dict]:
-        # Set-match validation: no LLM needed, use deterministic
         return self._deterministic_set_results(target_ids, selected_ids)
 
-    def _target_ids_are_valid(self, ids: list[str], word_count: int) -> bool:
+    def _target_ids_are_valid(self, ids: list[str], word_count: int, ctx: dict) -> bool:
+        entry_by_id = ctx["entry_by_id"]
         return (
             isinstance(ids, list)
             and len(ids) == word_count
             and len(set(ids)) == len(ids)
-            and all(card_id in ENTRY_BY_ID for card_id in ids)
+            and all(card_id in entry_by_id for card_id in ids)
         )
 
     def _validation_is_usable(self, results: list[dict], selected_ids: list[str]) -> bool:
@@ -304,8 +363,10 @@ class FlashcardService:
         language: Language,
         word_count: int,
         target_ids: list[str],
+        ctx: dict,
     ) -> FlashcardRoundResponse:
-        cards = [self._card_for_entry(ENTRY_BY_ID[card_id], language) for card_id in target_ids]
+        entry_by_id = ctx["entry_by_id"]
+        cards = [self._card_for_entry(entry_by_id[card_id], language) for card_id in target_ids]
         return FlashcardRoundResponse(
             round_id=round_id,
             language=language,
@@ -326,11 +387,12 @@ class FlashcardService:
             language=language,
         )
 
-    def _words_for_ids(self, ids: list[str], language: Language) -> list[str]:
+    def _words_for_ids(self, ids: list[str], language: Language, ctx: dict) -> list[str]:
+        entry_by_id = ctx["entry_by_id"]
         return [
-            ENTRY_BY_ID[card_id].th if language == "th" else ENTRY_BY_ID[card_id].en
+            entry_by_id[card_id].th if language == "th" else entry_by_id[card_id].en
             for card_id in ids
-            if card_id in ENTRY_BY_ID
+            if card_id in entry_by_id
         ]
 
     def _deterministic_set_results(
@@ -353,6 +415,7 @@ class FlashcardService:
         language: Language,
         target_ids: list[str],
         selected_ids: list[str],
+        ctx: dict,
     ) -> FlashcardValidationResponse:
         is_correct = target_ids == selected_ids
 

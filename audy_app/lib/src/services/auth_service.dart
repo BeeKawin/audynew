@@ -374,12 +374,12 @@ class AuthService {
   }
 
   /// Add custom classmate name/noun to class word bank
-  Future<void> addClassWord(String teacherId, String word, {String? imageUrl}) async {
+  Future<void> addClassWord(String teacherId, String word, {String? category, String? imageUrl}) async {
     try {
       await _client.from('class_words').insert({
         'teacher_id': teacherId,
         'word': word.trim(),
-        'category': 'noun',
+        'category': category ?? 'noun',
         'image_url': imageUrl,
       });
     } catch (e) {

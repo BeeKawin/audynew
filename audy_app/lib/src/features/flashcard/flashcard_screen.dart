@@ -40,8 +40,10 @@ class _FlashcardScreenState extends State<FlashcardScreen> {
       ..addListener(_onControllerChanged);
     _sessionStartedAt = DateTime.now();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final language = AudyScope.of(context).currentLanguage;
-      unawaited(_controller.startSession(language));
+      final scope = AudyScope.of(context);
+      final language = scope.currentLanguage;
+      final teacherId = scope.currentUser?.teacherId;
+      unawaited(_controller.startSession(language, teacherId: teacherId));
     });
   }
 

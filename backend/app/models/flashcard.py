@@ -10,6 +10,7 @@ FlashcardStatus = Literal["correct", "move", "remove"]
 class FlashcardRoundRequest(BaseModel):
     language: FlashcardLanguage = "en"
     word_count: Literal[3, 5, 7] = 3
+    custom_cards: Optional[list[dict]] = None
 
 
 class FlashcardCard(BaseModel):
@@ -35,6 +36,7 @@ class FlashcardValidationRequest(BaseModel):
     language: FlashcardLanguage = "en"
     target_card_ids: list[str] = Field(default_factory=list)
     selected_card_ids: list[str]
+    custom_cards: Optional[list[dict]] = None
 
 
 class FlashcardValidationResult(BaseModel):

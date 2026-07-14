@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 
+import '../../services/auth_service.dart';
 import 'flashcard_api_service.dart';
 import 'flashcard_models.dart';
 
@@ -58,6 +59,7 @@ class FlashcardController extends ChangeNotifier {
   final List<FlashcardCard> _handCards = [];
   final List<FlashcardCard> _selectedCards = [];
   final Set<String> _lockedCardIds = {};
+  List<Map<String, dynamic>>? _customCards;
 
   List<FlashcardCard> get handCards => List.unmodifiable(_handCards);
   List<FlashcardCard> get selectedCards => List.unmodifiable(_selectedCards);
@@ -108,11 +110,27 @@ class FlashcardController extends ChangeNotifier {
     return null;
   }
 
-  Future<void> startSession(String language) async {
+  Future<void> startSession(String language, {String? teacherId}) async {
     _language = language;
     roundIndex = 0;
     sessionMistakes = 0;
     sessionCorrect = 0;
+    _customCards = null;
+
+    if (teacherId != null && teacherId.isNotEmpty) {
+      try {
+        final words = await AuthService().fetchClassWords(teacherId);
+        _customCards = words.map((w) => {
+          'id': w.id,
+          'category': w.category ?? 'noun',
+          'word': w.word,
+          'image_url': w.imageUrl,
+        }).toList();
+      } catch (e) {
+        debugPrint('Failed to load custom class cards: $e');
+      }
+    }
+
     await _loadRound();
   }
 
@@ -137,6 +155,7 @@ class FlashcardController extends ChangeNotifier {
       final round = await _api.generateRound(
         language: _language,
         wordCount: difficulty.cardCount,
+        customCards: _customCards,
       );
       currentRound = round;
       // Preview cards in a random order so the sequence isn't the answer.
@@ -198,6 +217,7 @@ class FlashcardController extends ChangeNotifier {
         language: round.language,
         targetCardIds: round.targetCardIds,
         selectedCardIds: _selectedCards.map((card) => card.id).toList(),
+        customCards: _customCards,
       );
       phase = FlashcardGamePhase.feedback;
     } catch (e) {

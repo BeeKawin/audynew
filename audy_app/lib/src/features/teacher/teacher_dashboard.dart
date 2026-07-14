@@ -59,6 +59,8 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
   String? _wordMessage;
   bool _wordIsError = false;
 
+  String _selectedWordType = 'noun';
+
   String? _assignMessage;
   bool _assignIsError = false;
 
@@ -177,7 +179,7 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
     final word = _wordController.text.trim();
     if (word.isEmpty) {
       setState(() {
-        _wordMessage = 'Please enter a name or word.';
+        _wordMessage = 'Please enter a word.';
         _wordIsError = true;
       });
       return;
@@ -193,11 +195,17 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
     try {
       final user = AudyScope.of(context).currentUser;
       if (user != null) {
-        await _authService.addClassWord(user.id, word, imageUrl: _selectedImageBase64);
+        await _authService.addClassWord(
+          user.id,
+          word,
+          category: _selectedWordType,
+          imageUrl: _selectedImageBase64,
+        );
         setState(() {
-          _wordMessage = 'Added "$word" to class word bank!';
+          _wordMessage = 'Added custom Flashcard card: "$word"!';
           _wordIsError = false;
           _wordController.clear();
+          _selectedWordType = 'noun';
           _selectedImageBase64 = null;
         });
         await _loadTeacherData();
@@ -596,6 +604,14 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
   }
 
   Widget _buildWordBankCard(AudyAdaptive adaptive) {
+    final List<Map<String, String>> wordTypes = [
+      {'key': 'pronoun', 'label': 'Pronouns'},
+      {'key': 'noun', 'label': 'Noun'},
+      {'key': 'verb', 'label': 'Actions'},
+      {'key': 'adjective', 'label': 'Feeling'},
+      {'key': 'adverb', 'label': 'Adverbs'},
+    ];
+
     return Card(
       elevation: 4,
       shape: RoundedRectangleBorder(
@@ -607,71 +623,67 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              'Class Vocabulary Word Bank (Cards)',
+              'Class Flashcard Custom Cards',
               style: AudyTypography.headingSmall.copyWith(fontSize: 18),
             ),
             SizedBox(height: adaptive.space(6)),
             Text(
-              'Add custom cards with a subject name and an optional image for the "Read & Speak" game.',
+              'Add custom cards with a word, its type, and an image for the Flashcard sentence game.',
               style: TextStyle(fontSize: 13, color: AudyColors.textLight),
             ),
             SizedBox(height: adaptive.space(16)),
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _wordController,
-                    decoration: InputDecoration(
-                      hintText: 'Enter subject name (e.g. Apple)',
-                      prefixIcon: const Icon(Icons.label_outline_rounded),
-                      filled: true,
-                      fillColor: AudyColors.backgroundSoft.withValues(alpha: 0.1),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(AudySpacing.radiusMedium),
-                        borderSide: BorderSide.none,
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 16,
-                      ),
-                    ),
-                  ),
+
+            // Word Input field
+            TextField(
+              controller: _wordController,
+              decoration: InputDecoration(
+                labelText: 'Word / Text',
+                hintText: 'Enter card text (e.g. Sleep)',
+                prefixIcon: const Icon(Icons.label_outline_rounded),
+                filled: true,
+                fillColor: AudyColors.backgroundSoft.withValues(alpha: 0.1),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(AudySpacing.radiusMedium),
                 ),
-                const SizedBox(width: 12),
-                ElevatedButton(
-                  onPressed: _isAddingWord ? null : _addClassWord,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AudyColors.skyBlue,
-                    foregroundColor: AudyColors.textOnColor,
-                    minimumSize: const Size(80, 56),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AudySpacing.radiusMedium),
-                    ),
-                  ),
-                  child: _isAddingWord
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: AudyColors.textOnColor,
-                          ),
-                        )
-                      : const Icon(Icons.check_rounded),
-                ),
-              ],
+              ),
             ),
-            SizedBox(height: adaptive.space(12)),
+            SizedBox(height: adaptive.space(16)),
+
+            // Word Type dropdown
+            DropdownButtonFormField<String>(
+              initialValue: _selectedWordType,
+              decoration: InputDecoration(
+                labelText: 'Word Type',
+                prefixIcon: const Icon(Icons.category_outlined),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(AudySpacing.radiusMedium),
+                ),
+              ),
+              items: wordTypes.map((type) {
+                return DropdownMenuItem<String>(
+                  value: type['key'],
+                  child: Text(type['label']!),
+                );
+              }).toList(),
+              onChanged: (val) {
+                if (val != null) {
+                  setState(() => _selectedWordType = val);
+                }
+              },
+            ),
+            SizedBox(height: adaptive.space(16)),
+
+            // Card Image Picker row
             Row(
               children: [
                 ElevatedButton.icon(
                   onPressed: _pickImage,
                   icon: const Icon(Icons.image_outlined),
-                  label: const Text('Add Image'),
+                  label: const Text('Add Card Image'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AudyColors.backgroundSoft,
                     foregroundColor: AudyColors.textPrimary,
-                    minimumSize: const Size(120, 48),
+                    minimumSize: const Size(140, 48),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(AudySpacing.radiusMedium),
                     ),
@@ -722,20 +734,44 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                 ),
               ),
             ],
+            SizedBox(height: adaptive.space(16)),
+
+            ElevatedButton(
+              onPressed: _isAddingWord ? null : _addClassWord,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AudyColors.skyBlue,
+                foregroundColor: AudyColors.textOnColor,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AudySpacing.radiusMedium),
+                ),
+              ),
+              child: _isAddingWord
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: AudyColors.textOnColor,
+                      ),
+                    )
+                  : const Text('Add Custom Flashcard Card'),
+            ),
+
             if (_classWords.isNotEmpty) ...[
-              SizedBox(height: adaptive.space(16)),
+              const Divider(color: AudyColors.borderLight, height: 32),
               Text(
-                'Class Nouns / Cards Added:',
+                'Classroom Custom Flashcards Added:',
                 style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
                   color: AudyColors.textSecondary,
                 ),
               ),
-              SizedBox(height: adaptive.space(8)),
+              SizedBox(height: adaptive.space(10)),
               Wrap(
-                spacing: 8,
-                runSpacing: 8,
+                spacing: 10,
+                runSpacing: 10,
                 children: _classWords.map((classWord) {
                   final hasImage = classWord.imageUrl != null && classWord.imageUrl!.isNotEmpty;
                   Widget? avatar;
@@ -752,14 +788,73 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                       );
                     }
                   }
+
+                  String categoryLabel(String? category) {
+                    switch (category) {
+                      case 'pronoun':
+                        return 'Pronoun';
+                      case 'noun':
+                        return 'Noun';
+                      case 'verb':
+                        return 'Action';
+                      case 'adjective':
+                        return 'Feeling';
+                      case 'adverb':
+                        return 'Adverb';
+                      default:
+                        return 'Noun';
+                    }
+                  }
+
+                  Color categoryColor(String? category) {
+                    switch (category) {
+                      case 'pronoun':
+                        return AudyColors.skyBlue;
+                      case 'noun':
+                        return AudyColors.mintGreen;
+                      case 'verb':
+                        return Colors.orange;
+                      case 'adjective':
+                        return AudyColors.blushPink;
+                      case 'adverb':
+                        return AudyColors.softLavender;
+                      default:
+                        return AudyColors.mintGreen;
+                    }
+                  }
+
+                  final catLabel = categoryLabel(classWord.category);
+                  final catColor = categoryColor(classWord.category);
+
                   return Chip(
                     avatar: avatar,
-                    label: Text(
-                      classWord.word,
-                      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                    label: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          classWord.word,
+                          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
+                        ),
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: catColor,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            catLabel,
+                            style: const TextStyle(
+                              color: AudyColors.textOnColor,
+                              fontSize: 9,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                    backgroundColor: AudyColors.skyBlue.withValues(alpha: 0.15),
-                    side: const BorderSide(color: AudyColors.skyBlue),
+                    backgroundColor: AudyColors.backgroundSoft.withValues(alpha: 0.15),
+                    side: const BorderSide(color: AudyColors.borderLight, width: 1.2),
                   );
                 }).toList(),
               ),
