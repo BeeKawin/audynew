@@ -27,7 +27,7 @@ COPY app/ ./app/
 
 # Pre-download HuggingFace model for faster cold starts
 # Model: mo-thecreator/vit-Facial-Expression-Recognition (~330 MB)
-RUN python -c "from transformers import ViTForImageClassification, ViTImageProcessor; ViTImageProcessor.from_pretrained('mo-thecreator/vit-Facial-Expression-Recognition'); ViTForImageClassification.from_pretrained('mo-thecreator/vit-Facial-Expression-Recognition')"
+# RUN python -c "from transformers import ViTForImageClassification, ViTImageProcessor; ViTImageProcessor.from_pretrained('mo-thecreator/vit-Facial-Expression-Recognition'); ViTForImageClassification.from_pretrained('mo-thecreator/vit-Facial-Expression-Recognition')"
 
 # Create non-root user for security
 RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
