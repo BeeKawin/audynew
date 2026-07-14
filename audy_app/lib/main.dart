@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'src/core/app_routes.dart';
 import 'src/core/audy_theme.dart';
 import 'src/data/service_locator.dart';
+import 'src/features/assignments_page.dart';
 import 'src/features/auth/login_page.dart';
 import 'src/features/dashboard_page.dart';
 import 'src/features/emotion_classify_game/emotion_classify_screen.dart';
@@ -280,6 +281,7 @@ class _AudyAppState extends State<AudyApp> {
           AppRoutes.preferences: (_) => const PreferencesPage(isOnboarding: true),
           AppRoutes.meltdown: (_) => const MeltdownScreen(),
           AppRoutes.device: (_) => const DeviceConnectionPage(),
+          AppRoutes.assignments: (_) => const AssignmentsPage(),
         },
         onGenerateRoute: (settings) {
           debugPrint('onGenerateRoute: ${settings.name}');

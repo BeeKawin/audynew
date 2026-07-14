@@ -315,6 +315,8 @@ class AudyGreetingHeader extends StatelessWidget {
     this.onProfileTap,
     this.onDeviceTap,
     this.isDeviceConnected = false,
+    this.onAssignmentTap,
+    this.assignmentCount = 0,
   });
 
   final String greeting;
@@ -322,6 +324,8 @@ class AudyGreetingHeader extends StatelessWidget {
   final VoidCallback? onProfileTap;
   final VoidCallback? onDeviceTap;
   final bool isDeviceConnected;
+  final VoidCallback? onAssignmentTap;
+  final int assignmentCount;
 
   @override
   Widget build(BuildContext context) {
@@ -343,10 +347,63 @@ class AudyGreetingHeader extends StatelessWidget {
             ],
           ),
         ),
-        if (onDeviceTap != null || onProfileTap != null)
+        if (onDeviceTap != null || onProfileTap != null || onAssignmentTap != null)
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
+              if (onAssignmentTap != null) ...[
+                GestureDetector(
+                  onTap: onAssignmentTap,
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      Container(
+                        width: AudySpacing.touchTargetMin,
+                        height: AudySpacing.touchTargetMin,
+                        decoration: BoxDecoration(
+                          color: AudyColors.blushPink.withValues(alpha: 0.16),
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: AudyColors.blushPink,
+                            width: 2,
+                          ),
+                        ),
+                        child: Icon(
+                          Icons.assignment_rounded,
+                          color: AudyColors.blushPink,
+                          size: AudySpacing.iconMedium,
+                        ),
+                      ),
+                      if (assignmentCount > 0)
+                        Positioned(
+                          right: -2,
+                          top: -2,
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            constraints: const BoxConstraints(
+                              minWidth: 18,
+                              minHeight: 18,
+                            ),
+                            decoration: const BoxDecoration(
+                              color: AudyColors.blushPink,
+                              shape: BoxShape.circle,
+                            ),
+                            alignment: Alignment.center,
+                            child: Text(
+                              '$assignmentCount',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                SizedBox(width: adaptive.space(12)),
+              ],
               if (onDeviceTap != null) ...[
                 GestureDetector(
                   onTap: onDeviceTap,
