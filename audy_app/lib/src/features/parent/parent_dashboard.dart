@@ -28,7 +28,11 @@ class _ParentDashboardState extends State<ParentDashboard> {
   @override
   void initState() {
     super.initState();
-    _loadChildrenData();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _loadChildrenData();
+      }
+    });
   }
 
   @override

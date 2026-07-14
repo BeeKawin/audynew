@@ -26,7 +26,11 @@ class _AssignmentsPageState extends State<AssignmentsPage> {
   @override
   void initState() {
     super.initState();
-    _loadSupabaseAssignments();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _loadSupabaseAssignments();
+      }
+    });
   }
 
   Future<void> _loadSupabaseAssignments() async {

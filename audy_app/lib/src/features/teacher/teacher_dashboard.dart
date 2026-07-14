@@ -6,7 +6,7 @@ import '../../core/audy_ui.dart';
 import '../../services/auth_service.dart';
 import '../../services/sound_service.dart';
 import '../../state/audy_controller.dart';
-import '../dashboard_analytics.dart';
+import 'student_detail_page.dart';
 
 
 class TeacherDashboard extends StatefulWidget {
@@ -80,7 +80,11 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
   @override
   void initState() {
     super.initState();
-    _loadTeacherData();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _loadTeacherData();
+      }
+    });
   }
 
   @override
@@ -331,12 +335,6 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                 _buildWordBankCard(adaptive),
                 SizedBox(height: adaptive.space(24)),
 
-                Text(
-                  'Student Statuses',
-                  style: AudyTypography.headingSmall,
-                ),
-                SizedBox(height: adaptive.space(12)),
-
                 if (_isLoading)
                   const Center(
                     child: Padding(
@@ -344,10 +342,15 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                       child: CircularProgressIndicator(color: AudyColors.skyBlue),
                     ),
                   )
-                else if (_students.isEmpty)
-                  _buildEmptyStudentsCard(adaptive)
-                else
-                  ..._students.map((student) => _buildStudentCard(student, adaptive)),
+                else if (_students.isEmpty) ...[
+                  Text(
+                    'Classroom Grid',
+                    style: AudyTypography.headingSmall,
+                  ),
+                  SizedBox(height: adaptive.space(12)),
+                  _buildEmptyStudentsCard(adaptive),
+                ] else
+                  _buildClassroomGrid(adaptive),
               ],
             ),
           );
@@ -819,17 +822,10 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
     );
   }
 
-  Widget _buildStudentCard(UserProfile student, AudyAdaptive adaptive) {
-    final stats = _studentStats[student.id];
-    final learningPoints = stats?['learning_points'] ?? 0;
-    final gamesPlayed = stats?['games_played'] ?? 0;
-    final dayStreak = stats?['day_streak'] ?? 0;
-    final assignments = _studentAssignments[student.id] ?? [];
-    final sessions = _studentSessions[student.id] ?? const [];
 
+  Widget _buildClassroomGrid(AudyAdaptive adaptive) {
     return Card(
       elevation: 4,
-      margin: const EdgeInsets.only(bottom: 16),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AudySpacing.radiusLarge),
         side: const BorderSide(color: AudyColors.borderLight, width: 1.5),
@@ -839,145 +835,239 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Row student profile
             Row(
               children: [
-                CircleAvatar(
-                  radius: 28,
-                  backgroundColor: AudyColors.skyBlue.withValues(alpha: 0.2),
-                  child: const Icon(
-                    Icons.face_rounded,
-                    color: AudyColors.skyBlue,
-                    size: 32,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        student.name,
-                        style: AudyTypography.headingSmall.copyWith(fontSize: 18),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'Age: ${student.age} | ${student.email ?? 'No email'}',
-                        style: TextStyle(fontSize: 12, color: AudyColors.textLight),
-                      ),
-                    ],
-                  ),
+                const Icon(Icons.group_rounded, color: AudyColors.skyBlue, size: 24),
+                const SizedBox(width: 8),
+                Text(
+                  'My Classroom (${_students.length} Enrolled)',
+                  style: AudyTypography.headingSmall.copyWith(fontSize: 18),
                 ),
               ],
             ),
-            SizedBox(height: adaptive.space(20)),
-            const Divider(color: AudyColors.borderLight, height: 1),
-            SizedBox(height: adaptive.space(16)),
-
-            // Stats grid
-            Row(
-              children: [
-                _buildStatColumn('Learning Points', '$learningPoints', Icons.auto_awesome_rounded, AudyColors.activityRewards),
-                _buildStatColumn('Games Played', '$gamesPlayed', Icons.sports_esports_rounded, AudyColors.skyBlue),
-                _buildStatColumn('Day Streak', '$dayStreak days', Icons.local_fire_department_rounded, Colors.orange),
-              ],
+            SizedBox(height: adaptive.space(6)),
+            Text(
+              'Click on a student\'s profile card to view their detailed performance profile, completed sessions, and assignments.',
+              style: TextStyle(fontSize: 13, color: AudyColors.textLight),
             ),
-
             SizedBox(height: adaptive.space(20)),
-            const Divider(color: AudyColors.borderLight, height: 1),
-            SizedBox(height: adaptive.space(16)),
-            StudentAnalyticsCharts(sessions: sessions),
-
-            if (assignments.isNotEmpty) ...[
-              SizedBox(height: adaptive.space(20)),
-              const Divider(color: AudyColors.borderLight, height: 1),
-              SizedBox(height: adaptive.space(16)),
-              Text(
-                'Assignments Progress:',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: AudyColors.textSecondary,
-                ),
+            GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: adaptive.isTablet || adaptive.isDesktop ? 4 : 2,
+                crossAxisSpacing: 16,
+                mainAxisSpacing: 16,
+                childAspectRatio: 0.78,
               ),
-              SizedBox(height: adaptive.space(8)),
-              ...assignments.map((assign) {
-                final gameName = _gameTypes.firstWhere(
-                  (g) => g['key'] == assign['game_type'],
-                  orElse: () => {'label': assign['game_type'] as String},
-                )['label'];
-                final double percent = (assign['current_count'] as int) / (assign['target_count'] as int);
-                final isCompleted = assign['is_completed'] as bool;
+              itemCount: _students.length,
+              itemBuilder: (context, index) {
+                final student = _students[index];
+                final stats = _studentStats[student.id];
+                final points = stats?['learning_points'] ?? 0;
+                final streak = stats?['day_streak'] ?? 0;
+                final assignments = _studentAssignments[student.id] ?? [];
+                final activeAssignments = assignments.where((a) => !(a['is_completed'] as bool)).length;
+                
+                final avatarColors = [
+                  AudyColors.skyBlue,
+                  AudyColors.mintGreen,
+                  AudyColors.activityRewards,
+                  Colors.orange,
+                  AudyColors.softLavender,
+                  AudyColors.blushPink,
+                ];
+                final avatarColor = avatarColors[student.name.hashCode % avatarColors.length];
 
-                return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4),
-                  child: Row(
-                    children: [
-                      Icon(
-                        isCompleted ? Icons.check_circle_rounded : Icons.pending_rounded,
-                        color: isCompleted ? AudyColors.success : AudyColors.textLight,
-                        size: 18,
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          '$gameName: ${assign['current_count']} / ${assign['target_count']}',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: AudyColors.textSecondary,
+                return Container(
+                  decoration: BoxDecoration(
+                    color: AudyColors.backgroundCard,
+                    borderRadius: BorderRadius.circular(AudySpacing.radiusMedium),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AudyColors.shadowSoft.withValues(alpha: 0.05),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
+                      )
+                    ],
+                    border: Border.all(
+                      color: AudyColors.borderLight,
+                      width: 1.5,
+                    ),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(AudySpacing.radiusMedium - 1.5),
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: () {
+                          SoundService.instance.playTap();
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => StudentDetailPage(
+                                student: student,
+                                stats: _studentStats[student.id],
+                                assignments: _studentAssignments[student.id] ?? [],
+                                sessions: _studentSessions[student.id] ?? [],
+                              ),
+                            ),
+                          );
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.all(12.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              // Top: Age & Status Badges
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                                    decoration: BoxDecoration(
+                                      color: AudyColors.skyBlue.withValues(alpha: 0.15),
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: Text(
+                                      'Age ${student.age}',
+                                      style: const TextStyle(
+                                        fontSize: 9,
+                                        fontWeight: FontWeight.w800,
+                                        color: AudyColors.textSecondary,
+                                      ),
+                                    ),
+                                  ),
+                                  if (activeAssignments > 0)
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                                      decoration: BoxDecoration(
+                                        color: Colors.orange.withValues(alpha: 0.15),
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          const Icon(Icons.assignment_late_rounded, size: 8, color: Colors.orange),
+                                          const SizedBox(width: 2),
+                                          Text(
+                                            '$activeAssignments tasks',
+                                            style: const TextStyle(
+                                              fontSize: 9,
+                                              fontWeight: FontWeight.w800,
+                                              color: Colors.orange,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    )
+                                  else if (assignments.isNotEmpty)
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                                      decoration: BoxDecoration(
+                                        color: AudyColors.success.withValues(alpha: 0.15),
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      child: const Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(Icons.check_circle_rounded, size: 8, color: AudyColors.success),
+                                          SizedBox(width: 2),
+                                          Text(
+                                            'Done',
+                                            style: TextStyle(
+                                              fontSize: 9,
+                                              fontWeight: FontWeight.w800,
+                                              color: AudyColors.success,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                ],
+                              ),
+                              const Spacer(),
+                              // Center: Avatar
+                              Center(
+                                child: Container(
+                                  padding: const EdgeInsets.all(3),
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: avatarColor.withValues(alpha: 0.3),
+                                      width: 2,
+                                    ),
+                                  ),
+                                  child: CircleAvatar(
+                                    radius: 28,
+                                    backgroundColor: avatarColor.withValues(alpha: 0.15),
+                                    child: Icon(
+                                      Icons.face_rounded,
+                                      color: avatarColor,
+                                      size: 36,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const Spacer(),
+                              // Bottom: Name & Badges
+                              Text(
+                                student.name,
+                                textAlign: TextAlign.center,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: AudyTypography.cardTitle.copyWith(
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 14,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Icon(
+                                    Icons.star_rounded,
+                                    size: 13,
+                                    color: AudyColors.activityRewards,
+                                  ),
+                                  const SizedBox(width: 2),
+                                  Text(
+                                    '$points',
+                                    style: const TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w800,
+                                      color: AudyColors.textSecondary,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  const Icon(
+                                    Icons.local_fire_department_rounded,
+                                    size: 13,
+                                    color: Colors.orange,
+                                  ),
+                                  const SizedBox(width: 2),
+                                  Text(
+                                    '$streak',
+                                    style: const TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w800,
+                                      color: AudyColors.textSecondary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
                           ),
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      SizedBox(
-                        width: 80,
-                        child: LinearProgressIndicator(
-                          value: percent.clamp(0.0, 1.0),
-                          backgroundColor: AudyColors.borderLight,
-                          color: isCompleted ? AudyColors.success : AudyColors.skyBlue,
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
                 );
-              }),
-            ],
+              },
+            ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildStatColumn(String label, String value, IconData icon, Color color) {
-    return Expanded(
-      child: Column(
-        children: [
-          CircleAvatar(
-            radius: 20,
-            backgroundColor: color.withValues(alpha: 0.15),
-            child: Icon(icon, color: color, size: 20),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w800,
-              color: AudyColors.textPrimary,
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            label,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.w600,
-              color: AudyColors.textLight,
-            ),
-          ),
-        ],
       ),
     );
   }

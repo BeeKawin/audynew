@@ -94,6 +94,7 @@ class _LoginPageState extends State<LoginPage> {
 
             // Submit button
             _buildSubmitButton(adaptive),
+            _buildDebugMenu(adaptive),
           ],
         );
       },
@@ -508,6 +509,184 @@ class _LoginPageState extends State<LoginPage> {
         ),
       ),
     );
+  }
+
+  Widget _buildDebugMenu(AudyAdaptive adaptive) {
+    return Container(
+      margin: EdgeInsets.only(top: adaptive.space(16)),
+      padding: EdgeInsets.all(adaptive.space(16)),
+      decoration: BoxDecoration(
+        color: AudyColors.backgroundCard,
+        borderRadius: BorderRadius.circular(AudySpacing.radiusMedium),
+        border: Border.all(
+          color: AudyColors.borderLight.withValues(alpha: 0.5),
+          width: 2,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.bug_report_rounded, color: AudyColors.skyBlue, size: 20),
+              const SizedBox(width: 8),
+              const Text(
+                'Developer Debug Menu',
+                style: TextStyle(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 14,
+                  color: AudyColors.textSecondary,
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: adaptive.space(12)),
+          Row(
+            children: [
+              Expanded(
+                child: _buildDebugButton(
+                  label: 'Student',
+                  icon: Icons.child_care_rounded,
+                  color: AudyColors.skyBlue,
+                  onTap: () => _handleDebugLogin('f7385453-50e3-4da6-817a-559b9c7bd126', 'child'),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _buildDebugButton(
+                  label: 'Parent',
+                  icon: Icons.supervisor_account_rounded,
+                  color: AudyColors.mintGreen,
+                  onTap: () => _handleDebugLogin('5855aaab-3a0e-4337-b168-17f35c219cf5', 'parent'),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _buildDebugButton(
+                  label: 'Teacher',
+                  icon: Icons.school_rounded,
+                  color: AudyColors.activityRewards,
+                  onTap: () => _handleDebugLogin('3588e312-0972-409f-994b-5b4a239b18b3', 'teacher'),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDebugButton({
+    required String label,
+    required IconData icon,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: _isLoading ? null : onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(AudySpacing.radiusMedium),
+          border: Border.all(color: color, width: 1.5),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: color, size: 24),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+                color: color,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _handleDebugLogin(String userId, String role) async {
+    SoundService.instance.playTap();
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+      _successMessage = null;
+    });
+
+    try {
+      String? email;
+      if (userId == 'f7385453-50e3-4da6-817a-559b9c7bd126') {
+        email = 'test@audy.com';
+      } else if (userId == '5855aaab-3a0e-4337-b168-17f35c219cf5') {
+        email = 'parent@audy.com';
+      } else if (userId == '3588e312-0972-409f-994b-5b4a239b18b3') {
+        email = 'pummiphach@hotmail.com';
+      }
+
+      UserProfile? profile;
+      if (email != null) {
+        try {
+          await _authService.signIn(email: email, password: 'password123');
+          profile = await _authService.getCurrentProfile();
+        } catch (authError) {
+          debugPrint('Debug Auth programmatic sign-in failed, using fallback: $authError');
+        }
+      }
+
+      if (profile == null) {
+        final now = DateTime.now();
+        if (role == 'teacher') {
+          profile = UserProfile(
+            id: userId,
+            name: 'Debug Teacher',
+            age: 35,
+            createdAt: now,
+            role: 'teacher',
+            email: email ?? 'teacher@debug.com',
+          );
+        } else if (role == 'parent') {
+          profile = UserProfile(
+            id: userId,
+            name: 'Debug Parent',
+            age: 38,
+            createdAt: now,
+            role: 'parent',
+            email: email ?? 'parent@debug.com',
+          );
+        } else {
+          profile = UserProfile(
+            id: userId,
+            name: 'Debug Student',
+            age: 8,
+            createdAt: now,
+            role: 'child',
+            email: email ?? 'student@debug.com',
+          );
+        }
+      }
+
+      if (mounted) {
+        AudyScope.of(context).setUser(profile);
+        Navigator.pushReplacementNamed(context, AppRoutes.dashboard);
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _errorMessage =
+              'Debug Login Failed: ${e.toString().replaceAll('Exception: ', '')}';
+        });
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
   Future<void> _handleSubmit() async {

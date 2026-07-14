@@ -34,6 +34,13 @@ WORD_BANK: tuple[WordBankEntry, ...] = (
     WordBankEntry("pronoun_they", "pronoun", "they", "พวกเขา", "emoji:👥"),
     WordBankEntry("pronoun_it", "pronoun", "it", "มัน", "emoji:🐾"),
 
+    # Relatives (nouns)
+    WordBankEntry("noun_father", "noun", "father", "พ่อ", "emoji:👨"),
+    WordBankEntry("noun_mother", "noun", "mother", "แม่", "emoji:👩"),
+    WordBankEntry("noun_brother", "noun", "brother", "พี่ชาย", "emoji:👦"),
+    WordBankEntry("noun_sister", "noun", "sister", "น้องสาว", "emoji:👧"),
+    WordBankEntry("noun_teacher", "noun", "teacher", "ครู", "emoji:👩‍🏫"),
+
     # Actions (verbs)
     WordBankEntry("verb_eat", "verb", "eat", "กิน", "emoji:🍽️"),
     WordBankEntry("verb_drink", "verb", "drink", "ดื่ม", "emoji:🥤"),
@@ -136,9 +143,8 @@ ENTRY_BY_ID = {entry.id: entry for entry in WORD_BANK}
 _SUBJECTS = [
     "pronoun_i", "pronoun_you", "pronoun_he", "pronoun_she",
     "pronoun_we", "pronoun_they",
-    "noun_cat", "noun_dog", "noun_bird", "noun_cow", "noun_pig",
-    "noun_horse", "noun_rabbit", "noun_chicken", "noun_elephant",
-    "noun_mouse", "noun_goose", "noun_goldfish",
+    "noun_father", "noun_mother", "noun_brother", "noun_sister",
+    "noun_teacher",
 ]
 
 # Edible objects (fruits + vegetables).
