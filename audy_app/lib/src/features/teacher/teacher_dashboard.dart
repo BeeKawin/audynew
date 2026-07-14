@@ -63,6 +63,7 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
   bool _assignIsError = false;
 
   // Homework form state
+  bool _assignToWholeClass = false;
   String? _selectedStudentId;
   String _selectedGameType = 'emotion_classify';
   int _selectedTargetCount = 3;
@@ -211,8 +212,129 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
     }
   }
 
+  List<_TeacherRecommendation> _getRecommendations() {
+    final List<_TeacherRecommendation> recs = [];
+    final Map<String, String> gameLabels = {
+      'emotion_classify': 'Emotion Recognition',
+      'minipuzzle': 'Mini Puzzle',
+      'sorting': 'Shape Sorting',
+      'reaction_time': 'Reaction Time',
+      'reading': 'Read & Speak',
+      'social_chat': 'Social Chat',
+      'flashcard': 'Flashcard Game',
+      'fruit_catching_bear': 'Fruit Catching Bear',
+    };
+
+    final Map<String, String> targetedSkills = {
+      'emotion_classify': 'Identify Facial Expressions & Emotions',
+      'minipuzzle': 'Spatial Reasoning & Pattern Recognition',
+      'sorting': 'Classification & Visual Association',
+      'reaction_time': 'Focus, Attention, & Processing Speed',
+      'reading': 'Speech, Vocabulary, & Pronunciation',
+      'social_chat': 'Conversational & Social Interaction',
+      'flashcard': 'Sentence Ordering & Grammar',
+      'fruit_catching_bear': 'Motor Skills & Hand-Eye Coordination',
+    };
+
+    if (_assignToWholeClass) {
+      final Map<String, double> accSums = {};
+      final Map<String, int> sessionCounts = {};
+
+      for (final sList in _studentSessions.values) {
+        for (final s in sList) {
+          final gType = (s['gameType'] ?? s['game_type'] ?? '').toString();
+          final acc = (s['accuracy_percent'] as num?)?.toDouble() ?? 0.0;
+          accSums[gType] = (accSums[gType] ?? 0.0) + acc;
+          sessionCounts[gType] = (sessionCounts[gType] ?? 0) + 1;
+        }
+      }
+
+      for (final key in gameLabels.keys) {
+        final sessionsCount = sessionCounts[key] ?? 0;
+        if (sessionsCount > 0) {
+          final avg = accSums[key]! / sessionsCount;
+          if (avg < 70) {
+            recs.add(_TeacherRecommendation(
+              gameType: key,
+              label: gameLabels[key]!,
+              reason: 'Class needs practice (low average: ${avg.round()}%)',
+              targetSkill: targetedSkills[key]!,
+            ));
+          } else if (avg >= 70 && avg < 85) {
+            recs.add(_TeacherRecommendation(
+              gameType: key,
+              label: gameLabels[key]!,
+              reason: 'Reinforce class skill (average: ${avg.round()}%)',
+              targetSkill: targetedSkills[key]!,
+            ));
+          }
+        } else {
+          recs.add(_TeacherRecommendation(
+            gameType: key,
+            label: gameLabels[key]!,
+            reason: 'Unplayed class activity (explore)',
+            targetSkill: targetedSkills[key]!,
+          ));
+        }
+      }
+    } else {
+      if (_selectedStudentId != null) {
+        final studentSessions = _studentSessions[_selectedStudentId!] ?? [];
+        final Map<String, double> accSums = {};
+        final Map<String, int> sessionCounts = {};
+
+        for (final s in studentSessions) {
+          final gType = (s['gameType'] ?? s['game_type'] ?? '').toString();
+          final acc = (s['accuracy_percent'] as num?)?.toDouble() ?? 0.0;
+          accSums[gType] = (accSums[gType] ?? 0.0) + acc;
+          sessionCounts[gType] = (sessionCounts[gType] ?? 0) + 1;
+        }
+
+        for (final key in gameLabels.keys) {
+          final sessionsCount = sessionCounts[key] ?? 0;
+          if (sessionsCount > 0) {
+            final avg = accSums[key]! / sessionsCount;
+            if (avg < 70) {
+              recs.add(_TeacherRecommendation(
+                gameType: key,
+                label: gameLabels[key]!,
+                reason: 'Student needs practice (low score: ${avg.round()}%)',
+                targetSkill: targetedSkills[key]!,
+              ));
+            } else if (avg >= 70 && avg < 85) {
+              recs.add(_TeacherRecommendation(
+                gameType: key,
+                label: gameLabels[key]!,
+                reason: 'Reinforce student skill (score: ${avg.round()}%)',
+                targetSkill: targetedSkills[key]!,
+              ));
+            }
+          } else {
+            recs.add(_TeacherRecommendation(
+              gameType: key,
+              label: gameLabels[key]!,
+              reason: 'Unplayed student activity (explore)',
+              targetSkill: targetedSkills[key]!,
+            ));
+          }
+        }
+      }
+    }
+
+    recs.sort((a, b) {
+      int getPriority(String reason) {
+        if (reason.contains('needs practice') || reason.contains('Needs practice')) return 1;
+        if (reason.contains('Unplayed')) return 2;
+        return 3;
+      }
+      return getPriority(a.reason).compareTo(getPriority(b.reason));
+    });
+
+    return recs.take(3).toList();
+  }
+
   Future<void> _assignHomework() async {
-    if (_selectedStudentId == null) {
+    if (!_assignToWholeClass && _selectedStudentId == null) {
       setState(() {
         _assignMessage = 'Please select a student first.';
         _assignIsError = true;
@@ -230,16 +352,31 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
     try {
       final user = AudyScope.of(context).currentUser;
       if (user != null) {
-        await _authService.assignHomework(
-          user.id,
-          _selectedStudentId!,
-          _selectedGameType,
-          _selectedTargetCount,
-        );
-        setState(() {
-          _assignMessage = 'Successfully assigned homework!';
-          _assignIsError = false;
-        });
+        if (_assignToWholeClass) {
+          for (final student in _students) {
+            await _authService.assignHomework(
+              user.id,
+              student.id,
+              _selectedGameType,
+              _selectedTargetCount,
+            );
+          }
+          setState(() {
+            _assignMessage = 'Successfully assigned task to the entire class!';
+            _assignIsError = false;
+          });
+        } else {
+          await _authService.assignHomework(
+            user.id,
+            _selectedStudentId!,
+            _selectedGameType,
+            _selectedTargetCount,
+          );
+          setState(() {
+            _assignMessage = 'Successfully assigned task!';
+            _assignIsError = false;
+          });
+        }
         await _loadTeacherData();
       }
     } catch (e) {
@@ -650,28 +787,100 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
             ),
             SizedBox(height: adaptive.space(16)),
 
-            // Student selection dropdown
-            DropdownButtonFormField<String>(
-              initialValue: _selectedStudentId,
-              hint: const Text('Select Student'),
-              decoration: InputDecoration(
-                labelText: 'Student',
-                prefixIcon: const Icon(Icons.person_outline),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AudySpacing.radiusMedium),
+            // Toggle for Assign Target
+            Row(
+              children: [
+                Expanded(
+                  child: InkWell(
+                    onTap: () {
+                      SoundService.instance.playTap();
+                      setState(() => _assignToWholeClass = false);
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      decoration: BoxDecoration(
+                        color: !_assignToWholeClass
+                            ? AudyColors.skyBlue
+                            : AudyColors.backgroundSoft.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(AudySpacing.radiusMedium),
+                        border: Border.all(
+                          color: !_assignToWholeClass ? AudyColors.skyBlue : AudyColors.borderLight,
+                          width: 1.5,
+                        ),
+                      ),
+                      child: Center(
+                        child: Text(
+                          'Individual Student',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: !_assignToWholeClass ? AudyColors.textOnColor : AudyColors.textSecondary,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
-              ),
-              items: _students.map((student) {
-                return DropdownMenuItem<String>(
-                  value: student.id,
-                  child: Text(student.name),
-                );
-              }).toList(),
-              onChanged: (val) {
-                setState(() => _selectedStudentId = val);
-              },
+                const SizedBox(width: 12),
+                Expanded(
+                  child: InkWell(
+                    onTap: () {
+                      SoundService.instance.playTap();
+                      setState(() => _assignToWholeClass = true);
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      decoration: BoxDecoration(
+                        color: _assignToWholeClass
+                            ? AudyColors.skyBlue
+                            : AudyColors.backgroundSoft.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(AudySpacing.radiusMedium),
+                        border: Border.all(
+                          color: _assignToWholeClass ? AudyColors.skyBlue : AudyColors.borderLight,
+                          width: 1.5,
+                        ),
+                      ),
+                      child: Center(
+                        child: Text(
+                          'Entire Class',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: _assignToWholeClass ? AudyColors.textOnColor : AudyColors.textSecondary,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
             SizedBox(height: adaptive.space(16)),
+
+            // Student selection dropdown (only if Individual Student is chosen)
+            if (!_assignToWholeClass) ...[
+              DropdownButtonFormField<String>(
+                initialValue: _selectedStudentId,
+                hint: const Text('Select Student'),
+                decoration: InputDecoration(
+                  labelText: 'Student',
+                  prefixIcon: const Icon(Icons.person_outline),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(AudySpacing.radiusMedium),
+                  ),
+                ),
+                items: _students.map((student) {
+                  return DropdownMenuItem<String>(
+                    value: student.id,
+                    child: Text(student.name),
+                  );
+                }).toList(),
+                onChanged: (val) {
+                  setState(() => _selectedStudentId = val);
+                },
+              ),
+              SizedBox(height: adaptive.space(16)),
+            ],
 
             // Game Type selection dropdown
             DropdownButtonFormField<String>(
@@ -736,6 +945,114 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
               ],
             ),
             SizedBox(height: adaptive.space(12)),
+
+            // Recommendations list
+            () {
+              final recs = _getRecommendations();
+              if (recs.isEmpty) return const SizedBox.shrink();
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Divider(color: AudyColors.borderLight, height: 24),
+                  Text(
+                    'Recommended Tasks',
+                    style: AudyTypography.headingSmall.copyWith(fontSize: 15),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    _assignToWholeClass
+                        ? 'Based on class-wide skill performance'
+                        : (_selectedStudentId == null
+                            ? 'Select a student to see suggestions'
+                            : 'Based on student\'s individual needs'),
+                    style: TextStyle(fontSize: 12, color: AudyColors.textLight),
+                  ),
+                  const SizedBox(height: 10),
+                  ...recs.map((rec) {
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AudyColors.backgroundSoft.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(AudySpacing.radiusMedium),
+                          border: Border.all(color: AudyColors.borderLight, width: 1.2),
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Icon(
+                              Icons.insights_rounded,
+                              color: AudyColors.skyBlue,
+                              size: 20,
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    rec.label,
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w800,
+                                      color: AudyColors.textPrimary,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    rec.reason,
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w700,
+                                      color: Colors.orange,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'Skill: ${rec.targetSkill}',
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                      color: AudyColors.textLight,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            ElevatedButton(
+                              onPressed: () {
+                                SoundService.instance.playTap();
+                                setState(() {
+                                  _selectedGameType = rec.gameType;
+                                  _selectedTargetCount = 3;
+                                });
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AudyColors.skyBlue,
+                                foregroundColor: AudyColors.textOnColor,
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                minimumSize: Size.zero,
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(AudySpacing.radiusSmall),
+                                ),
+                              ),
+                              child: const Text(
+                                'Use',
+                                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }),
+                ],
+              );
+            }(),
+            const SizedBox(height: 12),
 
             ElevatedButton.icon(
               onPressed: _isAssigning ? null : _assignHomework,
@@ -902,6 +1219,16 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                       child: InkWell(
                         onTap: () {
                           SoundService.instance.playTap();
+                          double classAvgAccuracy = 0;
+                          int totalSessionsCount = 0;
+                          for (final sList in _studentSessions.values) {
+                            for (final s in sList) {
+                              classAvgAccuracy += (s['accuracy_percent'] as num?)?.toDouble() ?? 0.0;
+                              totalSessionsCount++;
+                            }
+                          }
+                          final avgAcc = totalSessionsCount > 0 ? classAvgAccuracy / totalSessionsCount : 0.0;
+
                           Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -910,6 +1237,7 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                                 stats: _studentStats[student.id],
                                 assignments: _studentAssignments[student.id] ?? [],
                                 sessions: _studentSessions[student.id] ?? [],
+                                classAverageAccuracy: avgAcc,
                               ),
                             ),
                           );
@@ -1071,4 +1399,18 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
       ),
     );
   }
+}
+
+class _TeacherRecommendation {
+  const _TeacherRecommendation({
+    required this.gameType,
+    required this.label,
+    required this.reason,
+    required this.targetSkill,
+  });
+
+  final String gameType;
+  final String label;
+  final String reason;
+  final String targetSkill;
 }

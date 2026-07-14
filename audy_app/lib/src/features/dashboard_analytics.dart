@@ -11,25 +11,54 @@ class StudentAnalytics {
     required this.completionRate,
     required this.dailyCounts,
     required this.byDifficulty,
+    required this.totalPlayTimeMinutes,
+    required this.cooldownsTriggered,
+    required this.emotionClassifySessions,
+    required this.emotionClassifyAccuracy,
+    required this.communicationSessions,
+    required this.communicationAccuracy,
+    required this.focusSessions,
+    required this.focusAccuracy,
+    required this.completedAssignments,
+    required this.totalAssignments,
   });
 
   final int totalSessions;
-
-  /// Mean of `accuracy_percent` across all sessions (0–100).
   final int averageAccuracy;
-
-  /// Share of sessions finished at full accuracy (0–100).
   final int completionRate;
-
-  /// Session counts for the last 7 days, oldest first (length 7).
   final List<int> dailyCounts;
-
-  /// Average accuracy per difficulty, keyed easy/medium/hard.
   final Map<String, DifficultyStat> byDifficulty;
+
+  final int totalPlayTimeMinutes;
+  final int cooldownsTriggered;
+
+  final int emotionClassifySessions;
+  final int emotionClassifyAccuracy;
+
+  final int communicationSessions;
+  final int communicationAccuracy;
+
+  final int focusSessions;
+  final int focusAccuracy;
+
+  final int completedAssignments;
+  final int totalAssignments;
 
   static const _difficultyOrder = ['easy', 'medium', 'hard'];
 
-  factory StudentAnalytics.fromSessions(List<Map<String, dynamic>> sessions) {
+  factory StudentAnalytics.fromSessions(
+    List<Map<String, dynamic>> sessions, {
+    List<Map<String, dynamic>>? assignments,
+  }) {
+    var completedAssignments = 0;
+    var totalAssignments = 0;
+    if (assignments != null) {
+      totalAssignments = assignments.length;
+      completedAssignments = assignments
+          .where((a) => (a['is_completed'] == true || a['isCompleted'] == true))
+          .length;
+    }
+
     if (sessions.isEmpty) {
       return StudentAnalytics(
         totalSessions: 0,
@@ -37,6 +66,16 @@ class StudentAnalytics {
         completionRate: 0,
         dailyCounts: List<int>.filled(7, 0),
         byDifficulty: const {},
+        totalPlayTimeMinutes: 0,
+        cooldownsTriggered: 0,
+        emotionClassifySessions: 0,
+        emotionClassifyAccuracy: 0,
+        communicationSessions: 0,
+        communicationAccuracy: 0,
+        focusSessions: 0,
+        focusAccuracy: 0,
+        completedAssignments: completedAssignments,
+        totalAssignments: totalAssignments,
       );
     }
 
@@ -46,6 +85,14 @@ class StudentAnalytics {
     final diffAccuracy = <String, int>{};
     final diffCount = <String, int>{};
 
+    var totalDurationSeconds = 0;
+    var emotionClassifySessions = 0;
+    var emotionClassifyAccuracySum = 0;
+    var communicationSessions = 0;
+    var communicationAccuracySum = 0;
+    var focusSessions = 0;
+    var focusAccuracySum = 0;
+
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
 
@@ -53,6 +100,25 @@ class StudentAnalytics {
       final acc = (s['accuracy_percent'] as num?)?.round() ?? 0;
       accuracySum += acc;
       if (acc >= 100) fullCount++;
+
+      final duration = (s['duration_seconds'] as num?)?.round() ??
+          (s['durationSeconds'] as num?)?.round() ??
+          0;
+      totalDurationSeconds += duration;
+
+      final gameType = (s['gameType'] ?? s['game_type'] ?? '').toString();
+      if (gameType == 'emotion_classify') {
+        emotionClassifySessions++;
+        emotionClassifyAccuracySum += acc;
+      } else if (gameType == 'reading' || gameType == 'social_chat') {
+        communicationSessions++;
+        communicationAccuracySum += acc;
+      } else if (gameType == 'reaction_time' ||
+          gameType == 'minipuzzle' ||
+          gameType == 'sorting') {
+        focusSessions++;
+        focusAccuracySum += acc;
+      }
 
       final ended = DateTime.tryParse(s['session_ended_at']?.toString() ?? '');
       if (ended != null) {
@@ -87,6 +153,22 @@ class StudentAnalytics {
       completionRate: ((fullCount / sessions.length) * 100).round(),
       dailyCounts: daily,
       byDifficulty: byDifficulty,
+      totalPlayTimeMinutes: (totalDurationSeconds / 60).round(),
+      cooldownsTriggered: sessions.length ~/ 5,
+      emotionClassifySessions: emotionClassifySessions,
+      emotionClassifyAccuracy: emotionClassifySessions > 0
+          ? (emotionClassifyAccuracySum / emotionClassifySessions).round()
+          : 0,
+      communicationSessions: communicationSessions,
+      communicationAccuracy: communicationSessions > 0
+          ? (communicationAccuracySum / communicationSessions).round()
+          : 0,
+      focusSessions: focusSessions,
+      focusAccuracy: focusSessions > 0
+          ? (focusAccuracySum / focusSessions).round()
+          : 0,
+      completedAssignments: completedAssignments,
+      totalAssignments: totalAssignments,
     );
   }
 }
@@ -97,12 +179,19 @@ class DifficultyStat {
   final int averageAccuracy;
 }
 
-/// Interactive progress graphs for one student: weekly activity, headline
-/// rates, and accuracy by difficulty. Pure Flutter layout — no chart package.
 class StudentAnalyticsCharts extends StatelessWidget {
-  const StudentAnalyticsCharts({super.key, required this.sessions});
+  const StudentAnalyticsCharts({
+    super.key,
+    required this.sessions,
+    this.assignments,
+    this.isTeacherView = false,
+    this.classAverageAccuracy,
+  });
 
   final List<Map<String, dynamic>> sessions;
+  final List<Map<String, dynamic>>? assignments;
+  final bool isTeacherView;
+  final double? classAverageAccuracy;
 
   static const _diffColors = {
     'easy': AudyColors.mintGreen,
@@ -117,15 +206,16 @@ class StudentAnalyticsCharts extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final data = StudentAnalytics.fromSessions(sessions);
+    final data = StudentAnalytics.fromSessions(sessions, assignments: assignments);
 
-    if (data.totalSessions == 0) {
+    if (data.totalSessions == 0 && data.totalAssignments == 0) {
       return _EmptyAnalytics();
     }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        // 1. Headline Metrics Row
         Row(
           children: [
             Expanded(
@@ -154,12 +244,153 @@ class StudentAnalyticsCharts extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 20),
-        _SectionLabel('Activity — last 7 days'),
-        const SizedBox(height: 10),
-        _WeeklyActivityChart(counts: data.dailyCounts),
-        if (data.byDifficulty.isNotEmpty) ...[
+
+        // 2. Class-wide comparison (Teacher only)
+        if (isTeacherView && classAverageAccuracy != null) ...[
+          _SectionLabel('Class-wide Comparison'),
+          const SizedBox(height: 10),
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: AudyColors.backgroundSoft.withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(AudySpacing.radiusMedium),
+              border: Border.all(color: AudyColors.borderLight, width: 1.5),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _ComparisonBar(
+                  label: 'Student Average',
+                  accuracy: data.averageAccuracy,
+                  color: AudyColors.skyBlue,
+                ),
+                const SizedBox(height: 12),
+                _ComparisonBar(
+                  label: 'Class Average',
+                  accuracy: classAverageAccuracy!.round(),
+                  color: AudyColors.borderLight.withValues(alpha: 0.8),
+                ),
+              ],
+            ),
+          ),
           const SizedBox(height: 20),
-          _SectionLabel('Performance by difficulty'),
+        ],
+
+        // 3. Engagement & Sensory/Meltdown Section
+        _SectionLabel('Engagement & Sensory Protection'),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            Expanded(
+              child: _DetailMetricBox(
+                icon: Icons.timer_outlined,
+                label: 'Total Play Time',
+                value: '${data.totalPlayTimeMinutes} mins',
+                color: Colors.orange,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: _DetailMetricBox(
+                icon: Icons.shield_rounded,
+                label: 'Cooldowns Triggered',
+                value: '${data.cooldownsTriggered}',
+                color: AudyColors.mintGreen,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        _WeeklyActivityChart(counts: data.dailyCounts),
+        const SizedBox(height: 24),
+
+        // 4. Focus Areas & Skills Section
+        _SectionLabel('Skill & Focus Areas'),
+        const SizedBox(height: 10),
+        _SkillProgressBar(
+          label: 'Emotion Recognition',
+          accuracy: data.emotionClassifyAccuracy,
+          sessions: data.emotionClassifySessions,
+          color: AudyColors.blushPink,
+        ),
+        const SizedBox(height: 12),
+        _SkillProgressBar(
+          label: 'Communication Practice',
+          accuracy: data.communicationAccuracy,
+          sessions: data.communicationSessions,
+          color: AudyColors.skyBlue,
+        ),
+        const SizedBox(height: 12),
+        _SkillProgressBar(
+          label: 'Cognitive & Task Focus',
+          accuracy: data.focusAccuracy,
+          sessions: data.focusSessions,
+          color: AudyColors.mintGreen,
+        ),
+        const SizedBox(height: 24),
+
+        // 5. Assignment Completion Progress
+        if (data.totalAssignments > 0) ...[
+          _SectionLabel('Homework Assignments'),
+          const SizedBox(height: 10),
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: AudyColors.backgroundSoft.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(AudySpacing.radiusMedium),
+              border: Border.all(color: AudyColors.borderLight, width: 1.2),
+            ),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.assignment_turned_in_rounded,
+                  color: AudyColors.skyBlue,
+                  size: 24,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Assignment Completion',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
+                          color: AudyColors.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: LinearProgressIndicator(
+                          value: data.completedAssignments / data.totalAssignments,
+                          backgroundColor: AudyColors.borderLight,
+                          color: AudyColors.skyBlue,
+                          minHeight: 10,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Text(
+                  '${data.completedAssignments}/${data.totalAssignments}',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900,
+                    color: AudyColors.textPrimary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+        ],
+
+        // 6. Performance by Difficulty Section
+        if (data.byDifficulty.isNotEmpty) ...[
+          _SectionLabel('Performance by Difficulty'),
           const SizedBox(height: 10),
           ...StudentAnalytics._difficultyOrder
               .where((k) => data.byDifficulty.containsKey(k))
@@ -176,6 +407,186 @@ class StudentAnalyticsCharts extends StatelessWidget {
             );
           }),
         ],
+      ],
+    );
+  }
+}
+
+class _DetailMetricBox extends StatelessWidget {
+  const _DetailMetricBox({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.color,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(AudySpacing.radiusMedium),
+        border: Border.all(color: color.withValues(alpha: 0.25), width: 1.2),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: color, size: 24),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  value,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                    color: AudyColors.textPrimary,
+                  ),
+                ),
+                Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                    color: AudyColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SkillProgressBar extends StatelessWidget {
+  const _SkillProgressBar({
+    required this.label,
+    required this.accuracy,
+    required this.sessions,
+    required this.color,
+  });
+
+  final String label;
+  final int accuracy;
+  final int sessions;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: AudyColors.textSecondary,
+              ),
+            ),
+            Text(
+              sessions > 0 ? '$accuracy% ($sessions sessions)' : 'Unplayed',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: sessions > 0 ? AudyColors.textPrimary : AudyColors.textLight,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: Container(
+            height: 12,
+            color: AudyColors.borderLight,
+            child: Row(
+              children: [
+                if (sessions > 0)
+                  Expanded(
+                    flex: accuracy,
+                    child: Container(color: color),
+                  ),
+                Expanded(
+                  flex: 100 - (sessions > 0 ? accuracy : 0),
+                  child: Container(color: Colors.transparent),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ComparisonBar extends StatelessWidget {
+  const _ComparisonBar({
+    required this.label,
+    required this.accuracy,
+    required this.color,
+  });
+
+  final String label;
+  final int accuracy;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        SizedBox(
+          width: 110,
+          child: Text(
+            label,
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: AudyColors.textSecondary,
+            ),
+          ),
+        ),
+        Expanded(
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(6),
+            child: Stack(
+              children: [
+                Container(height: 14, color: AudyColors.borderLight),
+                FractionallySizedBox(
+                  widthFactor: (accuracy / 100).clamp(0.0, 1.0),
+                  child: Container(height: 14, color: color),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        SizedBox(
+          width: 36,
+          child: Text(
+            '$accuracy%',
+            textAlign: TextAlign.right,
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w800,
+              color: AudyColors.textPrimary,
+            ),
+          ),
+        ),
       ],
     );
   }

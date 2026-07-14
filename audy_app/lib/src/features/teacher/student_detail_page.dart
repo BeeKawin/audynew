@@ -9,6 +9,7 @@ class StudentDetailPage extends StatelessWidget {
   final Map<String, dynamic>? stats;
   final List<Map<String, dynamic>> assignments;
   final List<Map<String, dynamic>> sessions;
+  final double? classAverageAccuracy;
 
   const StudentDetailPage({
     super.key,
@@ -16,6 +17,7 @@ class StudentDetailPage extends StatelessWidget {
     required this.stats,
     required this.assignments,
     required this.sessions,
+    this.classAverageAccuracy,
   });
 
   static const List<Map<String, String>> _gameTypes = [
@@ -133,7 +135,12 @@ class StudentDetailPage extends StatelessWidget {
                   ),
                   child: Padding(
                     padding: EdgeInsets.all(adaptive.space(20)),
-                    child: StudentAnalyticsCharts(sessions: sessions),
+                    child: StudentAnalyticsCharts(
+                      sessions: sessions,
+                      assignments: assignments,
+                      isTeacherView: true,
+                      classAverageAccuracy: classAverageAccuracy,
+                    ),
                   ),
                 ),
                 SizedBox(height: adaptive.space(24)),

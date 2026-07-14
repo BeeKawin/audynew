@@ -20,6 +20,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
   List<UserProfile> _children = [];
   final Map<String, Map<String, dynamic>> _childrenStats = {};
   final Map<String, List<Map<String, dynamic>>> _childrenSessions = {};
+  final Map<String, List<Map<String, dynamic>>> _childrenAssignments = {};
   bool _isLoading = true;
   bool _isLinking = false;
   String? _message;
@@ -61,6 +62,10 @@ class _ParentDashboardState extends State<ParentDashboard> {
         final sessions = await _authService.fetchStudentSessions(child.id);
         setState(() {
           _childrenSessions[child.id] = sessions;
+        });
+        final assignments = await _authService.fetchAssignments(child.id);
+        setState(() {
+          _childrenAssignments[child.id] = assignments;
         });
       }
     }
@@ -416,6 +421,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
             SizedBox(height: adaptive.space(16)),
             StudentAnalyticsCharts(
               sessions: _childrenSessions[child.id] ?? const [],
+              assignments: _childrenAssignments[child.id],
             ),
             SizedBox(height: adaptive.space(16)),
             Row(

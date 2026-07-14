@@ -8,7 +8,7 @@ import '../services/auth_service.dart';
 import '../services/sound_service.dart';
 import '../state/audy_controller.dart';
 
-const double _assignmentRecommendationThreshold = 0.80;
+
 
 /// Full-page assignments hub, opened from the circular assignment button
 /// in the dashboard header (next to the device/Bluetooth button).
@@ -239,10 +239,12 @@ class _AssignmentRecommendation {
   const _AssignmentRecommendation({
     required this.option,
     required this.accuracy,
+    required this.reason,
   });
 
   final _AssignmentOption option;
   final double accuracy;
+  final String reason;
 }
 
 List<_AssignmentOption> _assignmentOptions(BuildContext context) {
@@ -322,33 +324,65 @@ List<_AssignmentRecommendation> _assignmentRecommendations(
   final options = _assignmentOptions(context);
   final recommendations = <_AssignmentRecommendation>[];
 
-  for (final feature in analytics.features) {
-    final accuracy = feature.averageAccuracy;
-    if (accuracy == null || accuracy <= _assignmentRecommendationThreshold) {
-      continue;
-    }
+  final playedFeatureMap = {for (final f in analytics.features) f.gameType: f};
 
-    final option = _assignmentOptionForGameType(options, feature.gameType);
-    if (option != null) {
-      recommendations.add(
-        _AssignmentRecommendation(option: option, accuracy: accuracy),
-      );
+  for (final option in options) {
+    final feature = playedFeatureMap[option.gameType];
+
+    if (feature != null && feature.sessions > 0) {
+      final accuracy = feature.averageAccuracy ?? 0.0;
+      if (accuracy < 0.70) {
+        recommendations.add(_AssignmentRecommendation(
+          option: option,
+          accuracy: accuracy,
+          reason: 'Needs practice (low score: ${(accuracy * 100).round()}%)',
+        ));
+      } else if (accuracy >= 0.70 && accuracy < 0.85) {
+        recommendations.add(_AssignmentRecommendation(
+          option: option,
+          accuracy: accuracy,
+          reason: 'Reinforce skill (mastery: ${(accuracy * 100).round()}%)',
+        ));
+      } else {
+        recommendations.add(_AssignmentRecommendation(
+          option: option,
+          accuracy: accuracy,
+          reason: 'Keep sharp (mastered: ${(accuracy * 100).round()}%)',
+        ));
+      }
+    } else {
+      recommendations.add(_AssignmentRecommendation(
+        option: option,
+        accuracy: 0.0,
+        reason: 'Unplayed (assign to explore)',
+      ));
     }
   }
 
-  recommendations.sort((a, b) => b.accuracy.compareTo(a.accuracy));
+  recommendations.sort((a, b) {
+    int getPriority(double acc) {
+      if (acc > 0.0 && acc < 0.70) return 1;
+      if (acc == 0.0) return 2;
+      if (acc >= 0.70 && acc < 0.85) return 3;
+      return 4;
+    }
+
+    final pA = getPriority(a.accuracy);
+    final pB = getPriority(b.accuracy);
+
+    if (pA != pB) return pA.compareTo(pB);
+
+    if (pA == 1 || pA == 3) {
+      return a.accuracy.compareTo(b.accuracy);
+    } else {
+      return b.accuracy.compareTo(a.accuracy);
+    }
+  });
+
   return recommendations.take(3).toList();
 }
 
-_AssignmentOption? _assignmentOptionForGameType(
-  List<_AssignmentOption> options,
-  String gameType,
-) {
-  for (final option in options) {
-    if (option.gameType == gameType) return option;
-  }
-  return null;
-}
+
 
 class _AssignmentsDashboardSection extends StatelessWidget {
   const _AssignmentsDashboardSection({
@@ -655,12 +689,7 @@ class _AssignmentRecommendationRow extends StatelessWidget {
                 ),
                 const SizedBox(height: 3),
                 Text(
-                  controller.tr(
-                    'assignment_accuracy_value',
-                    params: {
-                      'percent': '${(recommendation.accuracy * 100).round()}',
-                    },
-                  ),
+                  recommendation.reason,
                   style: const TextStyle(
                     fontSize: 12,
                     color: Color(0xFF60758F),
