@@ -406,89 +406,149 @@ class _PlayState extends StatelessWidget {
     final isThai = AudyScope.of(context).currentLanguage == 'th';
     final scenario = controller.currentRound?.scenario ?? '';
 
-    return Column(
-      children: [
-        if (scenario.isNotEmpty) ...[
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const AudyMascot(size: 90),
-              SizedBox(width: adaptive.space(12)),
-              Expanded(
-                child: Container(
-                  padding: EdgeInsets.symmetric(
-                    vertical: adaptive.space(12),
-                    horizontal: adaptive.space(16),
-                  ),
-                  decoration: BoxDecoration(
-                    color: AudyColors.backgroundSoft,
-                    borderRadius: const BorderRadius.only(
-                      topRight: Radius.circular(AudySpacing.radiusLarge),
-                      bottomLeft: Radius.circular(AudySpacing.radiusLarge),
-                      bottomRight: Radius.circular(AudySpacing.radiusLarge),
-                      topLeft: Radius.circular(4),
-                    ),
-                    boxShadow: AudyShadows.cardShadow,
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          scenario,
-                          style: AudyTypography.headingSmall,
-                        ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final screenWidth = constraints.maxWidth;
+        final screenHeight = constraints.maxHeight;
+
+        final scale = adaptive.scale;
+        final spacing = adaptive.space(8);
+        final runSpacing = adaptive.space(8);
+
+        final scenarioHeight = scenario.isNotEmpty 
+            ? (108.0 + 14.0) * scale 
+            : 0.0;
+        final buttonHeight = (62.0 + 14.0) * scale;
+        final deckPadding = 28.0 * scale;
+        final handPadding = 24.0;
+        final gapHeight = 14.0 * scale;
+
+        final totalOverhead = scenarioHeight + buttonHeight + deckPadding + handPadding + gapHeight + 16.0;
+        final availableHeight = screenHeight - totalOverhead;
+
+        final count = controller.cardCount;
+        double cardWidth = count <= 3 ? 108.0 : 88.0;
+        final minWidth = 80.0;
+        final maxAllowedWidth = adaptive.isPhone ? 140.0 : 180.0;
+
+        for (double w = maxAllowedWidth; w >= minWidth; w -= 1.0) {
+          final h = w * 1.3;
+
+          final deckInnerWidth = screenWidth - (24.0 * scale);
+          final deckCols = ((deckInnerWidth + spacing) / (w + spacing)).floor();
+          if (deckCols <= 0) continue;
+          final deckRows = (count / deckCols).ceil();
+          final deckHeight = deckRows * h + (deckRows - 1) * runSpacing;
+
+          final handInnerWidth = screenWidth - 16.0;
+          final handCols = ((handInnerWidth + spacing) / (w + spacing)).floor();
+          if (handCols <= 0) continue;
+          final handRows = (count / handCols).ceil();
+          final handHeight = handRows * h + (handRows - 1) * runSpacing;
+
+          if (deckHeight + handHeight <= availableHeight) {
+            cardWidth = w;
+            break;
+          }
+        }
+
+        final cardHeight = cardWidth * 1.3;
+
+        return Column(
+          children: [
+            if (scenario.isNotEmpty) ...[
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const AudyMascot(size: 90),
+                  SizedBox(width: adaptive.space(12)),
+                  Expanded(
+                    child: Container(
+                      padding: EdgeInsets.symmetric(
+                        vertical: adaptive.space(12),
+                        horizontal: adaptive.space(16),
                       ),
-                      if (onSpeakScenario != null) ...[
-                        SizedBox(width: adaptive.space(12)),
-                        IconButton(
-                          onPressed: onSpeakScenario,
-                          icon: const Icon(
-                            Icons.volume_up_rounded,
-                            color: AudyColors.textPrimary,
-                            size: 32,
-                          ),
+                      decoration: BoxDecoration(
+                        color: AudyColors.backgroundSoft,
+                        borderRadius: const BorderRadius.only(
+                          topRight: Radius.circular(AudySpacing.radiusLarge),
+                          bottomLeft: Radius.circular(AudySpacing.radiusLarge),
+                          bottomRight: Radius.circular(AudySpacing.radiusLarge),
+                          topLeft: Radius.circular(4),
                         ),
-                      ],
-                    ],
+                        boxShadow: AudyShadows.cardShadow,
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              scenario,
+                              style: AudyTypography.headingSmall,
+                            ),
+                          ),
+                          if (onSpeakScenario != null) ...[
+                            SizedBox(width: adaptive.space(12)),
+                            IconButton(
+                              onPressed: onSpeakScenario,
+                              icon: const Icon(
+                                Icons.volume_up_rounded,
+                                color: AudyColors.textPrimary,
+                                size: 32,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
                   ),
+                ],
+              ),
+              SizedBox(height: adaptive.space(14)),
+            ],
+            // Deck — fixed slots the player fills to build the sentence.
+            _DeckZone(
+              adaptive: adaptive,
+              controller: controller,
+              cardWidth: cardWidth,
+              cardHeight: cardHeight,
+            ),
+            SizedBox(height: adaptive.space(14)),
+
+            // Hand — the remaining shuffled cards to choose from.
+            Expanded(
+              child: _HandZone(
+                adaptive: adaptive,
+                controller: controller,
+                cardWidth: cardWidth,
+                cardHeight: cardHeight,
+              ),
+            ),
+            SizedBox(height: adaptive.space(14)),
+
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: controller.canSubmit && !isBusy ? onSubmit : null,
+                icon: Icon(
+                  isBusy ? Icons.hourglass_empty_rounded : Icons.check_rounded,
+                  size: adaptive.space(28),
+                ),
+                label: Text(
+                  isBusy
+                      ? (isThai ? 'กำลังตรวจ' : 'Checking')
+                      : (isThai ? 'ตรวจคำตอบ' : 'Check'),
+                  style: AudyTypography.buttonText,
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AudyColors.skyBlue,
+                  foregroundColor: AudyColors.textOnColor,
+                  minimumSize: Size.fromHeight(adaptive.space(62)),
                 ),
               ),
-            ],
-          ),
-          SizedBox(height: adaptive.space(14)),
-        ],
-        // Deck — fixed slots the player fills to build the sentence.
-        _DeckZone(adaptive: adaptive, controller: controller),
-        SizedBox(height: adaptive.space(14)),
-
-        // Hand — the remaining shuffled cards to choose from.
-        Expanded(
-          child: _HandZone(adaptive: adaptive, controller: controller),
-        ),
-        SizedBox(height: adaptive.space(14)),
-
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton.icon(
-            onPressed: controller.canSubmit && !isBusy ? onSubmit : null,
-            icon: Icon(
-              isBusy ? Icons.hourglass_empty_rounded : Icons.check_rounded,
-              size: adaptive.space(28),
             ),
-            label: Text(
-              isBusy
-                  ? (isThai ? 'กำลังตรวจ' : 'Checking')
-                  : (isThai ? 'ตรวจคำตอบ' : 'Check'),
-              style: AudyTypography.buttonText,
-            ),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AudyColors.skyBlue,
-              foregroundColor: AudyColors.textOnColor,
-              minimumSize: Size.fromHeight(adaptive.space(62)),
-            ),
-          ),
-        ),
-      ],
+          ],
+        );
+      },
     );
   }
 }
@@ -498,16 +558,21 @@ class _PlayState extends StatelessWidget {
 // ---------------------------------------------------------------------------
 
 class _DeckZone extends StatelessWidget {
-  const _DeckZone({required this.adaptive, required this.controller});
+  const _DeckZone({
+    required this.adaptive,
+    required this.controller,
+    required this.cardWidth,
+    required this.cardHeight,
+  });
 
   final AudyAdaptive adaptive;
   final FlashcardController controller;
+  final double cardWidth;
+  final double cardHeight;
 
   @override
   Widget build(BuildContext context) {
     final count = controller.cardCount;
-    final cardWidth = count <= 3 ? 108.0 : 88.0;
-    final cardHeight = cardWidth * 1.3;
     final selected = controller.selectedCards;
 
     return _ShakeOnChange(
@@ -688,16 +753,20 @@ class _EmptySlot extends StatelessWidget {
 // ---------------------------------------------------------------------------
 
 class _HandZone extends StatelessWidget {
-  const _HandZone({required this.adaptive, required this.controller});
+  const _HandZone({
+    required this.adaptive,
+    required this.controller,
+    required this.cardWidth,
+    required this.cardHeight,
+  });
 
   final AudyAdaptive adaptive;
   final FlashcardController controller;
+  final double cardWidth;
+  final double cardHeight;
 
   @override
   Widget build(BuildContext context) {
-    final count = controller.cardCount;
-    final cardWidth = count <= 3 ? 108.0 : 88.0;
-    final cardHeight = cardWidth * 1.3;
     final canPlace = !controller.isDeckFull;
 
     return SingleChildScrollView(
