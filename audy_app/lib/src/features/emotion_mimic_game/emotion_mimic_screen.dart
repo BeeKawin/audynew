@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 
 import '../../core/audy_theme.dart';
@@ -12,10 +10,11 @@ import '../../widgets/game_guide_box.dart';
 import '../../widgets/robot_panel_layout.dart';
 import '../../widgets/virtual_robot_panel.dart';
 import 'mimic_complete_screen.dart';
-import 'selfie_capture_screen.dart';
 
 /// "Make this emotion!" - Mimic game
-/// Shows an emotion prompt and asks user to mimic it with selfie
+/// Shows a real facial expression photo as a prompt and invites the child
+/// to mimic it, using a friendly mascot avatar instead of their own camera
+/// feed so the experience stays comfortable for autistic children.
 class EmotionMimicScreen extends StatefulWidget {
   const EmotionMimicScreen({super.key});
 
@@ -25,40 +24,16 @@ class EmotionMimicScreen extends StatefulWidget {
 
 class _EmotionMimicScreenState extends State<EmotionMimicScreen> {
   final DateTime _sessionStartedAt = DateTime.now();
-  StreamSubscription<AudyBleMessage>? _bleInputSub;
-  bool _isCaptureRouteOpen = false;
   bool _showGuide = true;
 
   @override
   void initState() {
     super.initState();
     SoundService.instance.playInstructionEmotionMimic();
-    _bleInputSub = AudyBluetoothService.instance.incomingMessages.listen(
-      _handleBleInput,
-    );
-  }
-
-  void _handleBleInput(AudyBleMessage message) {
-    if (!mounted) return;
-    if (ModalRoute.of(context)?.isCurrent != true) return;
-    if (message.channel != 'tummy' || message.value != 1) return;
-
-    final controller = AudyScope.of(context);
-    if (controller.isMimicGameComplete) return;
-    if (_isCaptureRouteOpen) return;
-
-    SoundService.instance.playTap();
-    unawaited(_startSelfieCapture(controller.currentMimicTarget));
   }
 
   void _triggerVirtualInput(String channel, int value) {
-    _handleBleInput(
-      AudyBleMessage(
-        channel: channel,
-        value: value,
-        receivedAt: DateTime.now(),
-      ),
-    );
+    // UI only: no functional input is processed for the preview screen.
   }
 
   @override
@@ -169,7 +144,7 @@ class _EmotionMimicScreenState extends State<EmotionMimicScreen> {
                     child: EmotionCharacterWidget(
                       emotion: targetEmotion,
                       size: 180,
-                      useHumanImage: false,
+                      useHumanImage: true,
                     ),
                   ),
                   const SizedBox(height: AudySpacing.sectionGap),
@@ -180,33 +155,33 @@ class _EmotionMimicScreenState extends State<EmotionMimicScreen> {
                     ),
                   ),
                   const Spacer(),
-                  SizedBox(
-                    width: double.infinity,
-                    height: AudySpacing.buttonHeight + 12,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        SoundService.instance.playTap();
-                        unawaited(_startSelfieCapture(targetEmotion));
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AudyColors.mintGreen,
-                        foregroundColor: AudyColors.textOnColor,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(
-                            AudySpacing.radiusXLarge,
-                          ),
-                        ),
-                        elevation: 4,
+                  Center(
+                    child: Container(
+                      width: double.infinity,
+                      constraints: BoxConstraints(
+                        maxWidth: adaptive.space(320),
                       ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                      padding: EdgeInsets.symmetric(
+                        vertical: adaptive.space(20),
+                        horizontal: adaptive.space(16),
+                      ),
+                      decoration: BoxDecoration(
+                        color: AudyColors.backgroundSoft,
+                        borderRadius: BorderRadius.circular(
+                          AudySpacing.radiusXLarge,
+                        ),
+                        boxShadow: AudyShadows.cardShadow,
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(Icons.camera_alt_rounded, size: 32),
-                          const SizedBox(width: 12),
                           Text(
-                            controller.tr('take_photo'),
-                            style: AudyTypography.buttonText,
+                            controller.tr('your_turn'),
+                            style: AudyTypography.headingSmall,
+                            textAlign: TextAlign.center,
                           ),
+                          SizedBox(height: adaptive.space(12)),
+                          const AudyMascot(size: 130),
                         ],
                       ),
                     ),
@@ -219,29 +194,5 @@ class _EmotionMimicScreenState extends State<EmotionMimicScreen> {
         );
       },
     );
-  }
-
-  Future<void> _startSelfieCapture(String targetEmotion) async {
-    if (_isCaptureRouteOpen) return;
-
-    _isCaptureRouteOpen = true;
-    try {
-      await Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => SelfieCaptureScreen(targetEmotion: targetEmotion),
-        ),
-      );
-    } finally {
-      if (mounted) {
-        _isCaptureRouteOpen = false;
-      }
-    }
-  }
-
-  @override
-  void dispose() {
-    _bleInputSub?.cancel();
-    super.dispose();
   }
 }

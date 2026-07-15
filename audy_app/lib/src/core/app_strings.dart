@@ -91,8 +91,8 @@ class AppStrings {
       'th': 'ดูใบหน้า แล้วแตะอารมณ์ที่ตรงกัน',
     },
     'guide_emotion_mimic': {
-      'en': 'Make the same face. Then take a photo.',
-      'th': 'ทำหน้าเหมือนตัวอย่าง แล้วถ่ายรูป',
+      'en': 'Look at the face. Then make the same expression!',
+      'th': 'ดูใบหน้า แล้วทำหน้าแบบเดียวกัน!',
     },
     'guide_reaction_time': {
       'en': 'Wait for green. Then tap fast.',
@@ -440,7 +440,7 @@ class AppStrings {
     // Emotion Game
     'what_emotion': {'en': 'What is this emotion?', 'th': 'นี่คืออารมณ์อะไร?'},
     'make_this_face': {'en': 'Make this face', 'th': 'ทำหน้าแบบนี้'},
-    'take_photo': {'en': 'Take Photo', 'th': 'ถ่ายรูป'},
+    'your_turn': {'en': 'Your turn!', 'th': 'ตาของหนูแล้ว!'},
     'score_format': {'en': 'Score: {score}', 'th': 'คะแนน: {score}'},
     'wonderful': {'en': 'Wonderful!', 'th': 'ยอดเยี่ยม!'},
     'emotion_practice_complete': {
