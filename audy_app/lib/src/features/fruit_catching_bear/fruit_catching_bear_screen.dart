@@ -2,13 +2,11 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
-import 'package:sensors_plus/sensors_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/app_routes.dart';
 import '../../core/audy_theme.dart';
 import '../../core/audy_ui.dart';
-import '../../services/bluetooth_service.dart';
 import '../../services/sound_service.dart';
 import '../../state/audy_controller.dart';
 import '../../widgets/game_guide_box.dart';
@@ -44,20 +42,15 @@ class _FruitCatchingBearScreenState extends State<FruitCatchingBearScreen> {
   final Random _random = Random();
   final List<_FallingItem> _items = [];
 
-  StreamSubscription<dynamic>? _tiltSubscription;
-  StreamSubscription<AudyMpuMotion>? _mpuSubscription;
   Timer? _gameLoop;
   Timer? _spawnLoop;
 
-  double _playerX = 0.5;
-  double _tiltX = 0;
-  bool _isBluetoothConnected = AudyBluetoothService.instance.isConnected;
-  bool _hasMpuMotion = false;
+  double _playerX = 0.25;
+  double _targetPlayerX = 0.25;
   int _score = 0;
   int _highScore = 0;
   bool _isGameOver = false;
   bool _showGuide = true;
-  bool _sensorUnavailable = false;
   DateTime _startedAt = DateTime.now();
   Duration _elapsedTime = Duration.zero;
   _StageMetrics? _stageMetrics;
@@ -66,46 +59,8 @@ class _FruitCatchingBearScreenState extends State<FruitCatchingBearScreen> {
   void initState() {
     super.initState();
     _startedAt = DateTime.now();
-    AudyBluetoothService.instance.connectionNotifier.addListener(
-      _handleBluetoothConnectionChanged,
-    );
-    unawaited(AudyBluetoothService.instance.setMpuMotionEnabled(true));
-    _startMpuListening();
     _loadHighScore();
-    _startTiltListening();
     _startGame();
-  }
-
-  void _handleBluetoothConnectionChanged() {
-    if (!mounted) return;
-
-    setState(() {
-      _isBluetoothConnected = AudyBluetoothService.instance.isConnected;
-      if (_isBluetoothConnected) {
-        _tiltX = 0;
-        _hasMpuMotion = false;
-        _sensorUnavailable = false;
-        unawaited(AudyBluetoothService.instance.setMpuMotionEnabled(true));
-      }
-    });
-  }
-
-  void _startMpuListening() {
-    _mpuSubscription = AudyBluetoothService.instance.mpuMotionMessages.listen((
-      motion,
-    ) {
-      if (!mounted) return;
-
-      final rawTilt = motion.ay.clamp(-9.8, 9.8);
-      final normalizedTilt = (rawTilt / 9.8) * 10.0;
-      final deadZonedTilt = normalizedTilt.abs() < 0.2 ? 0.0 : normalizedTilt;
-
-      setState(() {
-        _sensorUnavailable = false;
-        _hasMpuMotion = true;
-        _tiltX = (_tiltX * 0.72) + (deadZonedTilt * 0.28);
-      });
-    });
   }
 
   Future<void> _loadHighScore() async {
@@ -119,27 +74,6 @@ class _FruitCatchingBearScreenState extends State<FruitCatchingBearScreen> {
   Future<void> _saveHighScore(int highScore) async {
     final preferences = await SharedPreferences.getInstance();
     await preferences.setInt(_highScoreKey, highScore);
-  }
-
-  void _startTiltListening() {
-    _tiltSubscription = accelerometerEventStream().listen(
-      (event) {
-        if (!mounted) return;
-        if (_isBluetoothConnected) return;
-        final isLandscape =
-            MediaQuery.maybeOrientationOf(context) == Orientation.landscape;
-        final horizontalTilt = isLandscape ? -event.y : event.x;
-        setState(() {
-          _sensorUnavailable = false;
-          _tiltX = horizontalTilt.clamp(-7.0, 7.0);
-        });
-      },
-      onError: (_) {
-        if (!mounted) return;
-        setState(() => _sensorUnavailable = true);
-      },
-      cancelOnError: false,
-    );
   }
 
   void _startGame() {
@@ -160,6 +94,7 @@ class _FruitCatchingBearScreenState extends State<FruitCatchingBearScreen> {
     if (!mounted || _isGameOver) return;
 
     final isBomb = _score >= 2 && _random.nextDouble() < 0.2;
+    final laneX = _random.nextBool() ? 0.25 : 0.75;
     setState(() {
       _items.add(
         _FallingItem(
@@ -167,7 +102,7 @@ class _FruitCatchingBearScreenState extends State<FruitCatchingBearScreen> {
               ? _bombAsset
               : _fruitAssets[_random.nextInt(_fruitAssets.length)],
           type: isBomb ? _FallingItemType.bomb : _FallingItemType.fruit,
-          x: _random.nextDouble(),
+          x: laneX,
           y: -0.12,
           speed: 0.0048,
           sizeFactor: 0.088 + (_random.nextDouble() * 0.025),
@@ -180,8 +115,7 @@ class _FruitCatchingBearScreenState extends State<FruitCatchingBearScreen> {
     if (!mounted || _isGameOver) return;
 
     setState(() {
-      final tiltVelocity = -_tiltX * 0.0027;
-      _playerX = (_playerX + tiltVelocity).clamp(0.08, 0.92);
+      _playerX = _playerX + (_targetPlayerX - _playerX) * 0.25;
 
       for (final item in _items) {
         item.y += item.speed;
@@ -262,16 +196,24 @@ class _FruitCatchingBearScreenState extends State<FruitCatchingBearScreen> {
     SoundService.instance.playGameComplete();
   }
 
+  void _changeLane(double laneX) {
+    if (_isGameOver) return;
+    if (_targetPlayerX != laneX) {
+      SoundService.instance.playTap();
+      setState(() {
+        _targetPlayerX = laneX;
+      });
+    }
+  }
+
   void _restartGame() {
     SoundService.instance.playTap();
     setState(() {
       _items.clear();
-      _playerX = 0.5;
-      _tiltX = 0;
-      _hasMpuMotion = false;
+      _playerX = 0.25;
+      _targetPlayerX = 0.25;
       _score = 0;
       _isGameOver = false;
-      _sensorUnavailable = false;
       _startedAt = DateTime.now();
       _elapsedTime = Duration.zero;
     });
@@ -290,12 +232,6 @@ class _FruitCatchingBearScreenState extends State<FruitCatchingBearScreen> {
 
   @override
   void dispose() {
-    _tiltSubscription?.cancel();
-    _mpuSubscription?.cancel();
-    unawaited(AudyBluetoothService.instance.setMpuMotionEnabled(false));
-    AudyBluetoothService.instance.connectionNotifier.removeListener(
-      _handleBluetoothConnectionChanged,
-    );
     _gameLoop?.cancel();
     _spawnLoop?.cancel();
     super.dispose();
@@ -322,20 +258,6 @@ class _FruitCatchingBearScreenState extends State<FruitCatchingBearScreen> {
                 Navigator.pop(context);
               },
             ),
-            if (_sensorUnavailable) ...[
-              SizedBox(height: adaptive.space(12)),
-              _SensorMessage(
-                adaptive: adaptive,
-                message: 'Motion sensor is not ready.',
-              ),
-            ],
-            if (_isBluetoothConnected && !_hasMpuMotion) ...[
-              SizedBox(height: adaptive.space(12)),
-              _SensorMessage(
-                adaptive: adaptive,
-                message: 'Waiting for motion sensor.',
-              ),
-            ],
             SizedBox(height: adaptive.space(12)),
             Expanded(
               child: _GameStage(
@@ -352,6 +274,7 @@ class _FruitCatchingBearScreenState extends State<FruitCatchingBearScreen> {
                 onRestart: _restartGame,
                 onDone: _finishGame,
                 onMetricsChanged: _updateStageMetrics,
+                onLaneTapped: _changeLane,
               ),
             ),
           ],
@@ -430,40 +353,6 @@ class _HudPill extends StatelessWidget {
   }
 }
 
-class _SensorMessage extends StatelessWidget {
-  const _SensorMessage({required this.adaptive, required this.message});
-
-  final AudyAdaptive adaptive;
-  final String message;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.all(adaptive.space(14)),
-      decoration: BoxDecoration(
-        color: AudyColors.warning.withValues(alpha: 0.25),
-        borderRadius: BorderRadius.circular(AudySpacing.radiusMedium),
-        border: Border.all(color: AudyColors.warning, width: 2),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.info_rounded, color: AudyColors.textPrimary),
-          SizedBox(width: adaptive.space(10)),
-          Expanded(
-            child: Text(
-              message,
-              style: AudyTypography.bodySmall.copyWith(
-                color: AudyColors.textPrimary,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _GameStage extends StatelessWidget {
   const _GameStage({
     required this.backgroundAsset,
@@ -477,6 +366,7 @@ class _GameStage extends StatelessWidget {
     required this.onRestart,
     required this.onDone,
     required this.onMetricsChanged,
+    required this.onLaneTapped,
   });
 
   final String backgroundAsset;
@@ -490,6 +380,7 @@ class _GameStage extends StatelessWidget {
   final VoidCallback onRestart;
   final VoidCallback onDone;
   final ValueChanged<_StageMetrics> onMetricsChanged;
+  final ValueChanged<double> onLaneTapped;
 
   @override
   Widget build(BuildContext context) {
@@ -503,41 +394,69 @@ class _GameStage extends StatelessWidget {
           _StageMetrics(width: width, height: height, playerSize: playerSize),
         );
 
-        return ClipRRect(
-          borderRadius: BorderRadius.circular(AudySpacing.radiusLarge),
-          child: Stack(
-            children: [
-              Positioned.fill(
-                child: Image.asset(backgroundAsset, fit: BoxFit.cover),
-              ),
-              Positioned.fill(
-                child: ColoredBox(color: Colors.white.withValues(alpha: 0.08)),
-              ),
-              for (final item in items)
-                _FallingItemSprite(
-                  item: item,
-                  stageWidth: width,
-                  stageHeight: height,
+        return GestureDetector(
+          onTapDown: (details) {
+            final tapX = details.localPosition.dx;
+            final laneX = tapX < (width / 2) ? 0.25 : 0.75;
+            onLaneTapped(laneX);
+          },
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(AudySpacing.radiusLarge),
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: Image.asset(backgroundAsset, fit: BoxFit.cover),
                 ),
-              Positioned(
-                left: playerLeft.clamp(0.0, max(0.0, width - playerSize)),
-                bottom: 10,
-                child: Image.asset(
-                  playerAsset,
-                  width: playerSize,
-                  height: playerSize,
-                  fit: BoxFit.contain,
+                Positioned.fill(
+                  child: ColoredBox(color: Colors.white.withValues(alpha: 0.08)),
                 ),
-              ),
-              if (isGameOver)
-                _GameOverOverlay(
-                  score: score,
-                  highScore: highScore,
-                  duration: duration,
-                  onRestart: onRestart,
-                  onDone: onDone,
+                Positioned.fill(
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            border: Border(
+                              right: BorderSide(
+                                color: Colors.white.withValues(alpha: 0.2),
+                                width: 2.5,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const Expanded(
+                        child: SizedBox.shrink(),
+                      ),
+                    ],
+                  ),
                 ),
-            ],
+                for (final item in items)
+                  _FallingItemSprite(
+                    item: item,
+                    stageWidth: width,
+                    stageHeight: height,
+                  ),
+                Positioned(
+                  left: playerLeft.clamp(0.0, max(0.0, width - playerSize)),
+                  bottom: 10,
+                  child: Image.asset(
+                    playerAsset,
+                    width: playerSize,
+                    height: playerSize,
+                    fit: BoxFit.contain,
+                  ),
+                ),
+                if (isGameOver)
+                  _GameOverOverlay(
+                    score: score,
+                    highScore: highScore,
+                    duration: duration,
+                    onRestart: onRestart,
+                    onDone: onDone,
+                  ),
+              ],
+            ),
           ),
         );
       },

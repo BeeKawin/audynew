@@ -158,12 +158,9 @@ class _EmotionMimicScreenState extends State<EmotionMimicScreen> {
                   Center(
                     child: Container(
                       width: double.infinity,
+                      height: adaptive.space(180),
                       constraints: BoxConstraints(
                         maxWidth: adaptive.space(320),
-                      ),
-                      padding: EdgeInsets.symmetric(
-                        vertical: adaptive.space(20),
-                        horizontal: adaptive.space(16),
                       ),
                       decoration: BoxDecoration(
                         color: AudyColors.backgroundSoft,
@@ -171,18 +168,6 @@ class _EmotionMimicScreenState extends State<EmotionMimicScreen> {
                           AudySpacing.radiusXLarge,
                         ),
                         boxShadow: AudyShadows.cardShadow,
-                      ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            controller.tr('your_turn'),
-                            style: AudyTypography.headingSmall,
-                            textAlign: TextAlign.center,
-                          ),
-                          SizedBox(height: adaptive.space(12)),
-                          const AudyMascot(size: 130),
-                        ],
                       ),
                     ),
                   ),

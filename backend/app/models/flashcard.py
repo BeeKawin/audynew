@@ -29,6 +29,7 @@ class FlashcardRoundResponse(BaseModel):
     sentence_text: str
     cards: list[FlashcardCard]
     target_card_ids: list[str]
+    scenario: str = ""
 
 
 class FlashcardValidationRequest(BaseModel):

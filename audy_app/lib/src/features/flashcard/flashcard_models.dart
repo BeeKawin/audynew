@@ -65,6 +65,7 @@ class FlashcardRound {
     required this.sentenceText,
     required this.cards,
     required this.targetCardIds,
+    required this.scenario,
   });
 
   final String roundId;
@@ -73,6 +74,7 @@ class FlashcardRound {
   final String sentenceText;
   final List<FlashcardCard> cards;
   final List<String> targetCardIds;
+  final String scenario;
 
   factory FlashcardRound.fromJson(Map<String, dynamic> json) {
     return FlashcardRound(
@@ -86,6 +88,7 @@ class FlashcardRound {
       targetCardIds: (json['target_card_ids'] as List<dynamic>)
           .map((item) => item as String)
           .toList(growable: false),
+      scenario: (json['scenario'] as String?) ?? '',
     );
   }
 }

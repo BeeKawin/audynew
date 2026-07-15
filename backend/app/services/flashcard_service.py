@@ -357,6 +357,111 @@ class FlashcardService:
         }
         return templates[word_count]
 
+    def _generate_scenario(self, target_ids: list[str], language: Language) -> str:
+        entries = [ENTRY_BY_ID[tid] for tid in target_ids if tid in ENTRY_BY_ID]
+        if not entries:
+            return ""
+
+        subject_entry = None
+        verb_entry = None
+        object_entries = []
+        prep_entry = None
+        place_entry = None
+        
+        for entry in entries:
+            if entry.category == "pronoun" or (entry.category == "noun" and entry.id in _SUBJECTS):
+                if not subject_entry:
+                    subject_entry = entry
+            elif entry.category == "verb":
+                verb_entry = entry
+            elif entry.category == "noun" and entry.id not in _SUBJECTS and entry.id not in _PLACE_PREP:
+                object_entries.append(entry)
+            elif entry.category == "preposition":
+                prep_entry = entry
+            elif entry.category == "noun" and entry.id in _PLACE_PREP:
+                place_entry = entry
+
+        if not subject_entry or not verb_entry:
+            return " ".join(e.th if language == "th" else e.en for e in entries)
+
+        if language == "en":
+            subj_text = subject_entry.en
+            if subj_text.lower() == "i":
+                be_verb = "am"
+            elif subj_text.lower() in ["you", "we", "they"]:
+                be_verb = "are"
+            else:
+                be_verb = "is"
+
+            verb_ing = {
+                "eat": "eating",
+                "drink": "drinking",
+                "sleep": "sleeping",
+                "walk": "walking",
+                "run": "running",
+                "play": "playing",
+                "read": "reading",
+                "write": "writing",
+                "wash": "washing",
+                "open": "opening",
+                "close": "closing",
+            }.get(verb_entry.en.lower(), verb_entry.en + "ing")
+
+            def format_obj(obj_name: str) -> str:
+                name = obj_name.lower()
+                if name in ["apple", "orange", "elephant"]:
+                    return f"an {obj_name}"
+                elif name in ["banana", "lime", "mango", "pineapple", "strawberry", "watermelon", 
+                              "broccoli", "carrot", "corn", "cucumber", "mushroom", "potato", 
+                              "pumpkin", "tomato", "book", "pencil", "glass", "spoon", "table", "chair"]:
+                    return f"a {obj_name}"
+                return obj_name
+
+            obj_text = ""
+            if len(object_entries) == 1:
+                obj_text = " " + format_obj(object_entries[0].en)
+            elif len(object_entries) == 2:
+                obj_text = f" {format_obj(object_entries[0].en)} and {format_obj(object_entries[1].en)}"
+
+            place_text = ""
+            if prep_entry and place_entry:
+                place_text = f" {prep_entry.en} the {place_entry.en}"
+            elif place_entry:
+                place_text = f" at the {place_entry.en}"
+
+            return f"{subj_text} {be_verb} {verb_ing}{obj_text}{place_text}."
+
+        else:
+            subj_text = subject_entry.th
+            
+            verb_text = {
+                "กิน": "กำลังกิน",
+                "ดื่ม": "กำลังดื่ม",
+                "นอน": "กำลังนอน",
+                "เดิน": "กำลังเดิน",
+                "วิ่ง": "กำลังวิ่ง",
+                "เล่น": "กำลังเล่น",
+                "อ่าน": "กำลังอ่าน",
+                "เขียน": "กำลังเขียน",
+                "ล้าง": "กำลังล้าง",
+                "เปิด": "กำลังเปิด",
+                "ปิด": "กำลังปิด",
+            }.get(verb_entry.th, f"กำลัง{verb_entry.th}")
+
+            obj_text = ""
+            if len(object_entries) == 1:
+                obj_text = object_entries[0].th
+            elif len(object_entries) == 2:
+                obj_text = f"{object_entries[0].th}และ{object_entries[1].th}"
+
+            place_text = ""
+            if prep_entry and place_entry:
+                place_text = f"{prep_entry.th}{place_entry.th}"
+            elif place_entry:
+                place_text = f"ที่{place_entry.th}"
+
+            return f"{subj_text}{verb_text}{obj_text}{place_text}"
+
     def _build_round_response(
         self,
         round_id: str,
@@ -367,6 +472,7 @@ class FlashcardService:
     ) -> FlashcardRoundResponse:
         entry_by_id = ctx["entry_by_id"]
         cards = [self._card_for_entry(entry_by_id[card_id], language) for card_id in target_ids]
+        scenario = self._generate_scenario(target_ids, language)
         return FlashcardRoundResponse(
             round_id=round_id,
             language=language,
@@ -374,6 +480,7 @@ class FlashcardService:
             sentence_text=" ".join(card.display_text for card in cards),
             cards=cards,
             target_card_ids=target_ids,
+            scenario=scenario,
         )
 
     def _card_for_entry(self, entry: WordBankEntry, language: Language) -> FlashcardCard:

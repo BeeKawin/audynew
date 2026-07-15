@@ -32,6 +32,7 @@ class _FlashcardScreenState extends State<FlashcardScreen> {
   late DateTime _sessionStartedAt;
   bool _hasRecordedCompletion = false;
   bool _showGuide = true;
+  String? _spokenRoundId;
 
   @override
   void initState() {
@@ -65,6 +66,14 @@ class _FlashcardScreenState extends State<FlashcardScreen> {
       _schedulePreview();
     } else {
       _previewTimer?.cancel();
+    }
+
+    if (_controller.phase == FlashcardGamePhase.playing) {
+      final round = _controller.currentRound;
+      if (round != null && _spokenRoundId != round.roundId) {
+        _spokenRoundId = round.roundId;
+        unawaited(_speakText(round.scenario, round.language));
+      }
     }
 
     if (_controller.phase == FlashcardGamePhase.feedback) {
@@ -210,6 +219,11 @@ class _FlashcardScreenState extends State<FlashcardScreen> {
           adaptive: adaptive,
           controller: _controller,
           onSubmit: _handleSubmit,
+          onSpeakScenario: () {
+            final scenario = _controller.currentRound?.scenario ?? '';
+            final lang = _controller.currentRound?.language ?? 'en';
+            unawaited(_speakText(scenario, lang));
+          },
         );
       case FlashcardGamePhase.complete:
         return _CompleteState(
@@ -378,19 +392,58 @@ class _PlayState extends StatelessWidget {
     required this.adaptive,
     required this.controller,
     required this.onSubmit,
+    this.onSpeakScenario,
   });
 
   final AudyAdaptive adaptive;
   final FlashcardController controller;
   final VoidCallback onSubmit;
+  final VoidCallback? onSpeakScenario;
 
   @override
   Widget build(BuildContext context) {
     final isBusy = controller.phase == FlashcardGamePhase.validating;
     final isThai = AudyScope.of(context).currentLanguage == 'th';
+    final scenario = controller.currentRound?.scenario ?? '';
 
     return Column(
       children: [
+        if (scenario.isNotEmpty) ...[
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.symmetric(
+              vertical: adaptive.space(12),
+              horizontal: adaptive.space(16),
+            ),
+            decoration: BoxDecoration(
+              color: AudyColors.backgroundSoft,
+              borderRadius: BorderRadius.circular(AudySpacing.radiusLarge),
+              boxShadow: AudyShadows.cardShadow,
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    scenario,
+                    style: AudyTypography.headingSmall,
+                  ),
+                ),
+                if (onSpeakScenario != null) ...[
+                  SizedBox(width: adaptive.space(12)),
+                  IconButton(
+                    onPressed: onSpeakScenario,
+                    icon: const Icon(
+                      Icons.volume_up_rounded,
+                      color: AudyColors.textPrimary,
+                      size: 32,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          SizedBox(height: adaptive.space(14)),
+        ],
         // Deck — fixed slots the player fills to build the sentence.
         _DeckZone(adaptive: adaptive, controller: controller),
         SizedBox(height: adaptive.space(14)),
