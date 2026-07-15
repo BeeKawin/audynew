@@ -429,7 +429,7 @@ class FlashcardService:
             elif place_entry:
                 place_text = f" at the {place_entry.en}"
 
-            return f"{subj_text} {be_verb} {verb_ing}{obj_text}{place_text}."
+            return f"Who is {verb_ing}{obj_text}{place_text}?"
 
         else:
             subj_text = subject_entry.th
@@ -460,7 +460,7 @@ class FlashcardService:
             elif place_entry:
                 place_text = f"ที่{place_entry.th}"
 
-            return f"{subj_text}{verb_text}{obj_text}{place_text}"
+            return f"ใคร{verb_text}{obj_text}{place_text}?"
 
     def _build_round_response(
         self,

@@ -409,38 +409,51 @@ class _PlayState extends StatelessWidget {
     return Column(
       children: [
         if (scenario.isNotEmpty) ...[
-          Container(
-            width: double.infinity,
-            padding: EdgeInsets.symmetric(
-              vertical: adaptive.space(12),
-              horizontal: adaptive.space(16),
-            ),
-            decoration: BoxDecoration(
-              color: AudyColors.backgroundSoft,
-              borderRadius: BorderRadius.circular(AudySpacing.radiusLarge),
-              boxShadow: AudyShadows.cardShadow,
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    scenario,
-                    style: AudyTypography.headingSmall,
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const AudyMascot(size: 90),
+              SizedBox(width: adaptive.space(12)),
+              Expanded(
+                child: Container(
+                  padding: EdgeInsets.symmetric(
+                    vertical: adaptive.space(12),
+                    horizontal: adaptive.space(16),
+                  ),
+                  decoration: BoxDecoration(
+                    color: AudyColors.backgroundSoft,
+                    borderRadius: const BorderRadius.only(
+                      topRight: Radius.circular(AudySpacing.radiusLarge),
+                      bottomLeft: Radius.circular(AudySpacing.radiusLarge),
+                      bottomRight: Radius.circular(AudySpacing.radiusLarge),
+                      topLeft: Radius.circular(4),
+                    ),
+                    boxShadow: AudyShadows.cardShadow,
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          scenario,
+                          style: AudyTypography.headingSmall,
+                        ),
+                      ),
+                      if (onSpeakScenario != null) ...[
+                        SizedBox(width: adaptive.space(12)),
+                        IconButton(
+                          onPressed: onSpeakScenario,
+                          icon: const Icon(
+                            Icons.volume_up_rounded,
+                            color: AudyColors.textPrimary,
+                            size: 32,
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 ),
-                if (onSpeakScenario != null) ...[
-                  SizedBox(width: adaptive.space(12)),
-                  IconButton(
-                    onPressed: onSpeakScenario,
-                    icon: const Icon(
-                      Icons.volume_up_rounded,
-                      color: AudyColors.textPrimary,
-                      size: 32,
-                    ),
-                  ),
-                ],
-              ],
-            ),
+              ),
+            ],
           ),
           SizedBox(height: adaptive.space(14)),
         ],
