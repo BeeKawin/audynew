@@ -153,17 +153,33 @@ class _SelfieCaptureScreenState extends State<SelfieCaptureScreen> {
         final result = await EmotionService.detectEmotion(preparedFile);
 
         if (mounted) {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (_) => MimicResultScreen(
-                capturedImage: preparedFile,
-                expectedEmotion: widget.targetEmotion,
-                detectedEmotion: result.detectedEmotion,
-                confidence: result.confidence,
+          final isMatch =
+              result.detectedEmotion.toLowerCase() ==
+              widget.targetEmotion.toLowerCase();
+
+          if (isMatch) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (_) => MimicResultScreen(
+                  capturedImage: preparedFile,
+                  expectedEmotion: widget.targetEmotion,
+                  detectedEmotion: result.detectedEmotion,
+                  confidence: result.confidence,
+                ),
               ),
-            ),
-          );
+            );
+          } else {
+            setState(() {
+              _isProcessing = false;
+              _captureHintMessage =
+                  'Detected ${result.detectedEmotion}. Try a ${widget.targetEmotion} face!';
+            });
+            await Future.delayed(const Duration(milliseconds: 1500));
+            if (mounted) {
+              await _startFaceGuidanceStream();
+            }
+          }
         }
       }
     } on EmotionLoadException catch (e) {
@@ -254,6 +270,10 @@ class _SelfieCaptureScreenState extends State<SelfieCaptureScreen> {
         _faceGuidanceResult = result;
         _captureHintMessage = null;
       });
+
+      if (result.isReady) {
+        unawaited(_takePhoto());
+      }
     }
 
     _isAnalyzingFrame = false;
@@ -396,45 +416,64 @@ class _SelfieCaptureScreenState extends State<SelfieCaptureScreen> {
                       ),
                     ),
                   if (_errorMessage == null) ...[
-                    SizedBox(
+                    Container(
                       width: double.infinity,
-                      height: AudySpacing.buttonHeight + 12,
-                      child: ElevatedButton(
-                        onPressed: _isProcessing || !_isCameraReady
-                            ? null
-                            : _takePhoto,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AudyColors.mintGreen,
-                          foregroundColor: AudyColors.textOnColor,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(
-                              AudySpacing.radiusXLarge,
-                            ),
-                          ),
-                          elevation: 4,
+                      padding: const EdgeInsets.symmetric(
+                        vertical: AudySpacing.elementGap,
+                        horizontal: AudySpacing.cardPadding,
+                      ),
+                      decoration: BoxDecoration(
+                        color: _isProcessing
+                            ? AudyColors.skyBlue.withValues(alpha: 0.2)
+                            : AudyColors.backgroundSoft,
+                        borderRadius: BorderRadius.circular(
+                          AudySpacing.radiusXLarge,
                         ),
-                        child: _isProcessing
-                            ? const SizedBox(
-                                width: 28,
-                                height: 28,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 3,
-                                  valueColor: AlwaysStoppedAnimation<Color>(
-                                    AudyColors.textOnColor,
-                                  ),
+                        border: Border.all(
+                          color: _isProcessing
+                              ? AudyColors.skyBlue
+                              : AudyColors.borderLight,
+                          width: 2,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          if (_isProcessing) ...[
+                            const SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 3,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  AudyColors.skyBlue,
                                 ),
-                              )
-                            : Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  const Icon(Icons.camera_rounded, size: 32),
-                                  const SizedBox(width: 12),
-                                  Text(
-                                    'Take Photo',
-                                    style: AudyTypography.buttonText,
-                                  ),
-                                ],
                               ),
+                            ),
+                            const SizedBox(width: 12),
+                            Text(
+                              'Analyzing emotion...',
+                              style: AudyTypography.bodyLarge.copyWith(
+                                color: AudyColors.skyBlue,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ] else ...[
+                            const Icon(
+                              Icons.face_retouching_natural_rounded,
+                              size: 28,
+                              color: AudyColors.mintGreen,
+                            ),
+                            const SizedBox(width: 12),
+                            Text(
+                              'Auto face detection active',
+                              style: AudyTypography.bodyLarge.copyWith(
+                                color: AudyColors.textPrimary,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
                     ),
                   ],
