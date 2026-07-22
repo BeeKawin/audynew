@@ -66,6 +66,7 @@ class _DeviceConnectionPageState extends State<DeviceConnectionPage> {
   };
 
   static const Map<int, String> _ledOptions = {
+<<<<<<< HEAD
     0: 'led_case_0',
     1: 'led_case_1',
     2: 'led_case_2',
@@ -89,6 +90,29 @@ class _DeviceConnectionPageState extends State<DeviceConnectionPage> {
     20: 'led_case_20',
     21: 'led_case_21',
     22: 'led_case_22',
+=======
+    0: 'ears_off_arms_off_tummy_white',
+    1: 'all_red_tummy_cyan',
+    2: 'all_green_tummy_magenta',
+    3: 'all_blue_tummy_yellow',
+    4: 'all_yellow_tummy_blue',
+    5: 'all_cyan_tummy_red',
+    6: 'all_magenta_tummy_green',
+    7: 'all_white_tummy_off',
+    8: 'ears_dim_red_arms_green_tummy_yellow',
+    9: 'ears_dim_green_arms_blue_tummy_blue',
+    10: 'ears_dim_blue_arms_yellow_tummy_red',
+    11: 'ears_dim_yellow_arms_cyan_tummy_green',
+    12: 'ears_dim_cyan_arms_magenta_tummy_off',
+    13: 'ears_dim_magenta_arms_white_tummy_cyan',
+    14: 'ears_dim_white_arms_red_tummy_magenta',
+    15: 'split_ears_split_arms_tummy_white',
+    16: 'ears_split_arms_off_tummy_green',
+    17: 'ears_split_arms_off_tummy_white',
+    18: 'rainbow',
+    19: 'all_off',
+    20: 'nose_lights',
+>>>>>>> origin/Kongnew
   };
   double _space(dynamic adaptive, num value) {
     return (adaptive.space(value.toDouble()) as num).toDouble();

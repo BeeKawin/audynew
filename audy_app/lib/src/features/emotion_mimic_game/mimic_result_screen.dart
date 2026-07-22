@@ -16,14 +16,20 @@ class MimicResultScreen extends StatefulWidget {
     required this.expectedEmotion,
     required this.detectedEmotion,
     required this.confidence,
+<<<<<<< HEAD
     required this.successPraiseSoundPath,
+=======
+>>>>>>> origin/Kongnew
   });
 
   final File capturedImage;
   final String expectedEmotion;
   final String detectedEmotion;
   final double confidence;
+<<<<<<< HEAD
   final String successPraiseSoundPath;
+=======
+>>>>>>> origin/Kongnew
 
   @override
   State<MimicResultScreen> createState() => _MimicResultScreenState();
@@ -40,8 +46,14 @@ class _MimicResultScreenState extends State<MimicResultScreen> {
   @override
   void initState() {
     super.initState();
+<<<<<<< HEAD
     if (isMatch) {
       SoundService.instance.playEmotionPraise(widget.successPraiseSoundPath);
+=======
+    // Play correct/wrong sound based on result
+    if (isMatch) {
+      SoundService.instance.playCorrect();
+>>>>>>> origin/Kongnew
     } else {
       SoundService.instance.playWrong();
     }
@@ -79,7 +91,13 @@ class _MimicResultScreenState extends State<MimicResultScreen> {
     try {
       final bluetooth = AudyBluetoothService.instance;
       if (isFinalRound) {
+<<<<<<< HEAD
         await bluetooth.celebrateGameCompletion();
+=======
+        await bluetooth.setArms(4);
+        await bluetooth.pulseEmotion(2);
+        await bluetooth.setLed(11);
+>>>>>>> origin/Kongnew
       } else {
         await bluetooth.pulseEmotion(1);
       }

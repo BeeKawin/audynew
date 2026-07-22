@@ -313,7 +313,10 @@ class AudyController extends ChangeNotifier {
   double mimicLastConfidence = 0.0;
 
   String get currentMimicTarget => _mimicEmotions[_mimicEmotionIndex];
+<<<<<<< HEAD
   List<String> get mimicEmotionPool => List.unmodifiable(_mimicEmotionPool);
+=======
+>>>>>>> origin/Kongnew
 
   bool get isMimicGameComplete => mimicCurrentRound > mimicTotalRounds;
 
@@ -1550,6 +1553,7 @@ class AudyController extends ChangeNotifier {
     notifyListeners();
   }
 
+<<<<<<< HEAD
   /// Track fruit-catching game completion.
   Future<void> trackFruitCatchingCompleted() async {
     gamesPlayed += 1;
@@ -1559,6 +1563,8 @@ class AudyController extends ChangeNotifier {
     notifyListeners();
   }
 
+=======
+>>>>>>> origin/Kongnew
   /// Track reaction game completed
   Future<void> trackReactionCompleted() async {
     gamesPlayed += 1;

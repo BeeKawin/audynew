@@ -59,6 +59,13 @@ class _MimicCompleteScreenState extends State<MimicCompleteScreen> {
     unawaited(_trackCompletionAndAnalytics());
     // Play game complete sound
     SoundService.instance.playGameComplete();
+<<<<<<< HEAD
+=======
+    SoundService.instance.playBearCompletionFeedback(
+      score: widget.controller.mimicScore,
+      maxScore: widget.controller.mimicTotalRounds,
+    );
+>>>>>>> origin/Kongnew
     // Show celebration after first frame is built
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {

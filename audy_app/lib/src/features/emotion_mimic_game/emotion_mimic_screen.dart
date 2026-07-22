@@ -1,12 +1,18 @@
+<<<<<<< HEAD
 import 'dart:async';
 
+=======
+>>>>>>> origin/Kongnew
 import 'package:flutter/material.dart';
 
 import '../../core/audy_theme.dart';
 import '../../core/audy_ui.dart';
 import '../../core/emotion_character_widget.dart';
 import '../../services/bluetooth_service.dart';
+<<<<<<< HEAD
 import '../../services/realtime_control_service.dart';
+=======
+>>>>>>> origin/Kongnew
 import '../../services/sound_service.dart';
 import '../../state/audy_controller.dart';
 import '../../widgets/game_guide_box.dart';
@@ -27,14 +33,19 @@ class EmotionMimicScreen extends StatefulWidget {
 
 class _EmotionMimicScreenState extends State<EmotionMimicScreen> {
   final DateTime _sessionStartedAt = DateTime.now();
+<<<<<<< HEAD
   StreamSubscription<RealtimeControlEvent>? _controlSubscription;
   bool _showGuide = true;
   String? _remoteEmotion;
+=======
+  bool _showGuide = true;
+>>>>>>> origin/Kongnew
 
   @override
   void initState() {
     super.initState();
     SoundService.instance.playInstructionEmotionMimic();
+<<<<<<< HEAD
     _controlSubscription = RealtimeControlService.instance.events.listen(
       _handleRemoteControl,
     );
@@ -57,6 +68,8 @@ class _EmotionMimicScreenState extends State<EmotionMimicScreen> {
       availableEmotions: controller.mimicEmotionPool,
     );
     setState(() => _remoteEmotion = emotion);
+=======
+>>>>>>> origin/Kongnew
   }
 
   void _triggerVirtualInput(String channel, int value) {
@@ -183,6 +196,7 @@ class _EmotionMimicScreenState extends State<EmotionMimicScreen> {
                   ),
                   const Spacer(),
                   Center(
+<<<<<<< HEAD
                     child: AnimatedSwitcher(
                       duration: AudyAnimation.normal,
                       child: _remoteEmotion == null
@@ -239,6 +253,21 @@ class _EmotionMimicScreenState extends State<EmotionMimicScreen> {
                                 ),
                               ],
                             ),
+=======
+                    child: Container(
+                      width: double.infinity,
+                      height: adaptive.space(180),
+                      constraints: BoxConstraints(
+                        maxWidth: adaptive.space(320),
+                      ),
+                      decoration: BoxDecoration(
+                        color: AudyColors.backgroundSoft,
+                        borderRadius: BorderRadius.circular(
+                          AudySpacing.radiusXLarge,
+                        ),
+                        boxShadow: AudyShadows.cardShadow,
+                      ),
+>>>>>>> origin/Kongnew
                     ),
                   ),
                   const SizedBox(height: AudySpacing.sectionGap),
@@ -250,10 +279,13 @@ class _EmotionMimicScreenState extends State<EmotionMimicScreen> {
       },
     );
   }
+<<<<<<< HEAD
 
   @override
   void dispose() {
     _controlSubscription?.cancel();
     super.dispose();
   }
+=======
+>>>>>>> origin/Kongnew
 }

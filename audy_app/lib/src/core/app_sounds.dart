@@ -18,6 +18,7 @@ class AppSounds {
   static const String points = 'assets/sounds/points.mp3';
   static const String bearCongrats = 'assets/sounds/bear_congrats.mp3';
   static const String bearTryAgain = 'assets/sounds/bear_tryagain.mp3';
+<<<<<<< HEAD
   static const String awesome = 'assets/sounds/awesome.mp3';
   static const String great = 'assets/sounds/great.mp3';
   static const String superPraise = 'assets/sounds/super.mp3';
@@ -25,6 +26,8 @@ class AppSounds {
       'assets/sounds/emotion_transition.mp3';
 
   static const List<String> emotionPraiseSounds = [awesome, great, superPraise];
+=======
+>>>>>>> origin/Kongnew
 
   // Reaction game sounds
   static const String go = 'assets/sounds/go.mp3';
@@ -50,10 +53,13 @@ class AppSounds {
       'assets/sounds/instruction_minipuzzle_puzzle.mp3';
   static const String instructionReadPronounce =
       'assets/sounds/instruction_read_pronounce.mp3';
+<<<<<<< HEAD
   static const String flashcardInstruction =
       'assets/sounds/flashcard_instruction.mp3';
   static const String fruitCatchIntro = 'assets/sounds/fruitcatch_intro.mp3';
   static const String socialChatIntro = 'assets/sounds/socialchat_intro.mp3';
+=======
+>>>>>>> origin/Kongnew
 
   // Achievement sounds
   static const String achievement = 'assets/sounds/achievement.mp3';
@@ -73,10 +79,13 @@ class AppSounds {
     gameComplete,
     bearCongrats,
     bearTryAgain,
+<<<<<<< HEAD
     awesome,
     great,
     superPraise,
     emotionTransition,
+=======
+>>>>>>> origin/Kongnew
     points,
     go,
     error,
@@ -89,9 +98,12 @@ class AppSounds {
     instructionMiniPuzzleOddOneOut,
     instructionMiniPuzzlePuzzle,
     instructionReadPronounce,
+<<<<<<< HEAD
     flashcardInstruction,
     fruitCatchIntro,
     socialChatIntro,
+=======
+>>>>>>> origin/Kongnew
     achievement,
     levelUp,
     soundtrack,

@@ -7,11 +7,17 @@ import '../../core/app_routes.dart';
 import '../../core/audy_theme.dart';
 import '../../core/audy_ui.dart';
 import '../../data/models/game_session_model.dart';
+<<<<<<< HEAD
 import '../../services/bluetooth_service.dart';
 import '../../services/sound_service.dart';
 import '../../state/audy_controller.dart';
 import '../../widgets/game_guide_box.dart';
 import '../../widgets/point_celebration_dialog.dart';
+=======
+import '../../services/sound_service.dart';
+import '../../state/audy_controller.dart';
+import '../../widgets/game_guide_box.dart';
+>>>>>>> origin/Kongnew
 import 'road_safety_controller.dart';
 import 'road_safety_models.dart';
 import 'road_safety_widgets.dart';
@@ -79,9 +85,13 @@ class _RoadSafetyScreenState extends State<RoadSafetyScreen> {
   void _handleAction(RoadSafetyAction action) {
     SoundService.instance.playTap();
     _controller.performAction(action);
+<<<<<<< HEAD
     if (!_controller.isComplete) {
       unawaited(_speak(_controller.step.instructionKey));
     }
+=======
+    unawaited(_speak(_controller.step.instructionKey));
+>>>>>>> origin/Kongnew
     if (_controller.feedback.type == RoadSafetyFeedbackType.success) {
       SoundService.instance.playCorrect();
     }
@@ -90,13 +100,17 @@ class _RoadSafetyScreenState extends State<RoadSafetyScreen> {
   Future<void> _recordCompletion() async {
     if (_hasRecordedCompletion) return;
     _hasRecordedCompletion = true;
+<<<<<<< HEAD
     await _tts.stop();
     SoundService.instance.playGameComplete();
     unawaited(_sendCompletionBleCelebration());
+=======
+>>>>>>> origin/Kongnew
 
     final appController = AudyScope.of(context);
     final session = _controller.getSessionData();
     final stars = session.stars;
+<<<<<<< HEAD
     final pointsEarned = stars * 5;
     final initialPoints = appController.learningPoints;
     final newPoints = initialPoints + pointsEarned;
@@ -124,6 +138,13 @@ class _RoadSafetyScreenState extends State<RoadSafetyScreen> {
     }
 
     await appController.trackRoadSafetyCompleted();
+=======
+
+    await appController.trackRoadSafetyCompleted();
+    if (stars > 0) {
+      await appController.addPoints(stars * 5);
+    }
+>>>>>>> origin/Kongnew
     await appController.recordAnalyticsSession(
       GameSessionData.fromTimes(
         gameType: 'road_safety',
@@ -137,6 +158,7 @@ class _RoadSafetyScreenState extends State<RoadSafetyScreen> {
     );
   }
 
+<<<<<<< HEAD
   Future<void> _sendCompletionBleCelebration() async {
     try {
       await AudyBluetoothService.instance.celebrateGameCompletion();
@@ -163,6 +185,8 @@ class _RoadSafetyScreenState extends State<RoadSafetyScreen> {
     return level >= names.length ? 'Master' : names[level];
   }
 
+=======
+>>>>>>> origin/Kongnew
   @override
   Widget build(BuildContext context) {
     return AudyResponsivePage(

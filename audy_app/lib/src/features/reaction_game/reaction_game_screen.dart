@@ -7,7 +7,10 @@ import '../../core/audy_theme.dart';
 import '../../core/audy_ui.dart';
 import '../../data/models/game_session_model.dart';
 import '../../services/bluetooth_service.dart';
+<<<<<<< HEAD
 import '../../services/interactive_input_service.dart';
+=======
+>>>>>>> origin/Kongnew
 import '../../services/sound_service.dart';
 import '../../state/audy_controller.dart';
 import '../../widgets/game_guide_box.dart';
@@ -37,7 +40,11 @@ class _ReactionTimePageState extends State<ReactionTimePage> {
     super.initState();
     unawaited(_sendGameEnterBleState());
     SoundService.instance.playInstructionReactionTime();
+<<<<<<< HEAD
     _bleInputSub = InteractiveInputService.instance.incomingMessages.listen(
+=======
+    _bleInputSub = AudyBluetoothService.instance.incomingMessages.listen(
+>>>>>>> origin/Kongnew
       _handleBleInput,
     );
   }
@@ -52,7 +59,10 @@ class _ReactionTimePageState extends State<ReactionTimePage> {
 
   void _handleBleInput(AudyBleMessage message) {
     if (!mounted) return;
+<<<<<<< HEAD
     if (ModalRoute.of(context)?.isCurrent != true) return;
+=======
+>>>>>>> origin/Kongnew
     if (message.channel != 'tummy' || message.value != 1) return;
 
     final controller = AudyScope.of(context);
@@ -106,7 +116,13 @@ class _ReactionTimePageState extends State<ReactionTimePage> {
     try {
       final bluetooth = AudyBluetoothService.instance;
       if (isFinalRound) {
+<<<<<<< HEAD
         await bluetooth.celebrateGameCompletion();
+=======
+        await bluetooth.setArms(4);
+        await bluetooth.pulseEmotion(2);
+        await bluetooth.setLed(11);
+>>>>>>> origin/Kongnew
       } else {
         await bluetooth.pulseEmotion(1);
       }
@@ -333,6 +349,13 @@ class _ReactionTimeResultPageState extends State<ReactionTimeResultPage> {
     _completionSoundPlayed = true;
 
     SoundService.instance.playGameComplete();
+<<<<<<< HEAD
+=======
+    SoundService.instance.playBearCompletionFeedback(
+      score: controller.reactionTimes.length,
+      maxScore: controller.reactionTimes.length + controller.reactionMisses,
+    );
+>>>>>>> origin/Kongnew
   }
 
   @override

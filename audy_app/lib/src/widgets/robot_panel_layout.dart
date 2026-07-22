@@ -9,7 +9,10 @@ class RobotPanelLayout extends StatelessWidget {
     required this.child,
     required this.showPanel,
     required this.panelBuilder,
+<<<<<<< HEAD
     this.virtualRobotEnabled = false,
+=======
+>>>>>>> origin/Kongnew
     this.gap,
   });
 
@@ -17,12 +20,19 @@ class RobotPanelLayout extends StatelessWidget {
   final Widget child;
   final bool showPanel;
   final Widget Function(bool isHorizontal) panelBuilder;
+<<<<<<< HEAD
   final bool virtualRobotEnabled;
+=======
+>>>>>>> origin/Kongnew
   final double? gap;
 
   @override
   Widget build(BuildContext context) {
+<<<<<<< HEAD
     if (!virtualRobotEnabled || !showPanel) return child;
+=======
+    if (!showPanel) return child;
+>>>>>>> origin/Kongnew
 
     return LayoutBuilder(
       builder: (context, constraints) {

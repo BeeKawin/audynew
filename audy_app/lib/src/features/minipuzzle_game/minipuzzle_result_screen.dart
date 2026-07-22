@@ -53,6 +53,13 @@ class _MiniPuzzleResultScreenState extends State<MiniPuzzleResultScreen> {
 
     // Play game complete sound
     SoundService.instance.playGameComplete();
+<<<<<<< HEAD
+=======
+    SoundService.instance.playBearCompletionFeedback(
+      score: widget.sessionData.totalCorrect,
+      maxScore: widget.sessionData.totalRounds,
+    );
+>>>>>>> origin/Kongnew
 
     // Show celebration dialog after first frame
     WidgetsBinding.instance.addPostFrameCallback((_) {

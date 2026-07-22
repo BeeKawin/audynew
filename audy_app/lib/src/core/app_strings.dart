@@ -265,6 +265,7 @@ class AppStrings {
     'rainbow': {'en': 'Rainbow', 'th': 'สายรุ้ง'},
     'all_off': {'en': 'All off', 'th': 'ปิดทั้งหมด'},
     'nose_lights': {'en': 'Nose lights', 'th': 'ไฟจมูก'},
+<<<<<<< HEAD
     'led_case_0': {'en': 'All lights off', 'th': 'ปิดไฟทั้งหมด'},
     'led_case_1': {'en': 'All red', 'th': 'ไฟทั้งหมดสีแดง'},
     'led_case_2': {'en': 'All green', 'th': 'ไฟทั้งหมดสีเขียว'},
@@ -321,6 +322,8 @@ class AppStrings {
       'en': 'Split-color ears and arms / Blue tummy',
       'th': 'หูและแขนแยกสี / ท้องสีน้ำเงิน',
     },
+=======
+>>>>>>> origin/Kongnew
     // Virtual Robot
     'virtual_robot': {'en': 'Virtual Robot', 'th': 'หุ่นยนต์เสมือน'},
     'virtual_robot_controls': {
@@ -341,6 +344,7 @@ class AppStrings {
     'virtual_ear_right': {'en': 'Right ear', 'th': 'หูขวา'},
     'virtual_force_left': {'en': 'Squeeze L', 'th': 'บีบซ้าย'},
     'virtual_force_right': {'en': 'Squeeze R', 'th': 'บีบขวา'},
+<<<<<<< HEAD
     'open_app_controls': {
       'en': 'Open app controls',
       'th': 'เปิดหน้าควบคุมแอป',
@@ -396,6 +400,8 @@ class AppStrings {
       'en': 'Mimic: {emotion}',
       'th': 'เลียนแบบ: {emotion}',
     },
+=======
+>>>>>>> origin/Kongnew
     'tummy_clicked': {'en': 'Tummy clicked', 'th': 'แตะที่ท้อง'},
     'tummy_not_clicked': {'en': 'Tummy not clicked', 'th': 'ไม่ได้แตะที่ท้อง'},
     'nose_clicked': {'en': 'Nose clicked', 'th': 'แตะที่จมูก'},
@@ -574,7 +580,10 @@ class AppStrings {
     'surprised': {'en': 'Surprised', 'th': 'ประหลาดใจ'},
     'scared': {'en': 'Scared', 'th': 'กลัว'},
     'calm': {'en': 'Calm', 'th': 'สงบ'},
+<<<<<<< HEAD
     'disgust': {'en': 'Disgust', 'th': 'รังเกียจ'},
+=======
+>>>>>>> origin/Kongnew
     'proud': {'en': 'Proud', 'th': 'ภาคภูมิใจ'},
 
     // Chat

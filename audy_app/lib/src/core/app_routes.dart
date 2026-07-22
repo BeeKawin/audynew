@@ -28,7 +28,10 @@ final class AppRoutes {
   static const meltdown = '/meltdown';
   static const device = '/device';
   static const assignments = '/assignments';
+<<<<<<< HEAD
   static const remoteControl = '/remote-control';
+=======
+>>>>>>> origin/Kongnew
 
   /// Navigate after game completion, checking if meltdown protection should trigger.
   /// If 5 games have been played, navigates to meltdown screen.

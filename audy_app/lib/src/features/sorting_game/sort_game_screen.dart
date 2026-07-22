@@ -281,7 +281,14 @@ class _SortGameScreenState extends State<SortGameScreen> {
     _sessionBleSignalSent = true;
 
     try {
+<<<<<<< HEAD
       await AudyBluetoothService.instance.celebrateGameCompletion();
+=======
+      final bluetooth = AudyBluetoothService.instance;
+      await bluetooth.setArms(4);
+      await bluetooth.pulseEmotion(2);
+      await bluetooth.setLed(11);
+>>>>>>> origin/Kongnew
     } catch (e) {
       debugPrint('SortGameScreen: Session complete BLE signal skipped - $e');
     }

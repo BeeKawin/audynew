@@ -13,13 +13,17 @@ import '../../core/emotion_character_widget.dart';
 import '../../services/bluetooth_service.dart';
 import '../../services/emotion_service.dart';
 import '../../services/face_guidance_service.dart';
+<<<<<<< HEAD
 import '../../services/interactive_input_service.dart';
+=======
+>>>>>>> origin/Kongnew
 import '../../services/sound_service.dart';
 import '../../widgets/robot_panel_layout.dart';
 import '../../widgets/virtual_robot_panel.dart';
 import 'mimic_result_screen.dart';
 
 class SelfieCaptureScreen extends StatefulWidget {
+<<<<<<< HEAD
   const SelfieCaptureScreen({
     super.key,
     required this.targetEmotion,
@@ -28,6 +32,11 @@ class SelfieCaptureScreen extends StatefulWidget {
 
   final String targetEmotion;
   final String successPraiseSoundPath;
+=======
+  const SelfieCaptureScreen({super.key, required this.targetEmotion});
+
+  final String targetEmotion;
+>>>>>>> origin/Kongnew
 
   @override
   State<SelfieCaptureScreen> createState() => _SelfieCaptureScreenState();
@@ -54,7 +63,11 @@ class _SelfieCaptureScreenState extends State<SelfieCaptureScreen> {
   @override
   void initState() {
     super.initState();
+<<<<<<< HEAD
     _bleInputSub = InteractiveInputService.instance.incomingMessages.listen(
+=======
+    _bleInputSub = AudyBluetoothService.instance.incomingMessages.listen(
+>>>>>>> origin/Kongnew
       _handleBleInput,
     );
     _initCamera();
@@ -159,6 +172,7 @@ class _SelfieCaptureScreenState extends State<SelfieCaptureScreen> {
         final result = await EmotionService.detectEmotion(preparedFile);
 
         if (mounted) {
+<<<<<<< HEAD
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
@@ -171,6 +185,35 @@ class _SelfieCaptureScreenState extends State<SelfieCaptureScreen> {
               ),
             ),
           );
+=======
+          final isMatch =
+              result.detectedEmotion.toLowerCase() ==
+              widget.targetEmotion.toLowerCase();
+
+          if (isMatch) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (_) => MimicResultScreen(
+                  capturedImage: preparedFile,
+                  expectedEmotion: widget.targetEmotion,
+                  detectedEmotion: result.detectedEmotion,
+                  confidence: result.confidence,
+                ),
+              ),
+            );
+          } else {
+            setState(() {
+              _isProcessing = false;
+              _captureHintMessage =
+                  'Detected ${result.detectedEmotion}. Try a ${widget.targetEmotion} face!';
+            });
+            await Future.delayed(const Duration(milliseconds: 1500));
+            if (mounted) {
+              await _startFaceGuidanceStream();
+            }
+          }
+>>>>>>> origin/Kongnew
         }
       }
     } on EmotionLoadException catch (e) {
@@ -261,6 +304,13 @@ class _SelfieCaptureScreenState extends State<SelfieCaptureScreen> {
         _faceGuidanceResult = result;
         _captureHintMessage = null;
       });
+<<<<<<< HEAD
+=======
+
+      if (result.isReady) {
+        unawaited(_takePhoto());
+      }
+>>>>>>> origin/Kongnew
     }
 
     _isAnalyzingFrame = false;
@@ -403,6 +453,7 @@ class _SelfieCaptureScreenState extends State<SelfieCaptureScreen> {
                       ),
                     ),
                   if (_errorMessage == null) ...[
+<<<<<<< HEAD
                     SizedBox(
                       width: double.infinity,
                       height: AudySpacing.buttonHeight + 12,
@@ -442,6 +493,66 @@ class _SelfieCaptureScreenState extends State<SelfieCaptureScreen> {
                                   ),
                                 ],
                               ),
+=======
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                        vertical: AudySpacing.elementGap,
+                        horizontal: AudySpacing.cardPadding,
+                      ),
+                      decoration: BoxDecoration(
+                        color: _isProcessing
+                            ? AudyColors.skyBlue.withValues(alpha: 0.2)
+                            : AudyColors.backgroundSoft,
+                        borderRadius: BorderRadius.circular(
+                          AudySpacing.radiusXLarge,
+                        ),
+                        border: Border.all(
+                          color: _isProcessing
+                              ? AudyColors.skyBlue
+                              : AudyColors.borderLight,
+                          width: 2,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          if (_isProcessing) ...[
+                            const SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 3,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  AudyColors.skyBlue,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Text(
+                              'Analyzing emotion...',
+                              style: AudyTypography.bodyLarge.copyWith(
+                                color: AudyColors.skyBlue,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ] else ...[
+                            const Icon(
+                              Icons.face_retouching_natural_rounded,
+                              size: 28,
+                              color: AudyColors.mintGreen,
+                            ),
+                            const SizedBox(width: 12),
+                            Text(
+                              'Auto face detection active',
+                              style: AudyTypography.bodyLarge.copyWith(
+                                color: AudyColors.textPrimary,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ],
+>>>>>>> origin/Kongnew
                       ),
                     ),
                   ],

@@ -61,6 +61,13 @@ class _EmotionClassifyCompleteScreenState
     unawaited(_trackCompletionAndAnalytics());
     // Play game complete sound
     SoundService.instance.playGameComplete();
+<<<<<<< HEAD
+=======
+    SoundService.instance.playBearCompletionFeedback(
+      score: widget.controller.classifyScore,
+      maxScore: widget.controller.classifyTotalRounds,
+    );
+>>>>>>> origin/Kongnew
     // Show celebration after first frame is built
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {

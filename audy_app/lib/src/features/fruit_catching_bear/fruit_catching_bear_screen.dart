@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/app_routes.dart';
 import '../../core/audy_theme.dart';
 import '../../core/audy_ui.dart';
+<<<<<<< HEAD
 import '../../data/models/game_session_model.dart';
 import '../../services/bluetooth_service.dart';
 import '../../services/interactive_input_service.dart';
@@ -14,6 +15,12 @@ import '../../services/sound_service.dart';
 import '../../state/audy_controller.dart';
 import '../../widgets/game_guide_box.dart';
 import '../../widgets/point_celebration_dialog.dart';
+=======
+import '../../services/bluetooth_service.dart';
+import '../../services/sound_service.dart';
+import '../../state/audy_controller.dart';
+import '../../widgets/game_guide_box.dart';
+>>>>>>> origin/Kongnew
 import '../../widgets/robot_panel_layout.dart';
 import '../../widgets/virtual_robot_panel.dart';
 
@@ -57,7 +64,10 @@ class _FruitCatchingBearScreenState extends State<FruitCatchingBearScreen> {
   int _score = 0;
   int _highScore = 0;
   bool _isGameOver = false;
+<<<<<<< HEAD
   bool _hasCompletedSession = false;
+=======
+>>>>>>> origin/Kongnew
   bool _showGuide = true;
   DateTime _startedAt = DateTime.now();
   Duration _elapsedTime = Duration.zero;
@@ -66,16 +76,24 @@ class _FruitCatchingBearScreenState extends State<FruitCatchingBearScreen> {
   @override
   void initState() {
     super.initState();
+<<<<<<< HEAD
     unawaited(SoundService.instance.playFruitCatchIntro());
     unawaited(_sendGameEnterBleState());
     _startedAt = DateTime.now();
     _loadHighScore();
     _startGame();
     _bleInputSub = InteractiveInputService.instance.incomingMessages.listen(
+=======
+    _startedAt = DateTime.now();
+    _loadHighScore();
+    _startGame();
+    _bleInputSub = AudyBluetoothService.instance.incomingMessages.listen(
+>>>>>>> origin/Kongnew
       _handleBleInput,
     );
   }
 
+<<<<<<< HEAD
   Future<void> _sendGameEnterBleState() async {
     try {
       await AudyBluetoothService.instance.setLed(21);
@@ -103,6 +121,10 @@ class _FruitCatchingBearScreenState extends State<FruitCatchingBearScreen> {
   void _handleBleInput(AudyBleMessage message) {
     if (!mounted || _isGameOver) return;
     if (ModalRoute.of(context)?.isCurrent != true) return;
+=======
+  void _handleBleInput(AudyBleMessage message) {
+    if (!mounted || _isGameOver) return;
+>>>>>>> origin/Kongnew
 
     if (message.channel == 'ears') {
       if (message.value == 1) {
@@ -249,12 +271,16 @@ class _FruitCatchingBearScreenState extends State<FruitCatchingBearScreen> {
   }
 
   void _endGame() {
+<<<<<<< HEAD
     if (_isGameOver) return;
+=======
+>>>>>>> origin/Kongnew
     _elapsedTime = DateTime.now().difference(_startedAt);
     _isGameOver = true;
     _gameLoop?.cancel();
     _spawnLoop?.cancel();
     SoundService.instance.playGameComplete();
+<<<<<<< HEAD
     unawaited(_sendCompletionBleCelebration());
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) unawaited(_completeSession());
@@ -324,6 +350,8 @@ class _FruitCatchingBearScreenState extends State<FruitCatchingBearScreen> {
   String _getLevelName(int level) {
     const names = ['Beginner', 'Learner', 'Explorer', 'Expert', 'Master'];
     return level >= names.length ? 'Master' : names[level];
+=======
+>>>>>>> origin/Kongnew
   }
 
   void _changeLane(double laneX) {
@@ -344,11 +372,17 @@ class _FruitCatchingBearScreenState extends State<FruitCatchingBearScreen> {
       _targetPlayerX = 0.25;
       _score = 0;
       _isGameOver = false;
+<<<<<<< HEAD
       _hasCompletedSession = false;
       _startedAt = DateTime.now();
       _elapsedTime = Duration.zero;
     });
     unawaited(_sendGameEnterBleState());
+=======
+      _startedAt = DateTime.now();
+      _elapsedTime = Duration.zero;
+    });
+>>>>>>> origin/Kongnew
     _startGame();
   }
 
@@ -364,7 +398,10 @@ class _FruitCatchingBearScreenState extends State<FruitCatchingBearScreen> {
 
   @override
   void dispose() {
+<<<<<<< HEAD
     unawaited(_resetGameBleState());
+=======
+>>>>>>> origin/Kongnew
     _gameLoop?.cancel();
     _spawnLoop?.cancel();
     _bleInputSub?.cancel();

@@ -6,7 +6,10 @@ import 'package:avatar_glow/avatar_glow.dart';
 import 'package:flutter/material.dart';
 
 import '../../services/bluetooth_service.dart';
+<<<<<<< HEAD
 import '../../services/interactive_input_service.dart';
+=======
+>>>>>>> origin/Kongnew
 import '../../services/sound_service.dart';
 import '../../services/auth_service.dart';
 import '../../state/audy_controller.dart';
@@ -85,7 +88,11 @@ class _ReadPronouncePracticeScreenState
 
     unawaited(_sendGameEnterBleState());
     SoundService.instance.playInstructionReadPronounce();
+<<<<<<< HEAD
     _bleMicSub = InteractiveInputService.instance.incomingMessages.listen(
+=======
+    _bleMicSub = AudyBluetoothService.instance.incomingMessages.listen(
+>>>>>>> origin/Kongnew
       _handleBleInput,
     );
   }
@@ -102,7 +109,10 @@ class _ReadPronouncePracticeScreenState
 
   void _handleBleInput(AudyBleMessage message) {
     if (!mounted) return;
+<<<<<<< HEAD
     if (ModalRoute.of(context)?.isCurrent != true) return;
+=======
+>>>>>>> origin/Kongnew
     if (message.channel != 'nose' || message.value != 1) return;
 
     unawaited(_handleVoiceButtonTap());
@@ -336,7 +346,13 @@ class _ReadPronouncePracticeScreenState
     try {
       final bluetooth = AudyBluetoothService.instance;
       if (isFinalRound) {
+<<<<<<< HEAD
         await bluetooth.celebrateGameCompletion();
+=======
+        await bluetooth.setArms(4);
+        await bluetooth.pulseEmotion(2);
+        await bluetooth.setLed(11);
+>>>>>>> origin/Kongnew
       } else {
         await bluetooth.pulseEmotion(1);
       }

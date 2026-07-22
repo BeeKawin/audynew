@@ -133,7 +133,11 @@ class AudyMpuMotion {
 ///   Flutter -> ESP32:
 ///     arms characteristic: 0-4
 ///     emotion characteristic: 0-3
+<<<<<<< HEAD
 ///     led characteristic: 0-22
+=======
+///     led characteristic: 0-20
+>>>>>>> origin/Kongnew
 ///
 ///   ESP32 -> Flutter:
 ///     tummy characteristic: 0-1
@@ -563,6 +567,7 @@ class AudyBluetoothService {
     );
   }
 
+<<<<<<< HEAD
   /// Run the shared game-completion celebration on the physical robot.
   Future<void> celebrateGameCompletion() async {
     await setArms(4);
@@ -574,6 +579,12 @@ class AudyBluetoothService {
   /// 0-22 = LED color cases
   Future<void> setLed(int value) async {
     _validateOutgoingValue('led', value, min: 0, max: 22);
+=======
+  /// LED channel:
+  /// 0-20 = LED color cases
+  Future<void> setLed(int value) async {
+    _validateOutgoingValue('led', value, min: 0, max: 20);
+>>>>>>> origin/Kongnew
     await _writeNumericCommand('led', _ledCharacteristic, value);
   }
 

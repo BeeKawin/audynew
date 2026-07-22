@@ -1,7 +1,12 @@
 import 'dart:async';
 
+<<<<<<< HEAD
 import 'package:flutter/foundation.dart';
 import 'package:flutter_soloud/flutter_soloud.dart';
+=======
+import 'package:flutter_soloud/flutter_soloud.dart';
+import 'package:flutter/foundation.dart';
+>>>>>>> origin/Kongnew
 
 import '../core/app_sounds.dart';
 import 'bluetooth_service.dart';
@@ -19,15 +24,22 @@ class SoundService {
   bool _initialized = false;
   static const double _bgmVolume = 0.3;
   static const double _sfxVolume = 1.0;
+<<<<<<< HEAD
   static const Duration _completionCelebrationDelay = Duration(
     milliseconds: 900,
   );
+=======
+  static const Duration _bearCompletionDelay = Duration(milliseconds: 900);
+>>>>>>> origin/Kongnew
 
   /// Preloaded audio sources keyed by asset path
   final Map<String, AudioSource> _sources = {};
 
   SoundHandle? _bgmHandle;
+<<<<<<< HEAD
   SoundHandle? _introHandle;
+=======
+>>>>>>> origin/Kongnew
 
   /// Whether sounds are enabled
   bool get isEnabled => _enabled;
@@ -125,6 +137,7 @@ class SoundService {
   /// Play correct answer sound
   void playCorrect() => play(AppSounds.correct);
 
+<<<<<<< HEAD
   /// Play the correct cue fully, then the emotion-game transition.
   Future<void> playCorrectThenEmotionTransition() async {
     await _playToCompletion(AppSounds.correct);
@@ -139,6 +152,8 @@ class SoundService {
     return true;
   }
 
+=======
+>>>>>>> origin/Kongnew
   /// Play wrong answer sound
   void playWrong() => play(AppSounds.wrong);
 
@@ -151,19 +166,47 @@ class SoundService {
   /// Play round complete sound
   void playRoundComplete() => play(AppSounds.roundComplete);
 
+<<<<<<< HEAD
   /// Play game completion sounds without requiring Bluetooth.
   void playGameComplete() {
     play(AppSounds.gameComplete);
     unawaited(
       Future.delayed(_completionCelebrationDelay, () {
         play(AppSounds.bearCongrats);
+=======
+  /// Play game complete sound
+  void playGameComplete() => play(AppSounds.gameComplete);
+
+  /// Play Bluetooth-gated bear feedback after the generic completion sound.
+  void playBearCompletionFeedback({
+    required int score,
+    required int maxScore,
+  }) {
+    if (!_enabled ||
+        maxScore <= 0 ||
+        !AudyBluetoothService.instance.isConnected) {
+      return;
+    }
+
+    final isSuccessful = score / maxScore >= 2 / 3;
+    final soundPath = isSuccessful
+        ? AppSounds.bearCongrats
+        : AppSounds.bearTryAgain;
+
+    unawaited(
+      Future.delayed(_bearCompletionDelay, () {
+        play(soundPath);
+>>>>>>> origin/Kongnew
       }),
     );
   }
 
+<<<<<<< HEAD
   /// Play the praise voice assigned to a successful emotion mimic round.
   void playEmotionPraise(String praiseSoundPath) => play(praiseSoundPath);
 
+=======
+>>>>>>> origin/Kongnew
   /// Play points earned sound
   void playPoints() => play(AppSounds.points);
 
@@ -182,7 +225,20 @@ class SoundService {
   /// Play try again sound
   void playTryAgain() => play(AppSounds.tryAgain);
 
+<<<<<<< HEAD
   bool _playInstruction(String soundPath) => play(soundPath);
+=======
+  bool _playInstruction(String soundPath) {
+    if (!AudyBluetoothService.instance.isConnected) {
+      debugPrint(
+        'SoundService: Bluetooth disconnected, not playing instruction sound',
+      );
+      return false;
+    }
+
+    return play(soundPath);
+  }
+>>>>>>> origin/Kongnew
 
   /// Play emotion classify instruction sound
   void playInstructionEmotionClassify() =>
@@ -216,6 +272,7 @@ class SoundService {
   void playInstructionReadPronounce() =>
       _playInstruction(AppSounds.instructionReadPronounce);
 
+<<<<<<< HEAD
   Future<void> _playIntro(
     String soundPath, {
     Duration waitBeforeContinuing = Duration.zero,
@@ -269,6 +326,8 @@ class SoundService {
     }
   }
 
+=======
+>>>>>>> origin/Kongnew
   /// Play background music (soundtrack) on loop at low volume
   void playBGM() {
     if (!_initialized) {
@@ -328,10 +387,14 @@ class SoundService {
   /// Enable or disable all sounds
   void setEnabled(bool enabled) {
     _enabled = enabled;
+<<<<<<< HEAD
     if (!enabled) {
       stopBGM();
       stopIntro();
     }
+=======
+    if (!enabled) stopBGM();
+>>>>>>> origin/Kongnew
   }
 
   /// Toggle sound on/off
@@ -340,7 +403,10 @@ class SoundService {
   /// Dispose BGM player
   Future<void> dispose() async {
     stopBGM();
+<<<<<<< HEAD
     stopIntro();
+=======
+>>>>>>> origin/Kongnew
     for (final source in _sources.values) {
       try {
         _soloud.disposeSource(source);

@@ -377,6 +377,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     ),
                   ),
                   SizedBox(height: adaptive.space(20)),
+<<<<<<< HEAD
                   Semantics(
                     button: true,
                     label: _tr(context, 'open_app_controls'),
@@ -401,6 +402,9 @@ class _ProfilePageState extends State<ProfilePage> {
                       ),
                     ),
                   ),
+=======
+                  const AudyMascot(size: 120),
+>>>>>>> origin/Kongnew
                   SizedBox(height: adaptive.space(16)),
                   Text(
                     _tr(context, 'profile'),

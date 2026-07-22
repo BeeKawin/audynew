@@ -204,6 +204,7 @@ class FlashcardController extends ChangeNotifier {
     notifyListeners();
   }
 
+<<<<<<< HEAD
   /// Return every unlocked card to the hand so the player can reorder them.
   bool resetUnlockedSelectedCards() {
     if (phase != FlashcardGamePhase.playing) return false;
@@ -220,6 +221,8 @@ class FlashcardController extends ChangeNotifier {
     return true;
   }
 
+=======
+>>>>>>> origin/Kongnew
   Future<void> submit() async {
     final round = currentRound;
     if (round == null || _selectedCards.isEmpty) return;

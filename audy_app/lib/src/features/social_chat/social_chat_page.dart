@@ -6,7 +6,10 @@ import 'package:speech_to_text/speech_to_text.dart' as stt;
 
 import '../../core/audy_ui.dart';
 import '../../services/bluetooth_service.dart';
+<<<<<<< HEAD
 import '../../services/interactive_input_service.dart';
+=======
+>>>>>>> origin/Kongnew
 import '../../services/sound_service.dart';
 import '../../state/audy_controller.dart';
 
@@ -30,11 +33,18 @@ class _SocialPracticePageState extends State<SocialPracticePage> {
   @override
   void initState() {
     super.initState();
+<<<<<<< HEAD
     unawaited(SoundService.instance.playSocialChatIntro());
     messageController = TextEditingController();
     _scrollController = ScrollController();
     unawaited(_sendGameEnterBleState());
     _bleMicSub = InteractiveInputService.instance.incomingMessages.listen(
+=======
+    messageController = TextEditingController();
+    _scrollController = ScrollController();
+    unawaited(_sendGameEnterBleState());
+    _bleMicSub = AudyBluetoothService.instance.incomingMessages.listen(
+>>>>>>> origin/Kongnew
       _handleBleInput,
     );
     // Scroll to bottom after initial build
@@ -51,7 +61,10 @@ class _SocialPracticePageState extends State<SocialPracticePage> {
 
   void _handleBleInput(AudyBleMessage message) {
     if (!mounted) return;
+<<<<<<< HEAD
     if (ModalRoute.of(context)?.isCurrent != true) return;
+=======
+>>>>>>> origin/Kongnew
     if (message.channel != 'nose' || message.value != 1) return;
 
     _listen();

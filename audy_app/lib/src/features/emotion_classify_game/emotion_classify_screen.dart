@@ -1,15 +1,24 @@
 import 'dart:async';
+<<<<<<< HEAD
 import 'dart:math';
 
 import 'package:flutter/material.dart';
 
 import '../../core/app_sounds.dart';
+=======
+
+import 'package:flutter/material.dart';
+
+>>>>>>> origin/Kongnew
 import '../../core/audy_theme.dart';
 import '../../core/audy_ui.dart';
 import '../../core/emotion_character_widget.dart';
 import '../../core/emotion_images.dart';
 import '../../services/bluetooth_service.dart';
+<<<<<<< HEAD
 import '../../services/interactive_input_service.dart';
+=======
+>>>>>>> origin/Kongnew
 import '../../services/sound_service.dart';
 import '../../state/audy_controller.dart';
 import '../../widgets/game_guide_box.dart';
@@ -48,18 +57,27 @@ class _EmotionClassifyScreenState extends State<EmotionClassifyScreen> {
   bool _showGuide = true;
   final Map<int, String> _roundImagePaths = {};
   final DateTime _sessionStartedAt = DateTime.now();
+<<<<<<< HEAD
   late final List<String> _praiseSoundOrder;
+=======
+>>>>>>> origin/Kongnew
 
   StreamSubscription<AudyBleMessage>? _bleInputSub;
   @override
   void initState() {
     super.initState();
 
+<<<<<<< HEAD
     _praiseSoundOrder = [...AppSounds.emotionPraiseSounds]..shuffle(Random());
 
     unawaited(_sendGameEnterBleState());
     SoundService.instance.playInstructionEmotionClassify();
     _bleInputSub = InteractiveInputService.instance.incomingMessages.listen(
+=======
+    unawaited(_sendGameEnterBleState());
+    SoundService.instance.playInstructionEmotionClassify();
+    _bleInputSub = AudyBluetoothService.instance.incomingMessages.listen(
+>>>>>>> origin/Kongnew
       _handleBleInput,
     );
   }
@@ -76,7 +94,10 @@ class _EmotionClassifyScreenState extends State<EmotionClassifyScreen> {
 
   void _handleBleInput(AudyBleMessage message) {
     if (!mounted) return;
+<<<<<<< HEAD
     if (ModalRoute.of(context)?.isCurrent != true) return;
+=======
+>>>>>>> origin/Kongnew
     if (_showingFeedback) return;
 
     final answerIndex = _answerIndexFromBle(message);
@@ -366,7 +387,13 @@ class _EmotionClassifyScreenState extends State<EmotionClassifyScreen> {
     _isCorrect = isCorrect;
     _showingFeedback = true;
 
+<<<<<<< HEAD
     if (isCorrect) {
+=======
+    // Play sound for correct/wrong answer
+    if (isCorrect) {
+      SoundService.instance.playCorrect();
+>>>>>>> origin/Kongnew
       final isFinalRound =
           controller.classifyCurrentRound >= controller.classifyTotalRounds;
       unawaited(_sendCorrectAnswerBleSignal(isFinalRound: isFinalRound));
@@ -376,6 +403,7 @@ class _EmotionClassifyScreenState extends State<EmotionClassifyScreen> {
 
     controller.submitClassifyAnswer(answer);
 
+<<<<<<< HEAD
     unawaited(_continueAfterAnswerFeedback(controller, isCorrect: isCorrect));
   }
 
@@ -416,6 +444,30 @@ class _EmotionClassifyScreenState extends State<EmotionClassifyScreen> {
     if (completed == true) {
       controller.advanceClassifyRound();
     }
+=======
+    Future.delayed(const Duration(milliseconds: 1500), () async {
+      if (mounted) {
+        final targetEmotion = controller.currentClassifyQuestion.correctAnswer;
+        final completed = await Navigator.push<bool>(
+          context,
+          MaterialPageRoute(
+            builder: (_) => SelfieCaptureScreen(targetEmotion: targetEmotion),
+          ),
+        );
+
+        if (mounted) {
+          setState(() {
+            _selectedAnswer = null;
+            _showingFeedback = false;
+            _isCorrect = false;
+          });
+          if (completed == true) {
+            controller.advanceClassifyRound();
+          }
+        }
+      }
+    });
+>>>>>>> origin/Kongnew
   }
 
   List<String> _orderedOptionsFor(EmotionQuestion question) {
@@ -440,10 +492,16 @@ class _EmotionClassifyScreenState extends State<EmotionClassifyScreen> {
   Future<void> _sendCorrectAnswerBleSignal({required bool isFinalRound}) async {
     try {
       final bluetooth = AudyBluetoothService.instance;
+<<<<<<< HEAD
       if (isFinalRound) {
         await bluetooth.celebrateGameCompletion();
       } else {
         await bluetooth.pulseEmotion(1);
+=======
+      await bluetooth.pulseEmotion(isFinalRound ? 2 : 1);
+      if (isFinalRound) {
+        await bluetooth.setLed(11);
+>>>>>>> origin/Kongnew
       }
     } catch (e) {
       debugPrint(

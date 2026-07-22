@@ -78,10 +78,17 @@ class _MiniPuzzleGameScreenState extends State<MiniPuzzleGameScreen> {
   }) async {
     try {
       final bluetooth = AudyBluetoothService.instance;
+<<<<<<< HEAD
       if (isFinalRound) {
         await bluetooth.celebrateGameCompletion();
       } else {
         await bluetooth.pulseEmotion(1);
+=======
+      await bluetooth.pulseEmotion(isFinalRound ? 2 : 1);
+      if (isFinalRound) {
+        await bluetooth.setArms(4);
+        await bluetooth.setLed(11);
+>>>>>>> origin/Kongnew
       }
     } catch (e) {
       debugPrint(
