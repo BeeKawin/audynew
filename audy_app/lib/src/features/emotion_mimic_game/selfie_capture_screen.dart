@@ -13,6 +13,7 @@ import '../../core/emotion_character_widget.dart';
 import '../../services/bluetooth_service.dart';
 import '../../services/emotion_service.dart';
 import '../../services/face_guidance_service.dart';
+import '../../services/interactive_input_service.dart';
 import '../../services/sound_service.dart';
 import '../../widgets/robot_panel_layout.dart';
 import '../../widgets/virtual_robot_panel.dart';
@@ -53,7 +54,7 @@ class _SelfieCaptureScreenState extends State<SelfieCaptureScreen> {
   @override
   void initState() {
     super.initState();
-    _bleInputSub = AudyBluetoothService.instance.incomingMessages.listen(
+    _bleInputSub = InteractiveInputService.instance.incomingMessages.listen(
       _handleBleInput,
     );
     _initCamera();

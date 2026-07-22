@@ -313,6 +313,7 @@ class AudyController extends ChangeNotifier {
   double mimicLastConfidence = 0.0;
 
   String get currentMimicTarget => _mimicEmotions[_mimicEmotionIndex];
+  List<String> get mimicEmotionPool => List.unmodifiable(_mimicEmotionPool);
 
   bool get isMimicGameComplete => mimicCurrentRound > mimicTotalRounds;
 

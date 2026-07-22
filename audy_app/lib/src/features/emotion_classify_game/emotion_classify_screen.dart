@@ -9,6 +9,7 @@ import '../../core/audy_ui.dart';
 import '../../core/emotion_character_widget.dart';
 import '../../core/emotion_images.dart';
 import '../../services/bluetooth_service.dart';
+import '../../services/interactive_input_service.dart';
 import '../../services/sound_service.dart';
 import '../../state/audy_controller.dart';
 import '../../widgets/game_guide_box.dart';
@@ -58,7 +59,7 @@ class _EmotionClassifyScreenState extends State<EmotionClassifyScreen> {
 
     unawaited(_sendGameEnterBleState());
     SoundService.instance.playInstructionEmotionClassify();
-    _bleInputSub = AudyBluetoothService.instance.incomingMessages.listen(
+    _bleInputSub = InteractiveInputService.instance.incomingMessages.listen(
       _handleBleInput,
     );
   }
@@ -75,6 +76,7 @@ class _EmotionClassifyScreenState extends State<EmotionClassifyScreen> {
 
   void _handleBleInput(AudyBleMessage message) {
     if (!mounted) return;
+    if (ModalRoute.of(context)?.isCurrent != true) return;
     if (_showingFeedback) return;
 
     final answerIndex = _answerIndexFromBle(message);

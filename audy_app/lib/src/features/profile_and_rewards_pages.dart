@@ -377,7 +377,30 @@ class _ProfilePageState extends State<ProfilePage> {
                     ),
                   ),
                   SizedBox(height: adaptive.space(20)),
-                  const AudyMascot(size: 120),
+                  Semantics(
+                    button: true,
+                    label: _tr(context, 'open_app_controls'),
+                    child: Tooltip(
+                      message: _tr(context, 'open_app_controls'),
+                      child: InkWell(
+                        onTap: () {
+                          SoundService.instance.playTap();
+                          Navigator.pushNamed(
+                            context,
+                            AppRoutes.remoteControl,
+                          );
+                        },
+                        borderRadius: BorderRadius.circular(
+                          AudySpacing.radiusLarge,
+                        ),
+                        child: const SizedBox(
+                          width: 144,
+                          height: 144,
+                          child: Center(child: AudyMascot(size: 120)),
+                        ),
+                      ),
+                    ),
+                  ),
                   SizedBox(height: adaptive.space(16)),
                   Text(
                     _tr(context, 'profile'),

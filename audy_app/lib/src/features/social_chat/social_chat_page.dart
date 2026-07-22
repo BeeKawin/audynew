@@ -6,6 +6,7 @@ import 'package:speech_to_text/speech_to_text.dart' as stt;
 
 import '../../core/audy_ui.dart';
 import '../../services/bluetooth_service.dart';
+import '../../services/interactive_input_service.dart';
 import '../../services/sound_service.dart';
 import '../../state/audy_controller.dart';
 
@@ -33,7 +34,7 @@ class _SocialPracticePageState extends State<SocialPracticePage> {
     messageController = TextEditingController();
     _scrollController = ScrollController();
     unawaited(_sendGameEnterBleState());
-    _bleMicSub = AudyBluetoothService.instance.incomingMessages.listen(
+    _bleMicSub = InteractiveInputService.instance.incomingMessages.listen(
       _handleBleInput,
     );
     // Scroll to bottom after initial build
@@ -50,6 +51,7 @@ class _SocialPracticePageState extends State<SocialPracticePage> {
 
   void _handleBleInput(AudyBleMessage message) {
     if (!mounted) return;
+    if (ModalRoute.of(context)?.isCurrent != true) return;
     if (message.channel != 'nose' || message.value != 1) return;
 
     _listen();

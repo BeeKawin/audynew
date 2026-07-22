@@ -9,6 +9,7 @@ import '../../core/audy_theme.dart';
 import '../../core/audy_ui.dart';
 import '../../data/models/game_session_model.dart';
 import '../../services/bluetooth_service.dart';
+import '../../services/interactive_input_service.dart';
 import '../../services/sound_service.dart';
 import '../../state/audy_controller.dart';
 import '../../widgets/game_guide_box.dart';
@@ -70,7 +71,7 @@ class _FruitCatchingBearScreenState extends State<FruitCatchingBearScreen> {
     _startedAt = DateTime.now();
     _loadHighScore();
     _startGame();
-    _bleInputSub = AudyBluetoothService.instance.incomingMessages.listen(
+    _bleInputSub = InteractiveInputService.instance.incomingMessages.listen(
       _handleBleInput,
     );
   }
@@ -101,6 +102,7 @@ class _FruitCatchingBearScreenState extends State<FruitCatchingBearScreen> {
 
   void _handleBleInput(AudyBleMessage message) {
     if (!mounted || _isGameOver) return;
+    if (ModalRoute.of(context)?.isCurrent != true) return;
 
     if (message.channel == 'ears') {
       if (message.value == 1) {
