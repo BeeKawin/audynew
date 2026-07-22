@@ -1,0 +1,1167 @@
+import 'dart:async';
+import 'dart:math' as math;
+
+import 'package:flutter/material.dart';
+import 'package:flutter_tts/flutter_tts.dart';
+
+import '../../core/app_routes.dart';
+import '../../core/audy_theme.dart';
+import '../../core/audy_ui.dart';
+import '../../data/models/game_session_model.dart';
+import '../../services/bluetooth_service.dart';
+import '../../services/sound_service.dart';
+import '../../state/audy_controller.dart';
+import '../../widgets/game_guide_box.dart';
+import '../../widgets/point_celebration_dialog.dart';
+import 'flashcard_card_widget.dart';
+import 'flashcard_controller.dart';
+import 'flashcard_models.dart';
+
+class FlashcardScreen extends StatefulWidget {
+  const FlashcardScreen({super.key, required this.difficulty});
+
+  final FlashcardDifficulty difficulty;
+
+  @override
+  State<FlashcardScreen> createState() => _FlashcardScreenState();
+}
+
+class _FlashcardScreenState extends State<FlashcardScreen> {
+  late final FlashcardController _controller;
+  final FlutterTts _tts = FlutterTts();
+  Timer? _previewTimer;
+  Timer? _feedbackTimer;
+  StreamSubscription<AudyBleMessage>? _bleInputSub;
+  late DateTime _sessionStartedAt;
+  bool _hasRecordedCompletion = false;
+  bool _showGuide = true;
+  bool _isSubmitting = false;
+  String? _spokenRoundId;
+  String? _robotBindingRoundId;
+  String? _leftRobotCardId;
+  String? _middleRobotCardId;
+  String? _rightRobotCardId;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = FlashcardController(difficulty: widget.difficulty)
+      ..addListener(_onControllerChanged);
+    unawaited(_sendGameEnterBleState());
+    _bleInputSub = AudyBluetoothService.instance.incomingMessages.listen(
+      _handleBleInput,
+    );
+    _sessionStartedAt = DateTime.now();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      unawaited(_startSessionAfterInstruction());
+    });
+  }
+
+  Future<void> _startSessionAfterInstruction() async {
+    await SoundService.instance.playFlashcardInstruction();
+    if (!mounted) return;
+
+    final scope = AudyScope.of(context);
+    await _controller.startSession(
+      scope.currentLanguage,
+      teacherId: scope.currentUser?.teacherId,
+    );
+  }
+
+  @override
+  void dispose() {
+    unawaited(_resetGameBleState());
+    _previewTimer?.cancel();
+    _feedbackTimer?.cancel();
+    _bleInputSub?.cancel();
+    _controller.removeListener(_onControllerChanged);
+    _controller.dispose();
+    _tts.stop();
+    super.dispose();
+  }
+
+  Future<void> _sendGameEnterBleState() async {
+    try {
+      await AudyBluetoothService.instance.setLed(22);
+    } catch (e) {
+      debugPrint('FlashcardScreen: Entry LED BLE state skipped - $e');
+    }
+  }
+
+  Future<void> _resetGameBleState() async {
+    try {
+      await AudyBluetoothService.instance.setLed(0);
+    } catch (e) {
+      debugPrint('FlashcardScreen: Exit LED BLE reset skipped - $e');
+    }
+  }
+
+  Future<void> _sendCompletionBleCelebration() async {
+    try {
+      await AudyBluetoothService.instance.celebrateGameCompletion();
+    } catch (e) {
+      debugPrint('FlashcardScreen: Completion BLE skipped - $e');
+    }
+  }
+
+  void _handleBleInput(AudyBleMessage message) {
+    if (!mounted || widget.difficulty != FlashcardDifficulty.easy) return;
+    debugPrint(
+      'FlashcardScreen: BLE ${message.channel}=${message.value}',
+    );
+    if (_controller.phase != FlashcardGamePhase.playing || _isSubmitting) {
+      return;
+    }
+
+    if (message.channel == 'ears') {
+      if (message.value == 1) {
+        if (_controller.resetUnlockedSelectedCards()) {
+          SoundService.instance.playTap();
+        }
+      } else if (message.value == 2 && _controller.canSubmit) {
+        unawaited(_handleSubmit());
+      }
+      return;
+    }
+
+    if (_controller.isDeckFull) return;
+    _bindRobotCardsForCurrentRound();
+
+    String? selectedCardId;
+    if (message.channel == 'force' && message.value == 1) {
+      selectedCardId = _leftRobotCardId;
+    } else if (message.channel == 'tummy' && message.value == 1) {
+      selectedCardId = _middleRobotCardId;
+    } else if (message.channel == 'force' && message.value == 2) {
+      selectedCardId = _rightRobotCardId;
+    }
+
+    if (selectedCardId == null) {
+      debugPrint('FlashcardScreen: BLE input has no mapped card');
+      return;
+    }
+    for (final card in _controller.handCards) {
+      if (card.id == selectedCardId) {
+        debugPrint('FlashcardScreen: Selecting mapped card ${card.id}');
+        _selectCard(card);
+        return;
+      }
+    }
+    debugPrint('FlashcardScreen: Mapped card $selectedCardId is not in hand');
+  }
+
+  void _bindRobotCardsForCurrentRound() {
+    if (widget.difficulty != FlashcardDifficulty.easy) return;
+
+    final roundId = _controller.currentRound?.roundId;
+    final bindingsReady = _leftRobotCardId != null &&
+        _middleRobotCardId != null &&
+        _rightRobotCardId != null;
+    if (roundId == null ||
+        (_robotBindingRoundId == roundId && bindingsReady)) {
+      return;
+    }
+
+    final cards = _controller.handCards;
+    if (cards.length < 3) return;
+
+    _robotBindingRoundId = roundId;
+    _leftRobotCardId = cards[0].id;
+    _middleRobotCardId = cards[1].id;
+    _rightRobotCardId = cards[2].id;
+    debugPrint(
+      'FlashcardScreen: Bound robot cards '
+      'left=$_leftRobotCardId, middle=$_middleRobotCardId, '
+      'right=$_rightRobotCardId',
+    );
+  }
+
+  void _selectCard(FlashcardCard card) {
+    if (_isSubmitting ||
+        _controller.phase != FlashcardGamePhase.playing ||
+        _controller.isDeckFull ||
+        !_controller.handCards.any((item) => item.id == card.id)) {
+      return;
+    }
+
+    SoundService.instance.playTap();
+    _controller.selectCard(card);
+    unawaited(_speakCard(card));
+  }
+
+  void _onControllerChanged() {
+    if (!mounted) return;
+    setState(() {});
+
+    if (_controller.phase == FlashcardGamePhase.previewing) {
+      _schedulePreview();
+    } else {
+      _previewTimer?.cancel();
+    }
+
+    if (_controller.phase == FlashcardGamePhase.playing) {
+      _bindRobotCardsForCurrentRound();
+      final round = _controller.currentRound;
+      if (round != null && _spokenRoundId != round.roundId) {
+        _spokenRoundId = round.roundId;
+        unawaited(_speakText(round.scenario, round.language));
+      }
+    }
+
+    if (_controller.phase == FlashcardGamePhase.feedback) {
+      _scheduleFeedbackResolve();
+    }
+
+    if (_controller.phase == FlashcardGamePhase.complete) {
+      unawaited(_recordCompletion());
+    }
+  }
+
+  void _schedulePreview() {
+    _previewTimer?.cancel();
+    final card = _controller.previewCard;
+    if (card == null) return;
+
+    unawaited(_speakCard(card));
+    _previewTimer = Timer(const Duration(seconds: 2), () {
+      if (!mounted) return;
+      _controller.advancePreview();
+    });
+  }
+
+  void _scheduleFeedbackResolve() {
+    _feedbackTimer?.cancel();
+    // Hold the coloured feedback briefly, then lock correct cards and gently
+    // return the wrong ones to the hand for another try.
+    _feedbackTimer = Timer(const Duration(milliseconds: 1400), () {
+      if (!mounted) return;
+      unawaited(_controller.continueAfterFeedback());
+    });
+  }
+
+  Future<void> _speakCard(FlashcardCard card) async {
+    await _speakText(card.ttsText, card.language);
+  }
+
+  Future<void> _speakText(String text, String language) async {
+    if (text.trim().isEmpty) return;
+    if (language == 'th') {
+      await AudyScope.of(context).geminiTtsService.speakThai(text);
+      return;
+    }
+
+    await _tts.stop();
+    await _tts.setLanguage('en-US');
+    await _tts.setPitch(1.2);
+    await _tts.setSpeechRate(0.42);
+    await _tts.speak(text);
+  }
+
+  Future<void> _handleSubmit() async {
+    if (_isSubmitting || !_controller.canSubmit) return;
+    _isSubmitting = true;
+
+    try {
+      SoundService.instance.playTap();
+      final selected = _controller.selectedCards;
+      for (final card in selected) {
+        await _speakCard(card);
+        await Future<void>.delayed(const Duration(milliseconds: 180));
+      }
+      await _controller.submit();
+      // Gentle, non-punishing feedback: celebrate a full sentence, otherwise a
+      // soft "try again" rather than a harsh buzzer.
+      if (_controller.lastValidation?.isCorrect == true) {
+        SoundService.instance.playCorrect();
+      } else {
+        SoundService.instance.playTryAgain();
+      }
+    } finally {
+      _isSubmitting = false;
+    }
+  }
+
+  Future<void> _recordCompletion() async {
+    if (_hasRecordedCompletion) return;
+    _hasRecordedCompletion = true;
+    await _tts.stop();
+    SoundService.instance.playGameComplete();
+    unawaited(_sendCompletionBleCelebration());
+
+    final appController = AudyScope.of(context);
+    final endedAt = DateTime.now();
+    final correct = _controller.sessionCorrectCount;
+    final total = _controller.sessionTotalCards;
+    final mistakes = _controller.sessionMistakes;
+    final points = (correct * 5 - mistakes).clamp(0, correct * 5);
+    final stars = mistakes == 0
+        ? 3
+        : (mistakes <= total ? 2 : 1);
+
+    final initialPoints = appController.learningPoints;
+    final newPoints = initialPoints + points;
+    final oldLevel = _getLevelFromPoints(initialPoints);
+    final newLevel = _getLevelFromPoints(newPoints);
+    final isLevelUp = newLevel > oldLevel;
+
+    if (points > 0) {
+      await showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (dialogContext) => PointCelebrationDialog(
+          points: points,
+          totalPoints: newPoints,
+          currentLevel: newLevel,
+          nextLevelThreshold: _getNextLevelThreshold(newLevel),
+          nextLevelName: _getLevelName(newLevel + 1),
+          isLevelUp: isLevelUp,
+          newLevelName: isLevelUp ? _getLevelName(newLevel) : null,
+          onClose: () => Navigator.of(dialogContext).pop(),
+        ),
+      );
+      if (!mounted) return;
+      await appController.addPoints(points);
+    }
+
+    await appController.trackFlashcardCompleted();
+    await appController.recordAnalyticsSession(
+      GameSessionData.fromTimes(
+        gameType: 'flashcard',
+        difficulty: widget.difficulty.name,
+        correctActions: correct,
+        totalActions: total + mistakes,
+        starsEarned: stars,
+        sessionStartedAt: _sessionStartedAt,
+        sessionEndedAt: endedAt,
+      ),
+    );
+  }
+
+  int _getLevelFromPoints(int points) {
+    if (points >= 1000) return 4;
+    if (points >= 500) return 3;
+    if (points >= 250) return 2;
+    if (points >= 100) return 1;
+    return 0;
+  }
+
+  int _getNextLevelThreshold(int level) {
+    const thresholds = [100, 250, 500, 1000, 2000];
+    return level >= thresholds.length ? 2000 : thresholds[level];
+  }
+
+  String _getLevelName(int level) {
+    const names = ['Beginner', 'Learner', 'Explorer', 'Expert', 'Master'];
+    return level >= names.length ? 'Master' : names[level];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AudyResponsivePage(
+      scrollable: false,
+      builder: (context, adaptive) {
+        return Column(
+          children: [
+            _Header(
+              adaptive: adaptive,
+              roundNumber: _controller.roundNumber,
+              totalRounds: FlashcardController.totalRounds,
+              lockedCount: _controller.lockedCount,
+              totalCards: _controller.totalCards,
+              guide: _showGuide
+                  ? GameGuideBox(
+                      message: AudyScope.of(context).tr('guide_flashcard'),
+                      onDismissed: () => setState(() => _showGuide = false),
+                    )
+                  : null,
+              onBack: () {
+                SoundService.instance.playTap();
+                Navigator.pop(context);
+              },
+            ),
+            SizedBox(height: adaptive.space(16)),
+            Expanded(child: _buildBody(adaptive)),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildBody(AudyAdaptive adaptive) {
+    switch (_controller.phase) {
+      case FlashcardGamePhase.loading:
+        return _LoadingState(adaptive: adaptive);
+      case FlashcardGamePhase.previewing:
+        return _PreviewState(controller: _controller);
+      case FlashcardGamePhase.playing:
+      case FlashcardGamePhase.validating:
+      case FlashcardGamePhase.feedback:
+        return _PlayState(
+          adaptive: adaptive,
+          controller: _controller,
+          onSelectCard: _selectCard,
+          onSubmit: _handleSubmit,
+          onSpeakScenario: () {
+            final scenario = _controller.currentRound?.scenario ?? '';
+            final lang = _controller.currentRound?.language ?? 'en';
+            unawaited(_speakText(scenario, lang));
+          },
+        );
+      case FlashcardGamePhase.complete:
+        return _CompleteState(
+          adaptive: adaptive,
+          correctCount: _controller.sessionCorrectCount,
+          totalCards: _controller.sessionTotalCards,
+          onDone: () {
+            final appController = AudyScope.of(context);
+            AppRoutes.navigateAfterGameCompletion(context, appController);
+          },
+        );
+      case FlashcardGamePhase.error:
+        return _ErrorState(
+          adaptive: adaptive,
+          onRetry: () {
+            final language = AudyScope.of(context).currentLanguage;
+            unawaited(_controller.retry(language));
+          },
+        );
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Header
+// ---------------------------------------------------------------------------
+
+class _Header extends StatelessWidget {
+  const _Header({
+    required this.adaptive,
+    required this.roundNumber,
+    required this.totalRounds,
+    required this.lockedCount,
+    required this.totalCards,
+    required this.onBack,
+    this.guide,
+  });
+
+  final AudyAdaptive adaptive;
+  final int roundNumber;
+  final int totalRounds;
+  final int lockedCount;
+  final int totalCards;
+  final VoidCallback onBack;
+  final Widget? guide;
+
+  @override
+  Widget build(BuildContext context) {
+    final isThai = AudyScope.of(context).currentLanguage == 'th';
+    final progress = isThai
+        ? 'รอบ $roundNumber/$totalRounds  •  ถูกแล้ว $lockedCount/$totalCards'
+        : 'Round $roundNumber/$totalRounds  •  Placed $lockedCount/$totalCards';
+
+    return Row(
+      children: [
+        InkWell(
+          onTap: onBack,
+          borderRadius: BorderRadius.circular(AudySpacing.radiusMedium),
+          child: SizedBox(
+            width: adaptive.space(56),
+            height: adaptive.space(56),
+            child: const Icon(Icons.arrow_back_rounded),
+          ),
+        ),
+        SizedBox(width: adaptive.space(8)),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                AudyScope.of(context).tr('flashcard_game'),
+                style: AudyTypography.headingSmall,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              Text(
+                progress,
+                style: AudyTypography.labelMedium.copyWith(
+                  color: AudyColors.textSecondary,
+                ),
+              ),
+            ],
+          ),
+        ),
+        if (guide != null)
+          SizedBox(
+            width: adaptive.isPhone ? adaptive.space(190) : adaptive.space(280),
+            child: guide!,
+          ),
+      ],
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Loading
+// ---------------------------------------------------------------------------
+
+class _LoadingState extends StatelessWidget {
+  const _LoadingState({required this.adaptive});
+
+  final AudyAdaptive adaptive;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const CircularProgressIndicator(color: AudyColors.skyBlue),
+          SizedBox(height: adaptive.space(18)),
+          Text(
+            AudyScope.of(context).tr('flashcard_loading'),
+            style: AudyTypography.bodyMedium,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Preview
+// ---------------------------------------------------------------------------
+
+class _PreviewState extends StatelessWidget {
+  const _PreviewState({required this.controller});
+
+  final FlashcardController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final card = controller.previewCard;
+    if (card == null) return const SizedBox.shrink();
+
+    return Center(
+      child: AnimatedSwitcher(
+        duration: AudyAnimation.slow,
+        switchInCurve: Curves.easeOutCubic,
+        switchOutCurve: Curves.easeInCubic,
+        transitionBuilder: (child, animation) {
+          return FadeTransition(
+            opacity: animation,
+            child: ScaleTransition(
+              scale: Tween<double>(begin: 0.96, end: 1).animate(animation),
+              child: child,
+            ),
+          );
+        },
+        child: FlashcardWordCard(
+          key: ValueKey(card.id),
+          card: card,
+          isPreview: true,
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Play — tap to move cards between deck and hand
+// ---------------------------------------------------------------------------
+
+class _PlayState extends StatelessWidget {
+  const _PlayState({
+    required this.adaptive,
+    required this.controller,
+    required this.onSelectCard,
+    required this.onSubmit,
+    this.onSpeakScenario,
+  });
+
+  final AudyAdaptive adaptive;
+  final FlashcardController controller;
+  final ValueChanged<FlashcardCard> onSelectCard;
+  final VoidCallback onSubmit;
+  final VoidCallback? onSpeakScenario;
+
+  @override
+  Widget build(BuildContext context) {
+    final isBusy = controller.phase == FlashcardGamePhase.validating;
+    final isThai = AudyScope.of(context).currentLanguage == 'th';
+    final scenario = controller.currentRound?.scenario ?? '';
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final screenWidth = constraints.maxWidth;
+        final screenHeight = constraints.maxHeight;
+
+        final scale = adaptive.scale;
+        final spacing = adaptive.space(8);
+        final runSpacing = adaptive.space(8);
+
+        final scenarioHeight = scenario.isNotEmpty 
+            ? (108.0 + 14.0) * scale 
+            : 0.0;
+        final buttonHeight = (62.0 + 14.0) * scale;
+        final deckPadding = 28.0 * scale;
+        final handPadding = 24.0;
+        final gapHeight = 14.0 * scale;
+
+        final totalOverhead = scenarioHeight + buttonHeight + deckPadding + handPadding + gapHeight + 16.0;
+        final availableHeight = screenHeight - totalOverhead;
+
+        final count = controller.cardCount;
+        double cardWidth = count <= 3 ? 108.0 : 88.0;
+        final minWidth = 80.0;
+        final maxAllowedWidth = adaptive.isPhone ? 140.0 : 180.0;
+
+        for (double w = maxAllowedWidth; w >= minWidth; w -= 1.0) {
+          final h = w * 1.3;
+
+          final deckInnerWidth = screenWidth - (24.0 * scale);
+          final deckCols = ((deckInnerWidth + spacing) / (w + spacing)).floor();
+          if (deckCols <= 0) continue;
+          final deckRows = (count / deckCols).ceil();
+          final deckHeight = deckRows * h + (deckRows - 1) * runSpacing;
+
+          final handInnerWidth = screenWidth - 16.0;
+          final handCols = ((handInnerWidth + spacing) / (w + spacing)).floor();
+          if (handCols <= 0) continue;
+          final handRows = (count / handCols).ceil();
+          final handHeight = handRows * h + (handRows - 1) * runSpacing;
+
+          if (deckHeight + handHeight <= availableHeight) {
+            cardWidth = w;
+            break;
+          }
+        }
+
+        final cardHeight = cardWidth * 1.3;
+
+        return Column(
+          children: [
+            if (scenario.isNotEmpty) ...[
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const AudyMascot(size: 90),
+                  SizedBox(width: adaptive.space(12)),
+                  Expanded(
+                    child: Container(
+                      padding: EdgeInsets.symmetric(
+                        vertical: adaptive.space(12),
+                        horizontal: adaptive.space(16),
+                      ),
+                      decoration: BoxDecoration(
+                        color: AudyColors.backgroundSoft,
+                        borderRadius: const BorderRadius.only(
+                          topRight: Radius.circular(AudySpacing.radiusLarge),
+                          bottomLeft: Radius.circular(AudySpacing.radiusLarge),
+                          bottomRight: Radius.circular(AudySpacing.radiusLarge),
+                          topLeft: Radius.circular(4),
+                        ),
+                        boxShadow: AudyShadows.cardShadow,
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              scenario,
+                              style: AudyTypography.headingSmall,
+                            ),
+                          ),
+                          if (onSpeakScenario != null) ...[
+                            SizedBox(width: adaptive.space(12)),
+                            IconButton(
+                              onPressed: onSpeakScenario,
+                              icon: const Icon(
+                                Icons.volume_up_rounded,
+                                color: AudyColors.textPrimary,
+                                size: 32,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: adaptive.space(14)),
+            ],
+            // Deck — fixed slots the player fills to build the sentence.
+            _DeckZone(
+              adaptive: adaptive,
+              controller: controller,
+              cardWidth: cardWidth,
+              cardHeight: cardHeight,
+            ),
+            SizedBox(height: adaptive.space(14)),
+
+            // Hand — the remaining shuffled cards to choose from.
+            Expanded(
+              child: _HandZone(
+                adaptive: adaptive,
+                controller: controller,
+                onSelectCard: onSelectCard,
+                cardWidth: cardWidth,
+                cardHeight: cardHeight,
+              ),
+            ),
+            SizedBox(height: adaptive.space(14)),
+
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: controller.canSubmit && !isBusy ? onSubmit : null,
+                icon: Icon(
+                  isBusy ? Icons.hourglass_empty_rounded : Icons.check_rounded,
+                  size: adaptive.space(28),
+                ),
+                label: Text(
+                  isBusy
+                      ? (isThai ? 'กำลังตรวจ' : 'Checking')
+                      : (isThai ? 'ตรวจคำตอบ' : 'Check'),
+                  style: AudyTypography.buttonText,
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AudyColors.skyBlue,
+                  foregroundColor: AudyColors.textOnColor,
+                  minimumSize: Size.fromHeight(adaptive.space(62)),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Deck — fixed slots, tap a placed (unlocked) card to return it to the hand
+// ---------------------------------------------------------------------------
+
+class _DeckZone extends StatelessWidget {
+  const _DeckZone({
+    required this.adaptive,
+    required this.controller,
+    required this.cardWidth,
+    required this.cardHeight,
+  });
+
+  final AudyAdaptive adaptive;
+  final FlashcardController controller;
+  final double cardWidth;
+  final double cardHeight;
+
+  @override
+  Widget build(BuildContext context) {
+    final count = controller.cardCount;
+    final selected = controller.selectedCards;
+
+    return _ShakeOnChange(
+      trigger: controller.mistakes,
+      child: Container(
+        width: double.infinity,
+        constraints: BoxConstraints(minHeight: cardHeight + adaptive.space(24)),
+        padding: EdgeInsets.all(adaptive.space(12)),
+        decoration: BoxDecoration(
+          color: AudyColors.skyBlue.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(AudySpacing.radiusLarge),
+          border: Border.all(
+            color: AudyColors.skyBlue.withValues(alpha: 0.3),
+            width: 2,
+          ),
+        ),
+        child: Wrap(
+          alignment: WrapAlignment.center,
+          spacing: adaptive.space(8),
+          runSpacing: adaptive.space(8),
+          children: List.generate(count, (index) {
+            final card = index < selected.length ? selected[index] : null;
+            return _DeckSlot(
+              index: index,
+              card: card,
+              controller: controller,
+              width: cardWidth,
+              height: cardHeight,
+            );
+          }),
+        ),
+      ),
+    );
+  }
+}
+
+class _DeckSlot extends StatelessWidget {
+  const _DeckSlot({
+    required this.index,
+    required this.card,
+    required this.controller,
+    required this.width,
+    required this.height,
+  });
+
+  final int index;
+  final FlashcardCard? card;
+  final FlashcardController controller;
+  final double width;
+  final double height;
+
+  @override
+  Widget build(BuildContext context) {
+    final placed = card;
+    if (placed != null) {
+      final locked = controller.isLocked(placed.id);
+      return FlashcardWordCard(
+        key: ValueKey('slot_${index}_${placed.id}'),
+        card: placed,
+        width: width,
+        height: height,
+        status: controller.statusForCard(placed.id),
+        onTap: locked ? null : () => controller.removeSelectedCard(placed),
+      );
+    }
+
+    // Empty slot: ghost hint (match-to-sample) or a plain placeholder.
+    final hint = controller.hintCardForSlot(index);
+    if (hint != null) {
+      return _GhostHintSlot(
+        card: hint,
+        width: width,
+        height: height,
+        showWord: controller.difficulty.showHintWord,
+      );
+    }
+
+    return _EmptySlot(width: width, height: height);
+  }
+}
+
+/// A faded target card shown in an empty deck slot so the player can match the
+/// picture on a hand card to the picture in the slot.
+class _GhostHintSlot extends StatelessWidget {
+  const _GhostHintSlot({
+    required this.card,
+    required this.width,
+    required this.height,
+    required this.showWord,
+  });
+
+  final FlashcardCard card;
+  final double width;
+  final double height;
+  final bool showWord;
+
+  @override
+  Widget build(BuildContext context) {
+    final emoji = card.imageAsset.startsWith('emoji:')
+        ? card.imageAsset.substring(6)
+        : null;
+
+    return Container(
+      width: width,
+      height: height,
+      decoration: BoxDecoration(
+        color: AudyColors.skyBlue.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(AudySpacing.radiusLarge),
+        border: Border.all(
+          color: AudyColors.skyBlue.withValues(alpha: 0.35),
+          width: 2,
+        ),
+      ),
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (emoji != null)
+              Opacity(
+                opacity: 0.5,
+                child: Text(emoji, style: TextStyle(fontSize: width * 0.4)),
+              )
+            else
+              Icon(
+                Icons.help_outline_rounded,
+                size: width * 0.36,
+                color: AudyColors.skyBlue.withValues(alpha: 0.5),
+              ),
+            if (showWord) ...[
+              SizedBox(height: width * 0.05),
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: width * 0.08),
+                child: Text(
+                  card.displayText,
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: width * 0.13,
+                    fontWeight: FontWeight.w700,
+                    color: AudyColors.textLight,
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _EmptySlot extends StatelessWidget {
+  const _EmptySlot({required this.width, required this.height});
+
+  final double width;
+  final double height;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: width,
+      height: height,
+      decoration: BoxDecoration(
+        color: AudyColors.backgroundSoft.withValues(alpha: 0.4),
+        borderRadius: BorderRadius.circular(AudySpacing.radiusLarge),
+        border: Border.all(
+          color: AudyColors.borderLight,
+          width: 2,
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Hand — remaining cards; tap one to place it in the next open slot
+// ---------------------------------------------------------------------------
+
+class _HandZone extends StatelessWidget {
+  const _HandZone({
+    required this.adaptive,
+    required this.controller,
+    required this.onSelectCard,
+    required this.cardWidth,
+    required this.cardHeight,
+  });
+
+  final AudyAdaptive adaptive;
+  final FlashcardController controller;
+  final ValueChanged<FlashcardCard> onSelectCard;
+  final double cardWidth;
+  final double cardHeight;
+
+  @override
+  Widget build(BuildContext context) {
+    final canPlace = !controller.isDeckFull;
+
+    return SingleChildScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      child: Container(
+        constraints: BoxConstraints(minHeight: adaptive.space(200)),
+        padding: const EdgeInsets.symmetric(vertical: 12.0),
+        child: Wrap(
+          alignment: WrapAlignment.center,
+          spacing: adaptive.space(8),
+          runSpacing: adaptive.space(8),
+          children: controller.handCards.map((card) {
+            return AnimatedEntrance(
+              key: ValueKey('hand_${card.id}'),
+              child: FlashcardWordCard(
+                card: card,
+                width: cardWidth,
+                height: cardHeight,
+                onTap: canPlace ? () => onSelectCard(card) : null,
+              ),
+            );
+          }).toList(),
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Complete
+// ---------------------------------------------------------------------------
+
+class _CompleteState extends StatelessWidget {
+  const _CompleteState({
+    required this.adaptive,
+    required this.correctCount,
+    required this.totalCards,
+    required this.onDone,
+  });
+
+  final AudyAdaptive adaptive;
+  final int correctCount;
+  final int totalCards;
+  final VoidCallback onDone;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.celebration_rounded,
+            size: adaptive.space(88),
+            color: AudyColors.mintGreen,
+          ),
+          SizedBox(height: adaptive.space(18)),
+          Text(
+            AudyScope.of(context).tr('flashcard_complete'),
+            style: AudyTypography.displayLarge,
+            textAlign: TextAlign.center,
+          ),
+          SizedBox(height: adaptive.space(12)),
+          Text(
+            '$correctCount / $totalCards',
+            style: AudyTypography.headingMedium,
+          ),
+          SizedBox(height: adaptive.space(26)),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: onDone,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AudyColors.skyBlue,
+                foregroundColor: AudyColors.textOnColor,
+                minimumSize: Size.fromHeight(adaptive.space(62)),
+              ),
+              child: Text(
+                AudyScope.of(context).tr('finish'),
+                style: AudyTypography.buttonText,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Error
+// ---------------------------------------------------------------------------
+
+class _ErrorState extends StatelessWidget {
+  const _ErrorState({required this.adaptive, required this.onRetry});
+
+  final AudyAdaptive adaptive;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.info_rounded,
+            size: adaptive.space(76),
+            color: AudyColors.warning,
+          ),
+          SizedBox(height: adaptive.space(16)),
+          Text(
+            AudyScope.of(context).tr('flashcard_error'),
+            style: AudyTypography.headingSmall,
+            textAlign: TextAlign.center,
+          ),
+          SizedBox(height: adaptive.space(24)),
+          ElevatedButton.icon(
+            onPressed: onRetry,
+            icon: const Icon(Icons.refresh_rounded),
+            label: Text(AudyScope.of(context).tr('try_again')),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Animated Entrance
+// ---------------------------------------------------------------------------
+
+class AnimatedEntrance extends StatelessWidget {
+  const AnimatedEntrance({
+    super.key,
+    required this.child,
+  });
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween<double>(begin: 0.0, end: 1.0),
+      duration: AudyAnimation.normal,
+      curve: Curves.easeOutCubic,
+      builder: (context, value, child) {
+        return Transform.scale(
+          scale: 0.84 + 0.16 * value,
+          child: Opacity(
+            opacity: value,
+            child: child,
+          ),
+        );
+      },
+      child: child,
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Gentle shake — a soft horizontal nudge when [trigger] changes (a wrong card
+// bounced back). Skipped entirely when the platform disables animations.
+// ---------------------------------------------------------------------------
+
+class _ShakeOnChange extends StatefulWidget {
+  const _ShakeOnChange({required this.trigger, required this.child});
+
+  final int trigger;
+  final Widget child;
+
+  @override
+  State<_ShakeOnChange> createState() => _ShakeOnChangeState();
+}
+
+class _ShakeOnChangeState extends State<_ShakeOnChange>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 320),
+  );
+
+  @override
+  void didUpdateWidget(_ShakeOnChange oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.trigger != oldWidget.trigger && widget.trigger > 0) {
+      _controller.forward(from: 0);
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (MediaQuery.of(context).disableAnimations) return widget.child;
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        // Two soft cycles, decaying — a nudge, not a jolt.
+        final t = _controller.value;
+        final dx = (1 - t) * 6.0 * math.sin(t * math.pi * 4);
+        return Transform.translate(offset: Offset(dx, 0), child: child);
+      },
+      child: widget.child,
+    );
+  }
+}

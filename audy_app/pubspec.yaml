@@ -1,0 +1,57 @@
+name: audy_app
+description: "AUTISM BUDDY FOR STUDY"
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.11.4
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  google_fonts: ^6.1.0
+  camera: ^0.10.5+9
+  google_mlkit_face_detection: ^0.13.2
+  image: ^4.8.0
+  path_provider: ^2.1.2
+  flutter_tts: ^4.2.2
+  speech_to_text: ^7.3.0
+  drift: ^2.32.1
+  drift_flutter: ^0.3.0
+  sqlite3_flutter_libs: ^0.6.0+eol
+  audioplayers: ^6.6.0
+  path: ^1.9.1
+  http: ^1.2.0  # For Thai chat backend API
+  http_parser: ^4.0.2  # For multipart form data in emotion API
+  avatar_glow: ^3.0.1
+  supabase_flutter: ^2.12.4
+  flutter_soloud: ^4.0.4
+  flutter_blue_plus: ^1.35.3
+  model_viewer_plus: ^1.10.0
+  sensors_plus: ^7.0.0
+  shared_preferences: ^2.5.3
+  image_picker: ^1.2.3
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  drift_dev: ^2.32.1
+  build_runner: ^2.13.1
+  flutter_scene_importer: ^0.12.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/sounds/
+    - assets/images/
+    - assets/images/games/basket/
+    - assets/images/games/basket/fruits/
+    - assets/images/sorting/
+    - assets/mascot/
+    - assets/3d/
+    - assets/images/games/flashcard/animals/
+    - assets/images/games/flashcard/fruits/
+    - assets/images/games/flashcard/vetgetable/

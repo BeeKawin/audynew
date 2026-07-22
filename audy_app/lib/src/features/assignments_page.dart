@@ -1,0 +1,1310 @@
+import 'package:flutter/material.dart';
+
+import '../core/app_routes.dart';
+import '../core/audy_theme.dart';
+import '../core/audy_ui.dart';
+import '../data/models/progress_model.dart';
+import '../services/auth_service.dart';
+import '../services/sound_service.dart';
+import '../state/audy_controller.dart';
+
+/// Full-page assignments hub, opened from the circular assignment button
+/// in the dashboard header (next to the device/Bluetooth button).
+class AssignmentsPage extends StatefulWidget {
+  const AssignmentsPage({super.key});
+
+  @override
+  State<AssignmentsPage> createState() => _AssignmentsPageState();
+}
+
+class _AssignmentsPageState extends State<AssignmentsPage> {
+  List<_DashboardAssignment> _assignments = [];
+  int _nextAssignmentId = 1;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _loadSupabaseAssignments();
+      }
+    });
+  }
+
+  Future<void> _loadSupabaseAssignments() async {
+    final controller = AudyScope.of(context);
+    final user = controller.currentUser;
+    if (user != null && user.role == 'child') {
+      final options = _assignmentOptions(context);
+      try {
+        final assignmentsData = await AuthService().fetchAssignments(user.id);
+        final loaded = assignmentsData.map((data) {
+          final gameType = data['game_type'] as String;
+          final option = options.firstWhere(
+            (o) => o.gameType == gameType,
+            orElse: () => options.first,
+          );
+          return _DashboardAssignment(
+            id: data['id'].hashCode,
+            supabaseId: data['id'] as String?,
+            option: option,
+            difficulty: 'Normal',
+            targetCount: data['target_count'] as int,
+            currentProgress: data['current_count'] as int,
+          );
+        }).toList();
+
+        if (mounted) {
+          setState(() {
+            _assignments = loaded;
+          });
+        }
+      } catch (e) {
+        debugPrint('Failed to load assignments: $e');
+      }
+    }
+  }
+
+  void _addAssignment(_AssignmentOption option, String difficulty, int target) {
+    if (_assignments.length >= 3) return;
+
+    setState(() {
+      _assignments.add(
+        _DashboardAssignment(
+          id: _nextAssignmentId++,
+          option: option,
+          difficulty: difficulty,
+          targetCount: target,
+        ),
+      );
+    });
+  }
+
+  Future<void> _completeAssignmentStep(int assignmentId) async {
+    final index = _assignments.indexWhere((item) => item.id == assignmentId);
+    if (index == -1) return;
+
+    final assignment = _assignments[index];
+    final newProgress = (assignment.currentProgress + 1).clamp(
+      0,
+      assignment.targetCount,
+    );
+    final isCompleted = newProgress >= assignment.targetCount;
+
+    setState(() {
+      _assignments[index] = assignment.copyWith(currentProgress: newProgress);
+    });
+
+    if (assignment.supabaseId != null) {
+      try {
+        await AuthService().updateAssignmentProgress(
+          assignment.supabaseId!,
+          newProgress,
+          isCompleted,
+        );
+      } catch (e) {
+        debugPrint('Failed to sync assignment progress: $e');
+      }
+    }
+  }
+
+  void _startAssignment(BuildContext context, _DashboardAssignment assignment) {
+    SoundService.instance.playTap();
+    Navigator.pushNamed(context, assignment.option.route);
+  }
+
+  void _showAddAssignmentDialog(
+    BuildContext context,
+    AudyAdaptive adaptive, {
+    _AssignmentOption? suggestedOption,
+  }) {
+    if (_assignments.length >= 3) return;
+
+    showDialog(
+      context: context,
+      builder: (context) => _AddAssignmentDialog(
+        adaptive: adaptive,
+        suggestedOption: suggestedOption,
+        onCreate: (option, difficulty, target) {
+          _addAssignment(option, difficulty, target);
+          Navigator.pop(context);
+        },
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = AudyScope.of(context);
+
+    return AudyResponsivePage(
+      builder: (context, adaptive) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: AudyBackButton(
+                    label: controller.tr('back'),
+                    onPressed: () {
+                      SoundService.instance.playTap();
+                      Navigator.pop(context);
+                    },
+                  ),
+                ),
+                Expanded(
+                  child: Text(
+                    controller.tr('assignments'),
+                    textAlign: TextAlign.right,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AudyTypography.headingMedium,
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: adaptive.space(24)),
+            _AssignmentsDashboardSection(
+              adaptive: adaptive,
+              controller: controller,
+              assignments: _assignments,
+              canAddAssignment: _assignments.length < 3,
+              onAddAssignment: (suggestedOption) => _showAddAssignmentDialog(
+                context,
+                adaptive,
+                suggestedOption: suggestedOption,
+              ),
+              onStartAssignment: (assignment) =>
+                  _startAssignment(context, assignment),
+              onCompleteStep: _completeAssignmentStep,
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _DashboardAssignment {
+  const _DashboardAssignment({
+    required this.id,
+    this.supabaseId,
+    required this.option,
+    required this.difficulty,
+    required this.targetCount,
+    this.currentProgress = 0,
+  });
+
+  final int id;
+  final String? supabaseId;
+  final _AssignmentOption option;
+  final String difficulty;
+  final int targetCount;
+  final int currentProgress;
+
+  bool get isCompleted => currentProgress >= targetCount;
+  double get progressRatio => currentProgress / targetCount;
+
+  _DashboardAssignment copyWith({int? currentProgress}) {
+    return _DashboardAssignment(
+      id: id,
+      supabaseId: supabaseId,
+      option: option,
+      difficulty: difficulty,
+      targetCount: targetCount,
+      currentProgress: currentProgress ?? this.currentProgress,
+    );
+  }
+}
+
+class _AssignmentOption {
+  const _AssignmentOption({
+    required this.gameType,
+    required this.title,
+    required this.icon,
+    required this.color,
+    required this.route,
+  });
+
+  final String gameType;
+  final String title;
+  final IconData icon;
+  final Color color;
+  final String route;
+}
+
+class _AssignmentRecommendation {
+  const _AssignmentRecommendation({
+    required this.option,
+    required this.accuracy,
+    required this.reason,
+  });
+
+  final _AssignmentOption option;
+  final double accuracy;
+  final String reason;
+}
+
+List<_AssignmentOption> _assignmentOptions(BuildContext context) {
+  final controller = AudyScope.of(context);
+
+  return [
+    _AssignmentOption(
+      gameType: 'emotion_classify',
+      title: controller.tr('emotion_classify'),
+      icon: Icons.sentiment_satisfied_rounded,
+      color: const Color(0xFFF8C7DF),
+      route: AppRoutes.emotionClassify,
+    ),
+    // _AssignmentOption(
+    //   gameType: 'emotion_mimic',
+    //   title: controller.tr('emotion_mimic'),
+    //   icon: Icons.face_retouching_natural_rounded,
+    //   color: const Color(0xFFE7D8FA),
+    //   route: AppRoutes.emotionMimic,
+    // ),
+    _AssignmentOption(
+      gameType: 'minipuzzle',
+      title: controller.tr('mini_puzzle'),
+      icon: Icons.extension_rounded,
+      color: const Color(0xFFBDD8F2),
+      route: AppRoutes.miniPuzzle,
+    ),
+    _AssignmentOption(
+      gameType: 'sorting',
+      title: controller.tr('sorting_game'),
+      icon: Icons.category_rounded,
+      color: const Color(0xFFFFF2A8),
+      route: AppRoutes.sortingGame,
+    ),
+    _AssignmentOption(
+      gameType: 'reaction_time',
+      title: controller.tr('reaction_time'),
+      icon: Icons.flash_on_rounded,
+      color: const Color(0xFFFFDAC7),
+      route: AppRoutes.reactionTime,
+    ),
+    _AssignmentOption(
+      gameType: 'flashcard',
+      title: controller.tr('flashcard_game'),
+      icon: Icons.style_rounded,
+      color: const Color(0xFFBFE7F2),
+      route: AppRoutes.flashcard,
+    ),
+    _AssignmentOption(
+      gameType: 'fruit_catching_bear',
+      title: controller.tr('fruit_catching_bear'),
+      icon: Icons.shopping_basket_rounded,
+      color: const Color(0xFFC9E8C1),
+      route: AppRoutes.fruitCatchingBear,
+    ),
+    _AssignmentOption(
+      gameType: 'reading',
+      title: controller.tr('read_speak'),
+      icon: Icons.menu_book_rounded,
+      color: const Color(0xFFC9E8C1),
+      route: AppRoutes.readingHub,
+    ),
+    _AssignmentOption(
+      gameType: 'social_chat',
+      title: controller.tr('social_chat'),
+      icon: Icons.chat_bubble_rounded,
+      color: const Color(0xFFBDEBE8),
+      route: AppRoutes.social,
+    ),
+  ];
+}
+
+List<_AssignmentRecommendation> _assignmentRecommendations(
+  BuildContext context,
+  ParentAnalyticsData analytics,
+) {
+  final options = _assignmentOptions(context);
+  final recommendations = <_AssignmentRecommendation>[];
+
+  final playedFeatureMap = {for (final f in analytics.features) f.gameType: f};
+
+  for (final option in options) {
+    final feature = playedFeatureMap[option.gameType];
+
+    if (feature != null && feature.sessions > 0) {
+      final accuracy = feature.averageAccuracy ?? 0.0;
+      if (accuracy < 0.70) {
+        recommendations.add(
+          _AssignmentRecommendation(
+            option: option,
+            accuracy: accuracy,
+            reason: 'Needs practice (low score: ${(accuracy * 100).round()}%)',
+          ),
+        );
+      } else if (accuracy >= 0.70 && accuracy < 0.85) {
+        recommendations.add(
+          _AssignmentRecommendation(
+            option: option,
+            accuracy: accuracy,
+            reason: 'Reinforce skill (mastery: ${(accuracy * 100).round()}%)',
+          ),
+        );
+      } else {
+        recommendations.add(
+          _AssignmentRecommendation(
+            option: option,
+            accuracy: accuracy,
+            reason: 'Keep sharp (mastered: ${(accuracy * 100).round()}%)',
+          ),
+        );
+      }
+    } else {
+      recommendations.add(
+        _AssignmentRecommendation(
+          option: option,
+          accuracy: 0.0,
+          reason: 'Unplayed (assign to explore)',
+        ),
+      );
+    }
+  }
+
+  recommendations.sort((a, b) {
+    int getPriority(double acc) {
+      if (acc > 0.0 && acc < 0.70) return 1;
+      if (acc == 0.0) return 2;
+      if (acc >= 0.70 && acc < 0.85) return 3;
+      return 4;
+    }
+
+    final pA = getPriority(a.accuracy);
+    final pB = getPriority(b.accuracy);
+
+    if (pA != pB) return pA.compareTo(pB);
+
+    if (pA == 1 || pA == 3) {
+      return a.accuracy.compareTo(b.accuracy);
+    } else {
+      return b.accuracy.compareTo(a.accuracy);
+    }
+  });
+
+  return recommendations.take(3).toList();
+}
+
+class _AssignmentsDashboardSection extends StatelessWidget {
+  const _AssignmentsDashboardSection({
+    required this.adaptive,
+    required this.controller,
+    required this.assignments,
+    required this.canAddAssignment,
+    required this.onAddAssignment,
+    required this.onStartAssignment,
+    required this.onCompleteStep,
+  });
+
+  final AudyAdaptive adaptive;
+  final AudyController controller;
+  final List<_DashboardAssignment> assignments;
+  final bool canAddAssignment;
+  final void Function(_AssignmentOption? option) onAddAssignment;
+  final void Function(_DashboardAssignment assignment) onStartAssignment;
+  final void Function(int assignmentId) onCompleteStep;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: AudySectionTitle(title: controller.tr('assignments')),
+            ),
+            if (canAddAssignment)
+              ElevatedButton.icon(
+                onPressed: () {
+                  SoundService.instance.playTap();
+                  onAddAssignment(null);
+                },
+                icon: Icon(Icons.add_rounded, size: adaptive.space(20)),
+                label: Text(controller.tr('add_assignment')),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFF8C7DF),
+                  foregroundColor: const Color(0xFF243A5A),
+                  minimumSize: Size(adaptive.space(48), adaptive.space(48)),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: adaptive.space(16),
+                    vertical: adaptive.space(12),
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                ),
+              )
+            else
+              _AssignmentLimitPill(adaptive: adaptive),
+          ],
+        ),
+        SizedBox(height: adaptive.space(12)),
+        _AssignmentRecommendationPanel(
+          adaptive: adaptive,
+          controller: controller,
+          onUseRecommendation: canAddAssignment
+              ? (option) {
+                  SoundService.instance.playTap();
+                  onAddAssignment(option);
+                }
+              : null,
+        ),
+        SizedBox(height: adaptive.space(16)),
+        if (assignments.isEmpty)
+          _EmptyAssignmentsCard(adaptive: adaptive)
+        else
+          AudyAdaptiveGrid(
+            adaptive: adaptive,
+            phoneColumns: 1,
+            tabletColumns: 2,
+            desktopColumns: 3,
+            items: assignments
+                .map(
+                  (assignment) => _AssignmentCard(
+                    adaptive: adaptive,
+                    assignment: assignment,
+                    onStart: () => onStartAssignment(assignment),
+                    onCompleteStep: assignment.isCompleted
+                        ? null
+                        : () {
+                            SoundService.instance.playTap();
+                            onCompleteStep(assignment.id);
+                          },
+                  ),
+                )
+                .toList(),
+          ),
+      ],
+    );
+  }
+}
+
+class _AssignmentLimitPill extends StatelessWidget {
+  const _AssignmentLimitPill({required this.adaptive});
+
+  final AudyAdaptive adaptive;
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = AudyScope.of(context);
+
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: adaptive.space(12),
+        vertical: adaptive.space(8),
+      ),
+      decoration: BoxDecoration(
+        color: const Color(0xFFE2E5EA),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.check_circle_outline_rounded,
+            size: adaptive.space(16),
+            color: const Color(0xFF60758F),
+          ),
+          SizedBox(width: adaptive.space(6)),
+          Text(
+            controller.tr('assignment_limit_reached'),
+            style: TextStyle(
+              fontSize: adaptive.space(12),
+              fontWeight: FontWeight.w700,
+              color: const Color(0xFF60758F),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AssignmentRecommendationPanel extends StatelessWidget {
+  const _AssignmentRecommendationPanel({
+    required this.adaptive,
+    required this.controller,
+    required this.onUseRecommendation,
+  });
+
+  final AudyAdaptive adaptive;
+  final AudyController controller;
+  final void Function(_AssignmentOption option)? onUseRecommendation;
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<ParentAnalyticsData>(
+      future: controller.getParentAnalytics(),
+      builder: (context, snapshot) {
+        final analytics = snapshot.data;
+        final recommendations = analytics == null
+            ? const <_AssignmentRecommendation>[]
+            : _assignmentRecommendations(context, analytics);
+
+        return AudyPanel(
+          adaptive: adaptive,
+          padding: EdgeInsets.all(adaptive.space(18)),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFC9E8C1),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: const Icon(
+                      Icons.auto_awesome_rounded,
+                      color: Color(0xFF243A5A),
+                      size: 26,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          controller.tr('assignment_recommendations'),
+                          style: TextStyle(
+                            fontSize: adaptive.space(18),
+                            fontWeight: FontWeight.w800,
+                            color: const Color(0xFF243A5A),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          controller.tr('assignment_recommendations_desc'),
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: Color(0xFF60758F),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: adaptive.space(14)),
+              if (snapshot.connectionState == ConnectionState.waiting)
+                _RecommendationStatusText(
+                  text: controller.tr('assignment_recommendations_loading'),
+                )
+              else if (recommendations.isEmpty)
+                _RecommendationStatusText(
+                  text: controller.tr('assignment_recommendations_empty'),
+                )
+              else
+                Column(
+                  children: recommendations
+                      .map(
+                        (recommendation) => _AssignmentRecommendationRow(
+                          adaptive: adaptive,
+                          recommendation: recommendation,
+                          onUse: onUseRecommendation == null
+                              ? null
+                              : () =>
+                                    onUseRecommendation!(recommendation.option),
+                        ),
+                      )
+                      .toList(),
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _RecommendationStatusText extends StatelessWidget {
+  const _RecommendationStatusText({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      style: const TextStyle(
+        fontSize: 14,
+        fontWeight: FontWeight.w700,
+        color: Color(0xFF60758F),
+      ),
+    );
+  }
+}
+
+class _AssignmentRecommendationRow extends StatelessWidget {
+  const _AssignmentRecommendationRow({
+    required this.adaptive,
+    required this.recommendation,
+    required this.onUse,
+  });
+
+  final AudyAdaptive adaptive;
+  final _AssignmentRecommendation recommendation;
+  final VoidCallback? onUse;
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = AudyScope.of(context);
+
+    return Padding(
+      padding: EdgeInsets.only(bottom: adaptive.space(10)),
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: recommendation.option.color,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(
+              recommendation.option.icon,
+              color: const Color(0xFF243A5A),
+              size: 23,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  recommendation.option.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF243A5A),
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  recommendation.reason,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Color(0xFF60758F),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(width: adaptive.space(8)),
+          OutlinedButton(
+            onPressed: onUse,
+            style: OutlinedButton.styleFrom(
+              foregroundColor: const Color(0xFF243A5A),
+              minimumSize: Size(adaptive.space(48), adaptive.space(48)),
+              side: const BorderSide(color: Color(0xFFBDD8F2), width: 2),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(999),
+              ),
+            ),
+            child: Text(controller.tr('use')),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _EmptyAssignmentsCard extends StatelessWidget {
+  const _EmptyAssignmentsCard({required this.adaptive});
+
+  final AudyAdaptive adaptive;
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = AudyScope.of(context);
+
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(adaptive.space(24)),
+      decoration: BoxDecoration(
+        color: AudyColors.backgroundCard,
+        borderRadius: BorderRadius.circular(adaptive.space(24)),
+        border: Border.all(color: AudyColors.borderLight, width: 1),
+        boxShadow: AudyShadows.cardShadow,
+      ),
+      child: Column(
+        children: [
+          Icon(
+            Icons.assignment_outlined,
+            size: adaptive.space(52),
+            color: const Color(0xFFBDD8F2),
+          ),
+          SizedBox(height: adaptive.space(10)),
+          Text(
+            controller.tr('no_assignments_today'),
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: adaptive.space(17),
+              fontWeight: FontWeight.w800,
+              color: const Color(0xFF243A5A),
+            ),
+          ),
+          SizedBox(height: adaptive.space(6)),
+          Text(
+            controller.tr('create_assignment_hint'),
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: adaptive.space(13),
+              color: const Color(0xFF60758F),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AssignmentCard extends StatelessWidget {
+  const _AssignmentCard({
+    required this.adaptive,
+    required this.assignment,
+    required this.onStart,
+    required this.onCompleteStep,
+  });
+
+  final AudyAdaptive adaptive;
+  final _DashboardAssignment assignment;
+  final VoidCallback onStart;
+  final VoidCallback? onCompleteStep;
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = AudyScope.of(context);
+    final isCompleted = assignment.isCompleted;
+
+    return Container(
+      padding: EdgeInsets.all(adaptive.space(18)),
+      decoration: BoxDecoration(
+        color: AudyColors.backgroundCard,
+        borderRadius: BorderRadius.circular(adaptive.space(24)),
+        border: Border.all(
+          color: isCompleted
+              ? const Color(0xFF69E0A0)
+              : assignment.option.color,
+          width: 2,
+        ),
+        boxShadow: AudyShadows.cardShadow,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  color: assignment.option.color,
+                  borderRadius: BorderRadius.circular(18),
+                ),
+                child: Icon(
+                  assignment.option.icon,
+                  size: 30,
+                  color: const Color(0xFF243A5A),
+                ),
+              ),
+              SizedBox(width: adaptive.space(12)),
+              Expanded(
+                child: Text(
+                  assignment.option.title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: adaptive.space(17),
+                    fontWeight: FontWeight.w800,
+                    color: const Color(0xFF243A5A),
+                  ),
+                ),
+              ),
+              if (isCompleted)
+                Icon(
+                  Icons.check_circle_rounded,
+                  size: adaptive.space(28),
+                  color: const Color(0xFF22B860),
+                ),
+            ],
+          ),
+          SizedBox(height: adaptive.space(14)),
+          Wrap(
+            spacing: adaptive.space(8),
+            runSpacing: adaptive.space(8),
+            children: [
+              _AssignmentInfoChip(
+                adaptive: adaptive,
+                icon: Icons.speed_rounded,
+                label: _difficultyLabel(context, assignment.difficulty),
+              ),
+              _AssignmentInfoChip(
+                adaptive: adaptive,
+                icon: Icons.repeat_rounded,
+                label:
+                    '${assignment.currentProgress}/${assignment.targetCount}',
+              ),
+            ],
+          ),
+          SizedBox(height: adaptive.space(14)),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(999),
+            child: LinearProgressIndicator(
+              value: assignment.progressRatio.clamp(0.0, 1.0),
+              minHeight: adaptive.space(12),
+              backgroundColor: const Color(0xFFE2E5EA),
+              valueColor: AlwaysStoppedAnimation(
+                isCompleted ? const Color(0xFF22B860) : assignment.option.color,
+              ),
+            ),
+          ),
+          SizedBox(height: adaptive.space(16)),
+          Row(
+            children: [
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: onStart,
+                  icon: Icon(
+                    Icons.play_arrow_rounded,
+                    size: adaptive.space(20),
+                  ),
+                  label: Text(controller.tr('start')),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: assignment.option.color,
+                    foregroundColor: const Color(0xFF243A5A),
+                    minimumSize: Size(adaptive.space(48), adaptive.space(48)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                  ),
+                ),
+              ),
+              SizedBox(width: adaptive.space(10)),
+              IconButton.filled(
+                onPressed: onCompleteStep,
+                icon: Icon(
+                  isCompleted ? Icons.check_rounded : Icons.task_alt_rounded,
+                ),
+                style: IconButton.styleFrom(
+                  backgroundColor: isCompleted
+                      ? const Color(0xFFC9E8C1)
+                      : const Color(0xFFE2E5EA),
+                  foregroundColor: const Color(0xFF243A5A),
+                  minimumSize: Size(adaptive.space(48), adaptive.space(48)),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AssignmentInfoChip extends StatelessWidget {
+  const _AssignmentInfoChip({
+    required this.adaptive,
+    required this.icon,
+    required this.label,
+  });
+
+  final AudyAdaptive adaptive;
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: adaptive.space(10),
+        vertical: adaptive.space(8),
+      ),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF5F7FA),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: adaptive.space(16), color: const Color(0xFF60758F)),
+          SizedBox(width: adaptive.space(6)),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: adaptive.space(12),
+              fontWeight: FontWeight.w700,
+              color: const Color(0xFF60758F),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AddAssignmentDialog extends StatefulWidget {
+  const _AddAssignmentDialog({
+    required this.adaptive,
+    required this.onCreate,
+    this.suggestedOption,
+  });
+
+  final AudyAdaptive adaptive;
+  final _AssignmentOption? suggestedOption;
+  final void Function(_AssignmentOption option, String difficulty, int target)
+  onCreate;
+
+  @override
+  State<_AddAssignmentDialog> createState() => _AddAssignmentDialogState();
+}
+
+class _AddAssignmentDialogState extends State<_AddAssignmentDialog> {
+  late _AssignmentOption _selectedOption;
+  String _selectedDifficulty = 'easy';
+  int _targetCount = 1;
+  bool _hasSelectedInitialOption = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_hasSelectedInitialOption) return;
+
+    final options = _assignmentOptions(context);
+    _selectedOption = widget.suggestedOption ?? options.first;
+    _hasSelectedInitialOption = true;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = AudyScope.of(context);
+    final options = _assignmentOptions(context);
+    const difficultyKeys = ['easy', 'medium', 'hard'];
+
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      child: Container(
+        constraints: BoxConstraints(maxWidth: widget.adaptive.space(360)),
+        padding: EdgeInsets.all(widget.adaptive.space(18)),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(widget.adaptive.space(24)),
+        ),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Text(
+                  controller.tr('create_assignment'),
+                  style: TextStyle(
+                    fontSize: widget.adaptive.space(17),
+                    fontWeight: FontWeight.w800,
+                    color: const Color(0xFF243A5A),
+                  ),
+                ),
+              ),
+              SizedBox(height: widget.adaptive.space(14)),
+              _AssignmentDialogLabel(
+                adaptive: widget.adaptive,
+                label: controller.tr('assignment_feature_label'),
+              ),
+              SizedBox(height: widget.adaptive.space(6)),
+              Wrap(
+                spacing: widget.adaptive.space(6),
+                runSpacing: widget.adaptive.space(6),
+                children: options.map((option) {
+                  final isSelected =
+                      option.gameType == _selectedOption.gameType;
+                  return _AssignmentChoiceChip(
+                    adaptive: widget.adaptive,
+                    icon: option.icon,
+                    label: option.title,
+                    isSelected: isSelected,
+                    selectedColor: option.color,
+                    onTap: () {
+                      SoundService.instance.playTap();
+                      setState(() => _selectedOption = option);
+                    },
+                  );
+                }).toList(),
+              ),
+              SizedBox(height: widget.adaptive.space(12)),
+              _AssignmentDialogLabel(
+                adaptive: widget.adaptive,
+                label: controller.tr('difficulty_label'),
+              ),
+              SizedBox(height: widget.adaptive.space(6)),
+              Wrap(
+                spacing: widget.adaptive.space(6),
+                runSpacing: widget.adaptive.space(6),
+                children: difficultyKeys.map((difficulty) {
+                  return _AssignmentChoiceChip(
+                    adaptive: widget.adaptive,
+                    icon: Icons.speed_rounded,
+                    label: _difficultyLabel(context, difficulty),
+                    isSelected: _selectedDifficulty == difficulty,
+                    selectedColor: const Color(0xFFBDD8F2),
+                    onTap: () {
+                      SoundService.instance.playTap();
+                      setState(() => _selectedDifficulty = difficulty);
+                    },
+                  );
+                }).toList(),
+              ),
+              SizedBox(height: widget.adaptive.space(12)),
+              _AssignmentDialogLabel(
+                adaptive: widget.adaptive,
+                label: controller.tr('assignment_target_label'),
+              ),
+              SizedBox(height: widget.adaptive.space(8)),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  _AssignmentCountButton(
+                    adaptive: widget.adaptive,
+                    icon: Icons.remove_rounded,
+                    onPressed: _targetCount > 1
+                        ? () {
+                            SoundService.instance.playTap();
+                            setState(() => _targetCount--);
+                          }
+                        : null,
+                  ),
+                  SizedBox(width: widget.adaptive.space(12)),
+                  Container(
+                    constraints: BoxConstraints(
+                      minWidth: widget.adaptive.space(56),
+                      minHeight: widget.adaptive.space(38),
+                    ),
+                    alignment: Alignment.center,
+                    padding: EdgeInsets.symmetric(
+                      horizontal: widget.adaptive.space(16),
+                      vertical: widget.adaptive.space(6),
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF8F9FA),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      '$_targetCount',
+                      style: TextStyle(
+                        fontSize: widget.adaptive.space(19),
+                        fontWeight: FontWeight.w800,
+                        color: const Color(0xFF243A5A),
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: widget.adaptive.space(12)),
+                  _AssignmentCountButton(
+                    adaptive: widget.adaptive,
+                    icon: Icons.add_rounded,
+                    onPressed: _targetCount < 3
+                        ? () {
+                            SoundService.instance.playTap();
+                            setState(() => _targetCount++);
+                          }
+                        : null,
+                  ),
+                ],
+              ),
+              SizedBox(height: widget.adaptive.space(16)),
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        SoundService.instance.playTap();
+                        Navigator.pop(context);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFE2E5EA),
+                        foregroundColor: const Color(0xFF60758F),
+                        minimumSize: Size(
+                          widget.adaptive.space(40),
+                          widget.adaptive.space(40),
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                      ),
+                      child: Text(controller.tr('cancel')),
+                    ),
+                  ),
+                  SizedBox(width: widget.adaptive.space(10)),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        SoundService.instance.playTap();
+                        widget.onCreate(
+                          _selectedOption,
+                          _selectedDifficulty,
+                          _targetCount,
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFF8C7DF),
+                        foregroundColor: const Color(0xFF243A5A),
+                        minimumSize: Size(
+                          widget.adaptive.space(40),
+                          widget.adaptive.space(40),
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                      ),
+                      child: Text(controller.tr('create')),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _AssignmentDialogLabel extends StatelessWidget {
+  const _AssignmentDialogLabel({required this.adaptive, required this.label});
+
+  final AudyAdaptive adaptive;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      label,
+      style: TextStyle(
+        fontSize: adaptive.space(12),
+        fontWeight: FontWeight.w700,
+        color: const Color(0xFF60758F),
+      ),
+    );
+  }
+}
+
+class _AssignmentChoiceChip extends StatelessWidget {
+  const _AssignmentChoiceChip({
+    required this.adaptive,
+    required this.icon,
+    required this.label,
+    required this.isSelected,
+    required this.selectedColor,
+    required this.onTap,
+  });
+
+  final AudyAdaptive adaptive;
+  final IconData icon;
+  final String label;
+  final bool isSelected;
+  final Color selectedColor;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(999),
+        child: Container(
+          constraints: BoxConstraints(minHeight: adaptive.space(36)),
+          padding: EdgeInsets.symmetric(
+            horizontal: adaptive.space(10),
+            vertical: adaptive.space(6),
+          ),
+          decoration: BoxDecoration(
+            color: isSelected ? selectedColor : const Color(0xFFF8F9FA),
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(
+              color: isSelected
+                  ? const Color(0xFF5D6A7E)
+                  : const Color(0xFFE2E5EA),
+              width: isSelected ? 1.5 : 1,
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
+                size: adaptive.space(15),
+                color: const Color(0xFF243A5A),
+              ),
+              SizedBox(width: adaptive.space(5)),
+              ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: adaptive.space(150)),
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: adaptive.space(11.5),
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF243A5A),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _AssignmentCountButton extends StatelessWidget {
+  const _AssignmentCountButton({
+    required this.adaptive,
+    required this.icon,
+    required this.onPressed,
+  });
+
+  final AudyAdaptive adaptive;
+  final IconData icon;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: onPressed == null
+          ? const Color(0xFFE2E5EA)
+          : const Color(0xFFBDD8F2),
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(12),
+        child: SizedBox(
+          width: adaptive.space(38),
+          height: adaptive.space(38),
+          child: Icon(
+            icon,
+            size: adaptive.space(18),
+            color: onPressed == null
+                ? const Color(0xFFB8BFCA)
+                : const Color(0xFF243A5A),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+String _difficultyLabel(BuildContext context, String difficulty) {
+  return AudyScope.of(context).tr(difficulty);
+}

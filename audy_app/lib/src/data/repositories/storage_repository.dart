@@ -1,0 +1,91 @@
+import '../datasources/local_data_source.dart';
+
+/// Storage repository implementing offline-first architecture
+/// Local database is source of truth
+class StorageRepository {
+  final LocalDataSource local;
+
+  StorageRepository(this.local);
+
+  // ==================== PROGRESS ====================
+
+  Future<ProgressData?> getProgress() => local.getProgress();
+
+  Future<void> saveProgress(ProgressData progress) =>
+      local.saveProgress(progress);
+
+  Future<void> resetProgress() => local.resetProgress();
+
+  Future<void> addPoints(int value) async {
+    final current = await local.getProgress();
+    if (current != null) {
+      await local.saveProgress(
+        ProgressData(
+          learningPoints: current.learningPoints + value,
+          spentLearningPoints: current.spentLearningPoints,
+          gamesPlayed: current.gamesPlayed,
+          dayStreak: current.dayStreak,
+          lastPlayedAt: current.lastPlayedAt,
+        ),
+      );
+    }
+  }
+
+  // ==================== USER PREFERENCES ====================
+
+  Future<UserPreferences?> getUserPreferences() => local.getUserPreferences();
+
+  Future<void> saveUserPreferences(UserPreferences preferences) =>
+      local.saveUserPreferences(preferences);
+
+  // ==================== USER REWARDS ====================
+
+  Future<List<RewardData>> getUserRewards() => local.getUserRewards();
+
+  Future<List<RewardData>> getActiveRewards() => local.getActiveRewards();
+
+  Future<int> addReward(String prize, String conditionType, int targetCount) =>
+      local.addReward(prize, conditionType, targetCount);
+
+  Future<void> updateRewardProgress(int rewardId, int progress) =>
+      local.updateRewardProgress(rewardId, progress);
+
+  Future<void> markRewardCompleted(int rewardId) =>
+      local.markRewardCompleted(rewardId);
+
+  Future<void> claimReward(int rewardId) => local.claimReward(rewardId);
+
+  Future<void> deleteReward(int rewardId) => local.deleteReward(rewardId);
+
+  // ==================== ACHIEVEMENTS ====================
+
+  Future<List<AchievementData>> getAllAchievements() =>
+      local.getAllAchievements();
+
+  Future<void> unlockAchievement(int achievementId) =>
+      local.unlockAchievement(achievementId);
+
+  // ==================== SEED ====================
+
+  Future<void> seedInitialData() => local.seedInitialData();
+
+  // ==================== GAME SESSIONS ====================
+
+  Future<int> saveGameSession(GameSessionData session) =>
+      local.saveGameSession(session);
+
+  Future<List<GameSessionData>> getGameSessions({int? daysBack}) =>
+      local.getGameSessions(daysBack: daysBack);
+
+  Future<int> getTotalPlayTimeSeconds({int? daysBack}) =>
+      local.getTotalPlayTimeSeconds(daysBack: daysBack);
+
+  Future<Map<String, int>> getPlayTimeByGameType({int? daysBack}) =>
+      local.getPlayTimeByGameType(daysBack: daysBack);
+
+  Future<Map<String, double>> getSkillAverages({int daysBack = 30}) =>
+      local.getSkillAverages(daysBack: daysBack);
+
+  Future<Map<String, List<double>>> getSkillTrends({int daysBack = 7}) =>
+      local.getSkillTrends(daysBack: daysBack);
+}
