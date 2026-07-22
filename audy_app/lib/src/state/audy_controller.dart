@@ -274,10 +274,14 @@ class AudyController extends ChangeNotifier {
   }
 
   void advanceClassifyRound() {
+    _advanceClassifyRoundState();
+    notifyListeners();
+  }
+
+  void _advanceClassifyRoundState() {
     classifyCurrentRound += 1;
     classifyQuestionIndex =
         (classifyQuestionIndex + 1) % _classifyQuestions.length;
-    notifyListeners();
   }
 
   void resetClassifyGame() {
@@ -318,10 +322,14 @@ class AudyController extends ChangeNotifier {
   bool get isMimicGameComplete => mimicCurrentRound > mimicTotalRounds;
 
   void advanceMimicRound() {
+    _advanceMimicRoundState();
+    notifyListeners();
+  }
+
+  void _advanceMimicRoundState() {
     mimicCurrentRound += 1;
     _mimicEmotionIndex = (_mimicEmotionIndex + 1) % _mimicEmotions.length;
     mimicLastConfidence = 0.0;
-    notifyListeners();
   }
 
   void resetMimicGame() {
@@ -334,10 +342,34 @@ class AudyController extends ChangeNotifier {
   }
 
   void recordMimicResult({required bool isMatch, required double confidence}) {
+    _recordMimicResultState(isMatch: isMatch, confidence: confidence);
+    notifyListeners();
+  }
+
+  void _recordMimicResultState({
+    required bool isMatch,
+    required double confidence,
+  }) {
     mimicLastConfidence = confidence;
     if (isMatch) {
       mimicScore += 1;
     }
+  }
+
+  /// Complete one combined emotion round in a single state update.
+  ///
+  /// Each round consists of classification followed by facial mimicry. Keeping
+  /// both counters in lockstep prevents returning to a question that the child
+  /// has already completed.
+  void completeEmotionRound({
+    required bool isMatch,
+    required double confidence,
+  }) {
+    if (isClassifyGameComplete || isMimicGameComplete) return;
+
+    _recordMimicResultState(isMatch: isMatch, confidence: confidence);
+    _advanceMimicRoundState();
+    _advanceClassifyRoundState();
     notifyListeners();
   }
 

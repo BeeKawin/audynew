@@ -76,12 +76,6 @@ class _MimicResultScreenState extends State<MimicResultScreen> {
     final isFinalRound =
         controller.mimicCurrentRound >= controller.mimicTotalRounds;
 
-    // Record the result and advance the round
-    controller.recordMimicResult(
-      isMatch: isMatch,
-      confidence: widget.confidence,
-    );
-
     if (isMatch) {
       // Add points silently (no celebration here, shown at complete screen)
       await controller.addPoints(5);
@@ -90,7 +84,10 @@ class _MimicResultScreenState extends State<MimicResultScreen> {
     if (isFinalRound || isMatch) {
       await _sendRoundBleSignal(isFinalRound: isFinalRound);
     }
-    controller.advanceMimicRound();
+    controller.completeEmotionRound(
+      isMatch: isMatch,
+      confidence: widget.confidence,
+    );
 
     if (!mounted) return;
     setState(() => _allowPop = true);
