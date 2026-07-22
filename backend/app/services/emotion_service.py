@@ -1,13 +1,12 @@
-"""
-Emotion Classification Service using HuggingFace Transformers.
-Loads the ViT model from mo-thecreator/vit-Facial-Expression-Recognition.
-"""
+"""Server-side facial emotion classification using Hugging Face ViT."""
+
+import io
+import logging
+import os
+from typing import Dict
 
 import numpy as np
 from PIL import Image
-import io
-from typing import Dict
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -23,20 +22,9 @@ except ImportError:
         "transformers/torch not installed. Emotion classification will not work."
     )
 
-# Model label mapping (id -> label) as returned by the ViT model.
-# The model has 7 classes: angry, disgust, fear, happy, sad, surprise, neutral
-MODEL_LABELS = {
-    0: "angry",
-    1: "disgust",
-    2: "fear",
-    3: "happy",
-    4: "sad",
-    5: "surprise",
-    6: "neutral",
-}
-
 # Map model labels to app-friendly emotion names (7 emotions)
 MODEL_TO_APP = {
+    "anger": "Angry",
     "angry": "Angry",
     "disgust": "Disgust",
     "fear": "Scared",
@@ -54,9 +42,12 @@ class EmotionService:
 
     def __init__(
         self,
-        model_name: str = "mo-thecreator/vit-Facial-Expression-Recognition",
+        model_name: str | None = None,
     ):
-        self.model_name = model_name
+        self.model_name = model_name or os.getenv(
+            "EMOTION_MODEL_NAME",
+            "mo-thecreator/vit-Facial-Expression-Recognition",
+        )
         self.model = None
         self.processor = None
         self.initialized = False
@@ -64,20 +55,35 @@ class EmotionService:
 
         if TRANSFORMERS_AVAILABLE:
             self._load_model()
+        else:
+            self._load_error = "Emotion model dependencies are not installed."
 
     def _load_model(self):
-        """Emotion model loading is disabled."""
-        self.initialized = False
-        self._load_error = "Model download and loading is disabled."
-        logger.info("Emotion model loading is disabled")
+        """Load the configured Hugging Face ViT model."""
+        try:
+            logger.info("Loading emotion model: %s", self.model_name)
+            self.processor = ViTImageProcessor.from_pretrained(self.model_name)
+            self.model = ViTForImageClassification.from_pretrained(self.model_name)
+            self.model.eval()
+            self.initialized = True
+            self._load_error = None
+            logger.info("Emotion model loaded successfully")
+        except Exception:
+            self.model = None
+            self.processor = None
+            self.initialized = False
+            self._load_error = "The emotion model could not be loaded."
+            logger.exception("Failed to load emotion model")
 
     def is_ready(self) -> bool:
         """Check if model is loaded and ready."""
-        return (
-            self.initialized
-            and self.model is not None
-            and self.processor is not None
-        )
+        return self.initialized and self.model is not None and self.processor is not None
+
+    def _model_label(self, index: int) -> str:
+        """Read a label from the model configuration without assuming class order."""
+        id_to_label = getattr(self.model.config, "id2label", {})
+        label = id_to_label.get(index, id_to_label.get(str(index), f"class_{index}"))
+        return str(label).lower()
 
     def preprocess(self, image_bytes: bytes):
         """
@@ -99,7 +105,7 @@ class EmotionService:
         exp_x = np.exp(x - np.max(x))
         return exp_x / exp_x.sum()
 
-    def classify(self, image_bytes: bytes) -> Dict:
+    def classify(self, image_bytes: bytes) -> Dict[str, object]:
         """
         Classify emotion from image.
         """
@@ -123,12 +129,12 @@ class EmotionService:
         max_idx = int(np.argmax(probabilities))
         max_conf = float(probabilities[max_idx])
 
-        model_label = MODEL_LABELS.get(max_idx, "neutral")
+        model_label = self._model_label(max_idx)
         app_emotion = MODEL_TO_APP.get(model_label, "Calm")
 
         # Build all probabilities dict
         all_probs = {
-            MODEL_LABELS.get(i, f"class_{i}"): float(probabilities[i])
+            self._model_label(i): float(probabilities[i])
             for i in range(len(probabilities))
         }
 

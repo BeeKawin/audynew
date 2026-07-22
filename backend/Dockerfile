@@ -5,6 +5,8 @@ FROM python:3.11-slim
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 ENV PORT=8000
+ENV HF_HOME=/app/.cache/huggingface
+ENV EMOTION_MODEL_NAME=mo-thecreator/vit-Facial-Expression-Recognition
 
 # Set working directory
 WORKDIR /app
@@ -25,9 +27,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application code
 COPY app/ ./app/
 
-# Pre-download HuggingFace model for faster cold starts
-# Model: mo-thecreator/vit-Facial-Expression-Recognition (~330 MB)
-# RUN python -c "from transformers import ViTForImageClassification, ViTImageProcessor; ViTImageProcessor.from_pretrained('mo-thecreator/vit-Facial-Expression-Recognition'); ViTForImageClassification.from_pretrained('mo-thecreator/vit-Facial-Expression-Recognition')"
+# Download the model into the image so Railway does not depend on a runtime
+# network download during its first health check.
+RUN python -c "import os; from transformers import ViTForImageClassification, ViTImageProcessor; model = os.environ['EMOTION_MODEL_NAME']; ViTImageProcessor.from_pretrained(model); ViTForImageClassification.from_pretrained(model)"
 
 # Create non-root user for security
 RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
@@ -37,7 +39,7 @@ USER appuser
 EXPOSE 8000
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=30s --start-period=60s --retries=3 \
     CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')" || exit 1
 
 # Start the application

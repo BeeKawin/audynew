@@ -1,10 +1,12 @@
-"""
-Emotion Classification Router.
-Provides /api/emotion/classify endpoint for Flutter app.
-"""
+"""Emotion classification endpoints for the Flutter app."""
 
-from fastapi import APIRouter, HTTPException, UploadFile, File
+import logging
+
+from fastapi import APIRouter, File, HTTPException, UploadFile
+
 from app.services.emotion_service import get_emotion_service
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/emotion", tags=["Emotion Classification"])
 
@@ -31,28 +33,30 @@ async def classify_emotion(image: UploadFile = File(...)):
     if not service.is_ready():
         raise HTTPException(
             status_code=503,
-            detail="Emotion classification service not available. Model not loaded.",
+            detail="Emotion detection is temporarily unavailable.",
         )
 
     try:
-        # Read image bytes
         image_bytes = await image.read()
 
-        # Validate file size (max 10MB)
+        if not image_bytes:
+            raise HTTPException(status_code=400, detail="The uploaded image is empty.")
+
         if len(image_bytes) > 10 * 1024 * 1024:
             raise HTTPException(
                 status_code=400, detail="Image too large. Maximum size is 10MB."
             )
 
-        # Run classification
-        result = service.classify(image_bytes)
-
-        return result
+        return service.classify(image_bytes)
 
     except HTTPException:
         raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Classification failed: {str(e)}")
+    except Exception:
+        logger.exception("Emotion classification failed")
+        raise HTTPException(
+            status_code=422,
+            detail="The image could not be processed. Please take another photo.",
+        ) from None
 
 
 @router.get("/health")

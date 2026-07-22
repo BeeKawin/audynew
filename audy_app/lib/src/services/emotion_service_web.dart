@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
@@ -31,6 +32,7 @@ class EmotionService {
   EmotionService._();
 
   static final _client = http.Client();
+  static const _requestTimeout = Duration(seconds: 30);
 
   static Future<void> init() async {}
 
@@ -65,26 +67,54 @@ class EmotionService {
 
     request.files.add(multipartFile);
 
-    final streamedResponse = await request.send();
-    final response = await http.Response.fromStream(streamedResponse);
+    try {
+      final streamedResponse = await _client
+          .send(request)
+          .timeout(_requestTimeout);
+      final response = await http.Response.fromStream(
+        streamedResponse,
+      ).timeout(_requestTimeout);
 
-    if (response.statusCode != 200) {
-      throw EmotionLoadException(
-        'API error: ${response.statusCode} - ${response.body}',
+      if (response.statusCode != 200) {
+        throw EmotionLoadException(_messageForStatus(response.statusCode));
+      }
+
+      final json = jsonDecode(response.body) as Map<String, dynamic>;
+
+      return EmotionResult(
+        detectedEmotion: json['detected_emotion'] as String,
+        confidence: (json['confidence'] as num).toDouble(),
+        source: 'api',
+      );
+    } on EmotionLoadException {
+      rethrow;
+    } on TimeoutException {
+      throw const EmotionLoadException(
+        'The emotion service is taking too long. Please try again.',
+      );
+    } on http.ClientException {
+      throw const EmotionLoadException(
+        'Check the internet connection and try again.',
+      );
+    } catch (_) {
+      throw const EmotionLoadException(
+        'Emotion detection is unavailable right now. Please try again.',
       );
     }
-
-    final json = jsonDecode(response.body) as Map<String, dynamic>;
-
-    return EmotionResult(
-      detectedEmotion: json['detected_emotion'] as String,
-      confidence: (json['confidence'] as num).toDouble(),
-      source: 'api',
-    );
   }
 
   static bool isConfident(EmotionResult result) {
     return result.confidence >= 0.4;
+  }
+
+  static String _messageForStatus(int statusCode) {
+    if (statusCode == 400 || statusCode == 413 || statusCode == 422) {
+      return 'That photo could not be read. Please take another photo.';
+    }
+    if (statusCode == 503) {
+      return 'Emotion detection is temporarily unavailable. Please try again.';
+    }
+    return 'Emotion detection is unavailable right now. Please try again.';
   }
 
   static void dispose() {

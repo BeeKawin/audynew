@@ -46,8 +46,16 @@ class EmotionService {
 
   /// Detect emotion by sending the image to the Railway API.
   static Future<EmotionResult> detectEmotion(File image) async {
-    final apiResult = await _apiService.detectEmotion(image);
-    return EmotionResult.fromApi(apiResult);
+    try {
+      final apiResult = await _apiService.detectEmotion(image);
+      return EmotionResult.fromApi(apiResult);
+    } on EmotionApiException catch (error) {
+      throw EmotionLoadException(error.message);
+    } catch (_) {
+      throw const EmotionLoadException(
+        'Emotion detection is unavailable right now. Please try again.',
+      );
+    }
   }
 
   /// Alias for [detectEmotion].
@@ -59,5 +67,7 @@ class EmotionService {
     return result.confidence >= 0.4;
   }
 
-  static void dispose() {}
+  static void dispose() {
+    _apiService.dispose();
+  }
 }
