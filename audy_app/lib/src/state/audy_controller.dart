@@ -286,6 +286,11 @@ class AudyController extends ChangeNotifier {
     classifyQuestionIndex = 0;
     _classifyQuestions = _buildShuffledClassifyQuestions();
     classifyFeedback = 'Choose the matching emotion.';
+    mimicCurrentRound = 1;
+    mimicScore = 0;
+    _mimicEmotionIndex = 0;
+    _mimicEmotions = _buildShuffledMimicEmotions();
+    mimicLastConfidence = 0.0;
     notifyListeners();
   }
 
@@ -1059,10 +1064,12 @@ class AudyController extends ChangeNotifier {
 
   static const Map<String, String> _analyticsFeatureTitles = {
     'emotion_classify': 'Emotion Classify',
-    'emotion_mimic': 'Emotion Mimic',
+    'emotion_mimic': 'Emotion Mimicking',
     'minipuzzle': 'MiniPuzzle',
     'sorting': 'Sorting',
     'reaction_time': 'Reaction Time',
+    'flashcard': 'Flashcard Game',
+    'fruit_catching_bear': 'Fruit Catching Bear',
     'reading': 'Read & Speak',
     'social_chat': 'Social Chat',
   };

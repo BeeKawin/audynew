@@ -71,7 +71,7 @@ class _MimicResultScreenState extends State<MimicResultScreen> {
       await _sendRoundBleSignal(isFinalRound: isFinalRound);
     }
     controller.advanceMimicRound();
-    navigator.pop();
+    navigator.pop(true);
   }
 
   Future<void> _sendRoundBleSignal({required bool isFinalRound}) async {

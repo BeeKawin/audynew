@@ -42,6 +42,10 @@ String _localizedFeatureTitle(BuildContext context, String gameType, String titl
       return _tr(context, 'sorting_game');
     case 'reaction_time':
       return _tr(context, 'reaction_time');
+    case 'flashcard':
+      return _tr(context, 'flashcard_game');
+    case 'fruit_catching_bear':
+      return _tr(context, 'fruit_catching_bear');
     case 'reading':
       return _tr(context, 'read_speak');
     case 'social_chat':
@@ -827,6 +831,22 @@ class _ParentDashboardTab extends StatelessWidget {
       ParentFeatureAnalytics(
         gameType: 'social_chat',
         title: 'Social Chat',
+        sessions: 0,
+        totalSeconds: 0,
+        correctActions: 0,
+        totalActions: 0,
+      ),
+      ParentFeatureAnalytics(
+        gameType: 'flashcard',
+        title: 'Flashcard Game',
+        sessions: 0,
+        totalSeconds: 0,
+        correctActions: 0,
+        totalActions: 0,
+      ),
+      ParentFeatureAnalytics(
+        gameType: 'fruit_catching_bear',
+        title: 'Fruit Catching Bear',
         sessions: 0,
         totalSeconds: 0,
         correctActions: 0,

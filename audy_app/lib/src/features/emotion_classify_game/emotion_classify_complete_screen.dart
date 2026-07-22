@@ -76,8 +76,9 @@ class _EmotionClassifyCompleteScreenState
   Future<void> _showCelebrationIfNeeded() async {
     if (_hasShownCelebration || !mounted) return;
 
-    // Points were already added during gameplay via submitClassifyAnswer()
-    final pointsEarned = widget.controller.classifyScore * 5;
+    // Points were already added during gameplay
+    final pointsEarned = (widget.controller.classifyScore * 5) +
+        (widget.controller.mimicScore * 5);
 
     if (pointsEarned > 0) {
       final oldPoints = widget.controller.learningPoints - pointsEarned;
@@ -119,11 +120,15 @@ class _EmotionClassifyCompleteScreenState
         .clamp(1, 600)
         .toInt();
 
+    // Track both classification and mimicry completions
     await widget.controller.trackClassifyGameCompleted(
       durationSeconds: durationSeconds,
     );
+    await widget.controller.trackMimicGameCompleted(
+      durationSeconds: durationSeconds,
+    );
 
-    final session = GameSessionData.fromTimes(
+    final classifySession = GameSessionData.fromTimes(
       gameType: 'emotion_classify',
       correctActions: widget.controller.classifyScore,
       totalActions: widget.controller.classifyTotalRounds,
@@ -131,7 +136,17 @@ class _EmotionClassifyCompleteScreenState
       sessionStartedAt: widget.sessionStartedAt,
       sessionEndedAt: endedAt,
     );
-    await widget.controller.recordAnalyticsSession(session);
+    await widget.controller.recordAnalyticsSession(classifySession);
+
+    final mimicSession = GameSessionData.fromTimes(
+      gameType: 'emotion_mimic',
+      correctActions: widget.controller.mimicScore,
+      totalActions: widget.controller.mimicTotalRounds,
+      starsEarned: widget.controller.mimicScore.clamp(0, 3),
+      sessionStartedAt: widget.sessionStartedAt,
+      sessionEndedAt: endedAt,
+    );
+    await widget.controller.recordAnalyticsSession(mimicSession);
   }
 
   @override

@@ -301,23 +301,12 @@ class _DeviceConnectionPageState extends State<DeviceConnectionPage> {
                 // Header
                 Row(
                   children: [
-                    Expanded(
-                      child: AudyBackButton(
-                        label: _tr(context, 'back'),
-                        onPressed: () {
-                          SoundService.instance.playTap();
-                          Navigator.pop(context);
-                        },
-                      ),
-                    ),
-                    Expanded(
-                      child: Text(
-                        _tr(context, 'bluetooth_test'),
-                        textAlign: TextAlign.right,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: AudyTypography.headingMedium,
-                      ),
+                    AudyBackButton(
+                      label: _tr(context, 'back'),
+                      onPressed: () {
+                        SoundService.instance.playTap();
+                        Navigator.pop(context);
+                      },
                     ),
                   ],
                 ),
@@ -359,24 +348,20 @@ class _DeviceConnectionPageState extends State<DeviceConnectionPage> {
                               : Colors.grey,
                         ),
                       ),
-                      SizedBox(height: adaptive.space(8)),
-                      Text(
-                        isConnected
-                            ? _tr(
-                                context,
-                                'device_format',
-                                params: {'device': BluetoothUuids.deviceName},
-                              )
-                            : _tr(
-                                context,
-                                'looking_for_device',
-                                params: {'device': BluetoothUuids.deviceName},
-                              ),
-                        style: TextStyle(
-                          fontSize: adaptive.space(14),
-                          color: AudyColors.textLight,
+                      if (isConnected) ...[
+                        SizedBox(height: adaptive.space(8)),
+                        Text(
+                          _tr(
+                            context,
+                            'device_format',
+                            params: {'device': BluetoothUuids.deviceName},
+                          ),
+                          style: TextStyle(
+                            fontSize: adaptive.space(14),
+                            color: AudyColors.textLight,
+                          ),
                         ),
-                      ),
+                      ],
                     ],
                   ),
                 ),
@@ -485,11 +470,7 @@ class _DeviceConnectionPageState extends State<DeviceConnectionPage> {
         SizedBox(height: _space(adaptive, 16)),
         Center(
           child: Text(
-            _tr(
-              context,
-              'looking_for_device',
-              params: {'device': BluetoothUuids.deviceName},
-            ),
+            'bluetooth connecting',
             style: TextStyle(
               fontSize: _space(adaptive, 14),
               color: AudyColors.textLight,

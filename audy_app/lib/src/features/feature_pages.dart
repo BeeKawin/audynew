@@ -29,18 +29,11 @@ class GamesHubPage extends StatelessWidget {
 
     final cards = [
       _RouteCard(
-        controller.tr('emotion_classify'),
+        controller.tr('emotion_game'),
         null,
         Icons.face_rounded,
         const Color(0xFFF8C7DF),
         AppRoutes.emotionClassify,
-      ),
-      _RouteCard(
-        controller.tr('emotion_mimic'),
-        null,
-        Icons.camera_alt_rounded,
-        const Color(0xFFDDD0F4),
-        AppRoutes.emotionMimic,
       ),
       _RouteCard(
         controller.tr('mini_puzzle'),
@@ -49,13 +42,13 @@ class GamesHubPage extends StatelessWidget {
         const Color(0xFFBDD8F2),
         AppRoutes.miniPuzzle,
       ),
-      _RouteCard(
-        controller.tr('sorting_game'),
-        null,
-        Icons.sort_rounded,
-        const Color(0xFFFFF3A6),
-        AppRoutes.sortingGame,
-      ),
+      // _RouteCard(
+      //   controller.tr('sorting_game'),
+      //   null,
+      //   Icons.sort_rounded,
+      //   const Color(0xFFFFF3A6),
+      //   AppRoutes.sortingGame,
+      // ),
       _RouteCard(
         controller.tr('flashcard_game'),
         null,
@@ -77,13 +70,13 @@ class GamesHubPage extends StatelessWidget {
         const Color(0xFFC9E8C1),
         AppRoutes.fruitCatchingBear,
       ),
-      _RouteCard(
-        controller.tr('reaction_time'),
-        null,
-        Icons.bolt_rounded,
-        const Color(0xFFFFDAC7),
-        AppRoutes.reactionTime,
-      ),
+      // _RouteCard(
+      //   controller.tr('reaction_time'),
+      //   null,
+      //   Icons.bolt_rounded,
+      //   const Color(0xFFFFDAC7),
+      //   AppRoutes.reactionTime,
+      // ),
     ];
 
     return AudyFeaturePage(

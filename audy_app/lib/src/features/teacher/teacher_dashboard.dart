@@ -434,7 +434,7 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                 Container(
                   padding: EdgeInsets.all(adaptive.space(20)),
                   decoration: BoxDecoration(
-                    color: AudyColors.mintGreen.withValues(alpha: 0.15),
+                    color: Colors.white,
                     borderRadius: BorderRadius.circular(AudySpacing.radiusLarge),
                     border: Border.all(color: AudyColors.mintGreen, width: 2),
                   ),
@@ -506,6 +506,8 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
 
   Widget _buildLinkStudentCard(AudyAdaptive adaptive) {
     return Card(
+      color: Colors.white,
+      surfaceTintColor: Colors.transparent,
       elevation: 4,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AudySpacing.radiusLarge),
@@ -613,6 +615,8 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
     ];
 
     return Card(
+      color: Colors.white,
+      surfaceTintColor: Colors.transparent,
       elevation: 4,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AudySpacing.radiusLarge),
@@ -867,6 +871,8 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
 
   Widget _buildAssignHomeworkCard(AudyAdaptive adaptive) {
     return Card(
+      color: Colors.white,
+      surfaceTintColor: Colors.transparent,
       elevation: 4,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AudySpacing.radiusLarge),
@@ -1196,8 +1202,9 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
 
   Widget _buildEmptyStudentsCard(AudyAdaptive adaptive) {
     return Card(
+      color: Colors.white,
+      surfaceTintColor: Colors.transparent,
       elevation: 2,
-      color: AudyColors.backgroundSoft.withValues(alpha: 0.2),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AudySpacing.radiusLarge),
       ),
@@ -1237,6 +1244,8 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
 
   Widget _buildClassroomGrid(AudyAdaptive adaptive) {
     return Card(
+      color: Colors.white,
+      surfaceTintColor: Colors.transparent,
       elevation: 4,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AudySpacing.radiusLarge),
@@ -1293,7 +1302,7 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
 
                 return Container(
                   decoration: BoxDecoration(
-                    color: AudyColors.backgroundCard,
+                    color: Colors.white,
                     borderRadius: BorderRadius.circular(AudySpacing.radiusMedium),
                     boxShadow: [
                       BoxShadow(

@@ -55,7 +55,11 @@ class _LoginPageState extends State<LoginPage> {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             // Mascot at top
-            const AudyMascot(size: 140),
+            Image.asset(
+              'assets/mascot/login_mascot.png',
+              width: 168,
+              height: 168,
+            ),
             SizedBox(height: adaptive.space(24)),
 
             // App Title

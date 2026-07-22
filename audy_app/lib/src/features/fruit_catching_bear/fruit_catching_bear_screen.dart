@@ -7,9 +7,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/app_routes.dart';
 import '../../core/audy_theme.dart';
 import '../../core/audy_ui.dart';
+import '../../services/bluetooth_service.dart';
 import '../../services/sound_service.dart';
 import '../../state/audy_controller.dart';
 import '../../widgets/game_guide_box.dart';
+import '../../widgets/robot_panel_layout.dart';
+import '../../widgets/virtual_robot_panel.dart';
 
 String _tr(BuildContext context, String key, {Map<String, String>? params}) {
   return AudyScope.of(context).tr(key, params: params);
@@ -44,6 +47,7 @@ class _FruitCatchingBearScreenState extends State<FruitCatchingBearScreen> {
 
   Timer? _gameLoop;
   Timer? _spawnLoop;
+  StreamSubscription<AudyBleMessage>? _bleInputSub;
 
   double _playerX = 0.25;
   double _targetPlayerX = 0.25;
@@ -61,6 +65,31 @@ class _FruitCatchingBearScreenState extends State<FruitCatchingBearScreen> {
     _startedAt = DateTime.now();
     _loadHighScore();
     _startGame();
+    _bleInputSub = AudyBluetoothService.instance.incomingMessages.listen(
+      _handleBleInput,
+    );
+  }
+
+  void _handleBleInput(AudyBleMessage message) {
+    if (!mounted || _isGameOver) return;
+
+    if (message.channel == 'ears') {
+      if (message.value == 1) {
+        _changeLane(0.25);
+      } else if (message.value == 2) {
+        _changeLane(0.75);
+      }
+    }
+  }
+
+  void _triggerVirtualInput(String channel, int value) {
+    _handleBleInput(
+      AudyBleMessage(
+        channel: channel,
+        value: value,
+        receivedAt: DateTime.now(),
+      ),
+    );
   }
 
   Future<void> _loadHighScore() async {
@@ -234,6 +263,7 @@ class _FruitCatchingBearScreenState extends State<FruitCatchingBearScreen> {
   void dispose() {
     _gameLoop?.cancel();
     _spawnLoop?.cancel();
+    _bleInputSub?.cancel();
     super.dispose();
   }
 
@@ -242,42 +272,58 @@ class _FruitCatchingBearScreenState extends State<FruitCatchingBearScreen> {
     return AudyResponsivePage(
       scrollable: false,
       builder: (context, adaptive) {
-        return Column(
-          children: [
-            _TopBar(
-              score: _score,
-              highScore: _highScore,
-              guide: _showGuide
-                  ? GameGuideBox(
-                      message: _tr(context, 'guide_fruit_catching_bear'),
-                      onDismissed: () => setState(() => _showGuide = false),
-                    )
-                  : null,
-              onBack: () {
-                SoundService.instance.playTap();
-                Navigator.pop(context);
-              },
-            ),
-            SizedBox(height: adaptive.space(12)),
-            Expanded(
-              child: _GameStage(
-                backgroundAsset: _backgroundAsset,
-                playerAsset: _playerAsset,
-                items: _items,
-                playerX: _playerX,
-                isGameOver: _isGameOver,
-                score: _score,
-                highScore: _highScore,
-                duration: _isGameOver
-                    ? _elapsedTime
-                    : DateTime.now().difference(_startedAt),
-                onRestart: _restartGame,
-                onDone: _finishGame,
-                onMetricsChanged: _updateStageMetrics,
-                onLaneTapped: _changeLane,
+        return ValueListenableBuilder<bool>(
+          valueListenable: AudyBluetoothService.instance.connectionNotifier,
+          builder: (context, isConnected, _) {
+            return RobotPanelLayout(
+              adaptive: adaptive,
+              showPanel: !isConnected,
+              panelBuilder: (isHorizontal) => VirtualRobotPanel(
+                adaptive: adaptive,
+                isHorizontal: isHorizontal,
+                onEarsLeftTap: () => _triggerVirtualInput('ears', 1),
+                onEarsRightTap: () => _triggerVirtualInput('ears', 2),
               ),
-            ),
-          ],
+              child: Column(
+                children: [
+                  _TopBar(
+                    score: _score,
+                    highScore: _highScore,
+                    guide: _showGuide
+                        ? GameGuideBox(
+                            message: _tr(context, 'guide_fruit_catching_bear'),
+                            onDismissed: () =>
+                                setState(() => _showGuide = false),
+                          )
+                        : null,
+                    onBack: () {
+                      SoundService.instance.playTap();
+                      Navigator.pop(context);
+                    },
+                  ),
+                  SizedBox(height: adaptive.space(12)),
+                  Expanded(
+                    child: _GameStage(
+                      backgroundAsset: _backgroundAsset,
+                      playerAsset: _playerAsset,
+                      items: _items,
+                      playerX: _playerX,
+                      isGameOver: _isGameOver,
+                      score: _score,
+                      highScore: _highScore,
+                      duration: _isGameOver
+                          ? _elapsedTime
+                          : DateTime.now().difference(_startedAt),
+                      onRestart: _restartGame,
+                      onDone: _finishGame,
+                      onMetricsChanged: _updateStageMetrics,
+                      onLaneTapped: _changeLane,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
         );
       },
     );

@@ -69,6 +69,10 @@ class AppStrings {
     'back': {'en': 'Back', 'th': 'กลับ'},
 
     // Games Hub
+    'emotion_game': {
+      'en': 'Emotion Game',
+      'th': 'เกมเรียนรู้อารมณ์',
+    },
     'emotion_classify': {
       'en': 'What is this emotion?',
       'th': 'นี่คืออารมณ์อะไร?',

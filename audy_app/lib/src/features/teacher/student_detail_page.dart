@@ -58,6 +58,8 @@ class StudentDetailPage extends StatelessWidget {
               children: [
                 // Header Profile Info Card
                 Card(
+                  color: Colors.white,
+                  surfaceTintColor: Colors.transparent,
                   elevation: 4,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(AudySpacing.radiusLarge),
@@ -128,6 +130,8 @@ class StudentDetailPage extends StatelessWidget {
                 ),
                 SizedBox(height: adaptive.space(12)),
                 Card(
+                  color: Colors.white,
+                  surfaceTintColor: Colors.transparent,
                   elevation: 4,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(AudySpacing.radiusLarge),
@@ -152,6 +156,8 @@ class StudentDetailPage extends StatelessWidget {
                 ),
                 SizedBox(height: adaptive.space(12)),
                 Card(
+                  color: Colors.white,
+                  surfaceTintColor: Colors.transparent,
                   elevation: 4,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(AudySpacing.radiusLarge),
@@ -242,6 +248,8 @@ class StudentDetailPage extends StatelessWidget {
   Widget _buildStatColumn(String label, String value, IconData icon, Color color) {
     return Expanded(
       child: Card(
+        color: Colors.white,
+        surfaceTintColor: Colors.transparent,
         elevation: 3,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AudySpacing.radiusLarge),

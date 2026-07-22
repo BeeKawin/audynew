@@ -12,6 +12,7 @@ import '../../state/audy_controller.dart';
 import '../../widgets/game_guide_box.dart';
 import '../../widgets/robot_panel_layout.dart';
 import '../../widgets/virtual_robot_panel.dart';
+import '../emotion_mimic_game/selfie_capture_screen.dart';
 import 'emotion_classify_complete_screen.dart';
 
 /// "What is this emotion?" - Classification game
@@ -150,8 +151,8 @@ class _EmotionClassifyScreenState extends State<EmotionClassifyScreen> {
             ? adaptive.space(300)
             : adaptive.space(420);
         final characterSize = adaptive.isPhone
-            ? adaptive.space(132)
-            : adaptive.space(154);
+            ? adaptive.space(180)
+            : adaptive.space(220);
         final answerGridHeight = adaptive.isPhone
             ? adaptive.space(148)
             : adaptive.space(176);
@@ -370,16 +371,26 @@ class _EmotionClassifyScreenState extends State<EmotionClassifyScreen> {
 
     controller.submitClassifyAnswer(answer);
 
-    Future.delayed(const Duration(milliseconds: 1500), () {
+    Future.delayed(const Duration(milliseconds: 1500), () async {
       if (mounted) {
-        // Clear error state BEFORE advancing to prevent red card from showing
-        // during the transition to completion screen
-        setState(() {
-          _selectedAnswer = null;
-          _showingFeedback = false;
-          _isCorrect = false;
-        });
-        controller.advanceClassifyRound();
+        final targetEmotion = controller.currentClassifyQuestion.correctAnswer;
+        final completed = await Navigator.push<bool>(
+          context,
+          MaterialPageRoute(
+            builder: (_) => SelfieCaptureScreen(targetEmotion: targetEmotion),
+          ),
+        );
+
+        if (mounted) {
+          setState(() {
+            _selectedAnswer = null;
+            _showingFeedback = false;
+            _isCorrect = false;
+          });
+          if (completed == true) {
+            controller.advanceClassifyRound();
+          }
+        }
       }
     });
   }

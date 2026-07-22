@@ -147,7 +147,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
                 Container(
                   padding: EdgeInsets.all(adaptive.space(20)),
                   decoration: BoxDecoration(
-                    color: AudyColors.skyBlue.withValues(alpha: 0.15),
+                    color: Colors.white,
                     borderRadius: BorderRadius.circular(AudySpacing.radiusLarge),
                     border: Border.all(color: AudyColors.skyBlue, width: 2),
                   ),
@@ -215,6 +215,8 @@ class _ParentDashboardState extends State<ParentDashboard> {
 
   Widget _buildLinkChildCard(AudyAdaptive adaptive) {
     return Card(
+      color: Colors.white,
+      surfaceTintColor: Colors.transparent,
       elevation: 4,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AudySpacing.radiusLarge),
@@ -314,8 +316,9 @@ class _ParentDashboardState extends State<ParentDashboard> {
 
   Widget _buildEmptyChildrenCard(AudyAdaptive adaptive) {
     return Card(
+      color: Colors.white,
+      surfaceTintColor: Colors.transparent,
       elevation: 2,
-      color: AudyColors.backgroundSoft.withValues(alpha: 0.2),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AudySpacing.radiusLarge),
       ),
@@ -365,6 +368,8 @@ class _ParentDashboardState extends State<ParentDashboard> {
         : 'Never';
 
     return Card(
+      color: Colors.white,
+      surfaceTintColor: Colors.transparent,
       elevation: 4,
       margin: const EdgeInsets.only(bottom: 16),
       shape: RoundedRectangleBorder(
