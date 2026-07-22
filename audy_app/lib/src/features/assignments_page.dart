@@ -8,8 +8,6 @@ import '../services/auth_service.dart';
 import '../services/sound_service.dart';
 import '../state/audy_controller.dart';
 
-
-
 /// Full-page assignments hub, opened from the circular assignment button
 /// in the dashboard header (next to the device/Bluetooth button).
 class AssignmentsPage extends StatefulWidget {
@@ -87,13 +85,14 @@ class _AssignmentsPageState extends State<AssignmentsPage> {
     if (index == -1) return;
 
     final assignment = _assignments[index];
-    final newProgress = (assignment.currentProgress + 1).clamp(0, assignment.targetCount);
+    final newProgress = (assignment.currentProgress + 1).clamp(
+      0,
+      assignment.targetCount,
+    );
     final isCompleted = newProgress >= assignment.targetCount;
 
     setState(() {
-      _assignments[index] = assignment.copyWith(
-        currentProgress: newProgress,
-      );
+      _assignments[index] = assignment.copyWith(currentProgress: newProgress);
     });
 
     if (assignment.supabaseId != null) {
@@ -332,30 +331,38 @@ List<_AssignmentRecommendation> _assignmentRecommendations(
     if (feature != null && feature.sessions > 0) {
       final accuracy = feature.averageAccuracy ?? 0.0;
       if (accuracy < 0.70) {
-        recommendations.add(_AssignmentRecommendation(
-          option: option,
-          accuracy: accuracy,
-          reason: 'Needs practice (low score: ${(accuracy * 100).round()}%)',
-        ));
+        recommendations.add(
+          _AssignmentRecommendation(
+            option: option,
+            accuracy: accuracy,
+            reason: 'Needs practice (low score: ${(accuracy * 100).round()}%)',
+          ),
+        );
       } else if (accuracy >= 0.70 && accuracy < 0.85) {
-        recommendations.add(_AssignmentRecommendation(
-          option: option,
-          accuracy: accuracy,
-          reason: 'Reinforce skill (mastery: ${(accuracy * 100).round()}%)',
-        ));
+        recommendations.add(
+          _AssignmentRecommendation(
+            option: option,
+            accuracy: accuracy,
+            reason: 'Reinforce skill (mastery: ${(accuracy * 100).round()}%)',
+          ),
+        );
       } else {
-        recommendations.add(_AssignmentRecommendation(
-          option: option,
-          accuracy: accuracy,
-          reason: 'Keep sharp (mastered: ${(accuracy * 100).round()}%)',
-        ));
+        recommendations.add(
+          _AssignmentRecommendation(
+            option: option,
+            accuracy: accuracy,
+            reason: 'Keep sharp (mastered: ${(accuracy * 100).round()}%)',
+          ),
+        );
       }
     } else {
-      recommendations.add(_AssignmentRecommendation(
-        option: option,
-        accuracy: 0.0,
-        reason: 'Unplayed (assign to explore)',
-      ));
+      recommendations.add(
+        _AssignmentRecommendation(
+          option: option,
+          accuracy: 0.0,
+          reason: 'Unplayed (assign to explore)',
+        ),
+      );
     }
   }
 
@@ -381,8 +388,6 @@ List<_AssignmentRecommendation> _assignmentRecommendations(
 
   return recommendations.take(3).toList();
 }
-
-
 
 class _AssignmentsDashboardSection extends StatelessWidget {
   const _AssignmentsDashboardSection({
@@ -607,9 +612,8 @@ class _AssignmentRecommendationPanel extends StatelessWidget {
                           recommendation: recommendation,
                           onUse: onUseRecommendation == null
                               ? null
-                              : () => onUseRecommendation!(
-                                    recommendation.option,
-                                  ),
+                              : () =>
+                                    onUseRecommendation!(recommendation.option),
                         ),
                       )
                       .toList(),
@@ -791,7 +795,9 @@ class _AssignmentCard extends StatelessWidget {
         color: AudyColors.backgroundCard,
         borderRadius: BorderRadius.circular(adaptive.space(24)),
         border: Border.all(
-          color: isCompleted ? const Color(0xFF69E0A0) : assignment.option.color,
+          color: isCompleted
+              ? const Color(0xFF69E0A0)
+              : assignment.option.color,
           width: 2,
         ),
         boxShadow: AudyShadows.cardShadow,
@@ -848,7 +854,8 @@ class _AssignmentCard extends StatelessWidget {
               _AssignmentInfoChip(
                 adaptive: adaptive,
                 icon: Icons.repeat_rounded,
-                label: '${assignment.currentProgress}/${assignment.targetCount}',
+                label:
+                    '${assignment.currentProgress}/${assignment.targetCount}',
               ),
             ],
           ),
@@ -870,7 +877,10 @@ class _AssignmentCard extends StatelessWidget {
               Expanded(
                 child: ElevatedButton.icon(
                   onPressed: onStart,
-                  icon: Icon(Icons.play_arrow_rounded, size: adaptive.space(20)),
+                  icon: Icon(
+                    Icons.play_arrow_rounded,
+                    size: adaptive.space(20),
+                  ),
                   label: Text(controller.tr('start')),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: assignment.option.color,
@@ -886,9 +896,7 @@ class _AssignmentCard extends StatelessWidget {
               IconButton.filled(
                 onPressed: onCompleteStep,
                 icon: Icon(
-                  isCompleted
-                      ? Icons.check_rounded
-                      : Icons.task_alt_rounded,
+                  isCompleted ? Icons.check_rounded : Icons.task_alt_rounded,
                 ),
                 style: IconButton.styleFrom(
                   backgroundColor: isCompleted
@@ -988,10 +996,11 @@ class _AddAssignmentDialogState extends State<_AddAssignmentDialog> {
     return Dialog(
       backgroundColor: Colors.transparent,
       child: Container(
-        padding: EdgeInsets.all(widget.adaptive.space(24)),
+        constraints: BoxConstraints(maxWidth: widget.adaptive.space(360)),
+        padding: EdgeInsets.all(widget.adaptive.space(18)),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(widget.adaptive.space(28)),
+          borderRadius: BorderRadius.circular(widget.adaptive.space(24)),
         ),
         child: SingleChildScrollView(
           child: Column(
@@ -1002,23 +1011,24 @@ class _AddAssignmentDialogState extends State<_AddAssignmentDialog> {
                 child: Text(
                   controller.tr('create_assignment'),
                   style: TextStyle(
-                    fontSize: widget.adaptive.space(22),
+                    fontSize: widget.adaptive.space(17),
                     fontWeight: FontWeight.w800,
                     color: const Color(0xFF243A5A),
                   ),
                 ),
               ),
-              SizedBox(height: widget.adaptive.space(22)),
+              SizedBox(height: widget.adaptive.space(14)),
               _AssignmentDialogLabel(
                 adaptive: widget.adaptive,
                 label: controller.tr('assignment_feature_label'),
               ),
-              SizedBox(height: widget.adaptive.space(10)),
+              SizedBox(height: widget.adaptive.space(6)),
               Wrap(
-                spacing: widget.adaptive.space(8),
-                runSpacing: widget.adaptive.space(8),
+                spacing: widget.adaptive.space(6),
+                runSpacing: widget.adaptive.space(6),
                 children: options.map((option) {
-                  final isSelected = option.gameType == _selectedOption.gameType;
+                  final isSelected =
+                      option.gameType == _selectedOption.gameType;
                   return _AssignmentChoiceChip(
                     adaptive: widget.adaptive,
                     icon: option.icon,
@@ -1032,15 +1042,15 @@ class _AddAssignmentDialogState extends State<_AddAssignmentDialog> {
                   );
                 }).toList(),
               ),
-              SizedBox(height: widget.adaptive.space(20)),
+              SizedBox(height: widget.adaptive.space(12)),
               _AssignmentDialogLabel(
                 adaptive: widget.adaptive,
                 label: controller.tr('difficulty_label'),
               ),
-              SizedBox(height: widget.adaptive.space(10)),
+              SizedBox(height: widget.adaptive.space(6)),
               Wrap(
-                spacing: widget.adaptive.space(8),
-                runSpacing: widget.adaptive.space(8),
+                spacing: widget.adaptive.space(6),
+                runSpacing: widget.adaptive.space(6),
                 children: difficultyKeys.map((difficulty) {
                   return _AssignmentChoiceChip(
                     adaptive: widget.adaptive,
@@ -1055,12 +1065,12 @@ class _AddAssignmentDialogState extends State<_AddAssignmentDialog> {
                   );
                 }).toList(),
               ),
-              SizedBox(height: widget.adaptive.space(20)),
+              SizedBox(height: widget.adaptive.space(12)),
               _AssignmentDialogLabel(
                 adaptive: widget.adaptive,
                 label: controller.tr('assignment_target_label'),
               ),
-              SizedBox(height: widget.adaptive.space(12)),
+              SizedBox(height: widget.adaptive.space(8)),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -1074,16 +1084,16 @@ class _AddAssignmentDialogState extends State<_AddAssignmentDialog> {
                           }
                         : null,
                   ),
-                  SizedBox(width: widget.adaptive.space(16)),
+                  SizedBox(width: widget.adaptive.space(12)),
                   Container(
                     constraints: BoxConstraints(
-                      minWidth: widget.adaptive.space(72),
-                      minHeight: widget.adaptive.space(48),
+                      minWidth: widget.adaptive.space(56),
+                      minHeight: widget.adaptive.space(38),
                     ),
                     alignment: Alignment.center,
                     padding: EdgeInsets.symmetric(
-                      horizontal: widget.adaptive.space(20),
-                      vertical: widget.adaptive.space(10),
+                      horizontal: widget.adaptive.space(16),
+                      vertical: widget.adaptive.space(6),
                     ),
                     decoration: BoxDecoration(
                       color: const Color(0xFFF8F9FA),
@@ -1092,13 +1102,13 @@ class _AddAssignmentDialogState extends State<_AddAssignmentDialog> {
                     child: Text(
                       '$_targetCount',
                       style: TextStyle(
-                        fontSize: widget.adaptive.space(24),
+                        fontSize: widget.adaptive.space(19),
                         fontWeight: FontWeight.w800,
                         color: const Color(0xFF243A5A),
                       ),
                     ),
                   ),
-                  SizedBox(width: widget.adaptive.space(16)),
+                  SizedBox(width: widget.adaptive.space(12)),
                   _AssignmentCountButton(
                     adaptive: widget.adaptive,
                     icon: Icons.add_rounded,
@@ -1111,7 +1121,7 @@ class _AddAssignmentDialogState extends State<_AddAssignmentDialog> {
                   ),
                 ],
               ),
-              SizedBox(height: widget.adaptive.space(24)),
+              SizedBox(height: widget.adaptive.space(16)),
               Row(
                 children: [
                   Expanded(
@@ -1124,8 +1134,8 @@ class _AddAssignmentDialogState extends State<_AddAssignmentDialog> {
                         backgroundColor: const Color(0xFFE2E5EA),
                         foregroundColor: const Color(0xFF60758F),
                         minimumSize: Size(
-                          widget.adaptive.space(48),
-                          widget.adaptive.space(48),
+                          widget.adaptive.space(40),
+                          widget.adaptive.space(40),
                         ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(999),
@@ -1134,7 +1144,7 @@ class _AddAssignmentDialogState extends State<_AddAssignmentDialog> {
                       child: Text(controller.tr('cancel')),
                     ),
                   ),
-                  SizedBox(width: widget.adaptive.space(12)),
+                  SizedBox(width: widget.adaptive.space(10)),
                   Expanded(
                     child: ElevatedButton(
                       onPressed: () {
@@ -1149,8 +1159,8 @@ class _AddAssignmentDialogState extends State<_AddAssignmentDialog> {
                         backgroundColor: const Color(0xFFF8C7DF),
                         foregroundColor: const Color(0xFF243A5A),
                         minimumSize: Size(
-                          widget.adaptive.space(48),
-                          widget.adaptive.space(48),
+                          widget.adaptive.space(40),
+                          widget.adaptive.space(40),
                         ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(999),
@@ -1170,10 +1180,7 @@ class _AddAssignmentDialogState extends State<_AddAssignmentDialog> {
 }
 
 class _AssignmentDialogLabel extends StatelessWidget {
-  const _AssignmentDialogLabel({
-    required this.adaptive,
-    required this.label,
-  });
+  const _AssignmentDialogLabel({required this.adaptive, required this.label});
 
   final AudyAdaptive adaptive;
   final String label;
@@ -1183,7 +1190,7 @@ class _AssignmentDialogLabel extends StatelessWidget {
     return Text(
       label,
       style: TextStyle(
-        fontSize: adaptive.space(14),
+        fontSize: adaptive.space(12),
         fontWeight: FontWeight.w700,
         color: const Color(0xFF60758F),
       ),
@@ -1216,10 +1223,10 @@ class _AssignmentChoiceChip extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(999),
         child: Container(
-          constraints: BoxConstraints(minHeight: adaptive.space(48)),
+          constraints: BoxConstraints(minHeight: adaptive.space(36)),
           padding: EdgeInsets.symmetric(
-            horizontal: adaptive.space(12),
-            vertical: adaptive.space(10),
+            horizontal: adaptive.space(10),
+            vertical: adaptive.space(6),
           ),
           decoration: BoxDecoration(
             color: isSelected ? selectedColor : const Color(0xFFF8F9FA),
@@ -1236,18 +1243,18 @@ class _AssignmentChoiceChip extends StatelessWidget {
             children: [
               Icon(
                 icon,
-                size: adaptive.space(18),
+                size: adaptive.space(15),
                 color: const Color(0xFF243A5A),
               ),
-              SizedBox(width: adaptive.space(6)),
+              SizedBox(width: adaptive.space(5)),
               ConstrainedBox(
-                constraints: BoxConstraints(maxWidth: adaptive.space(180)),
+                constraints: BoxConstraints(maxWidth: adaptive.space(150)),
                 child: Text(
                   label,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    fontSize: adaptive.space(13),
+                    fontSize: adaptive.space(11.5),
                     fontWeight: FontWeight.w700,
                     color: const Color(0xFF243A5A),
                   ),
@@ -1283,10 +1290,11 @@ class _AssignmentCountButton extends StatelessWidget {
         onTap: onPressed,
         borderRadius: BorderRadius.circular(12),
         child: SizedBox(
-          width: adaptive.space(48),
-          height: adaptive.space(48),
+          width: adaptive.space(38),
+          height: adaptive.space(38),
           child: Icon(
             icon,
+            size: adaptive.space(18),
             color: onPressed == null
                 ? const Color(0xFFB8BFCA)
                 : const Color(0xFF243A5A),
