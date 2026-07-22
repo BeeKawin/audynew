@@ -17,6 +17,10 @@ class MimicResultScreen extends StatefulWidget {
     required this.detectedEmotion,
     required this.confidence,
     required this.successPraiseSoundPath,
+    this.playPraise,
+    this.playWrong,
+    this.playTap,
+    this.sendRoundSignal,
   });
 
   final File capturedImage;
@@ -24,6 +28,10 @@ class MimicResultScreen extends StatefulWidget {
   final String detectedEmotion;
   final double confidence;
   final String successPraiseSoundPath;
+  final ValueChanged<String>? playPraise;
+  final VoidCallback? playWrong;
+  final VoidCallback? playTap;
+  final Future<void> Function(bool isFinalRound)? sendRoundSignal;
 
   @override
   State<MimicResultScreen> createState() => _MimicResultScreenState();
@@ -31,6 +39,7 @@ class MimicResultScreen extends StatefulWidget {
 
 class _MimicResultScreenState extends State<MimicResultScreen> {
   bool _isContinuing = false;
+  bool _allowPop = false;
 
   bool get isMatch {
     return widget.detectedEmotion.toLowerCase() ==
@@ -41,9 +50,19 @@ class _MimicResultScreenState extends State<MimicResultScreen> {
   void initState() {
     super.initState();
     if (isMatch) {
-      SoundService.instance.playEmotionPraise(widget.successPraiseSoundPath);
+      final playPraise = widget.playPraise;
+      if (playPraise != null) {
+        playPraise(widget.successPraiseSoundPath);
+      } else {
+        SoundService.instance.playEmotionPraise(widget.successPraiseSoundPath);
+      }
     } else {
-      SoundService.instance.playWrong();
+      final playWrong = widget.playWrong;
+      if (playWrong != null) {
+        playWrong();
+      } else {
+        SoundService.instance.playWrong();
+      }
     }
   }
 
@@ -72,10 +91,22 @@ class _MimicResultScreenState extends State<MimicResultScreen> {
       await _sendRoundBleSignal(isFinalRound: isFinalRound);
     }
     controller.advanceMimicRound();
+
+    if (!mounted) return;
+    setState(() => _allowPop = true);
+    await WidgetsBinding.instance.endOfFrame;
+
+    if (!mounted) return;
     navigator.pop(true);
   }
 
   Future<void> _sendRoundBleSignal({required bool isFinalRound}) async {
+    final sendRoundSignal = widget.sendRoundSignal;
+    if (sendRoundSignal != null) {
+      await sendRoundSignal(isFinalRound);
+      return;
+    }
+
     try {
       final bluetooth = AudyBluetoothService.instance;
       if (isFinalRound) {
@@ -89,130 +120,126 @@ class _MimicResultScreenState extends State<MimicResultScreen> {
   }
 
   void _handleContinueTap() {
-    SoundService.instance.playTap();
+    final playTap = widget.playTap;
+    if (playTap != null) {
+      playTap();
+    } else {
+      SoundService.instance.playTap();
+    }
     _handleContinue();
   }
 
   @override
   Widget build(BuildContext context) {
-    return AudyResponsivePage(
-      scrollable: false,
-      builder: (context, adaptive) {
-        return Column(
-          children: [
-            Expanded(
-              child: SingleChildScrollView(
-                child: Column(
-                  children: [
-                    Row(
-                      children: [
-                        InkWell(
-                          onTap: () {
-                            SoundService.instance.playTap();
-                            Navigator.pop(context);
-                          },
-                          borderRadius: BorderRadius.circular(
-                            AudySpacing.radiusMedium,
-                          ),
-                          child: SizedBox(
-                            width: AudySpacing.touchTargetMin,
-                            height: AudySpacing.touchTargetMin,
-                            child: const Icon(
-                              Icons.arrow_back_rounded,
-                              size: AudySpacing.iconMedium,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: AudySpacing.elementGap),
-                    Container(
-                      width: 200,
-                      height: 200,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(
-                          AudySpacing.radiusXLarge,
-                        ),
-                        boxShadow: AudyShadows.cardShadow,
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(
-                          AudySpacing.radiusXLarge,
-                        ),
-                        child: Image.file(
-                          widget.capturedImage,
-                          fit: BoxFit.cover,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: AudySpacing.sectionGap),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AudySpacing.cardPadding,
-                        vertical: AudySpacing.elementGap,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AudyColors.backgroundCard,
-                        borderRadius: BorderRadius.circular(
-                          AudySpacing.radiusLarge,
-                        ),
-                        boxShadow: [AudyShadows.soft],
-                      ),
-                      child: Column(
-                        children: [
-                          _EmotionRow(
-                            label: 'Expected',
-                            emotion: widget.expectedEmotion,
-                          ),
-                          const SizedBox(height: AudySpacing.elementGap),
-                          _EmotionRow(
-                            label: 'You showed',
-                            emotion: widget.detectedEmotion,
-                          ),
-                          const SizedBox(height: AudySpacing.smallGap),
-                          Text(
-                            'Confidence: ${(widget.confidence * 100).round()}%',
-                            style: AudyTypography.bodySmall.copyWith(
-                              color: AudyColors.textLight,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: AudySpacing.sectionGap),
-                    _FeedbackSection(
-                      isMatch: isMatch,
-                      expectedEmotion: widget.expectedEmotion,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: AudySpacing.elementGap),
-            SizedBox(
-              width: double.infinity,
-              height: AudySpacing.buttonHeight + 12,
-              child: ElevatedButton(
-                onPressed: _isContinuing ? null : _handleContinueTap,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: isMatch
-                      ? AudyColors.mintGreen
-                      : AudyColors.skyBlue,
-                  foregroundColor: AudyColors.textOnColor,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(
-                      AudySpacing.radiusXLarge,
-                    ),
-                  ),
-                  elevation: 4,
-                ),
-                child: Text('Continue', style: AudyTypography.buttonText),
-              ),
-            ),
-            const SizedBox(height: AudySpacing.sectionGap),
-          ],
-        );
+    final controller = AudyScope.of(context);
+
+    return PopScope<bool>(
+      canPop: _allowPop,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop && !_isContinuing) {
+          _handleContinue();
+        }
       },
+      child: AudyResponsivePage(
+        scrollable: false,
+        builder: (context, adaptive) {
+          return Column(
+            children: [
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Column(
+                    children: [
+                      Container(
+                        width: 200,
+                        height: 200,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(
+                            AudySpacing.radiusXLarge,
+                          ),
+                          boxShadow: AudyShadows.cardShadow,
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(
+                            AudySpacing.radiusXLarge,
+                          ),
+                          child: Image.file(
+                            widget.capturedImage,
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: AudySpacing.sectionGap),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AudySpacing.cardPadding,
+                          vertical: AudySpacing.elementGap,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AudyColors.backgroundCard,
+                          borderRadius: BorderRadius.circular(
+                            AudySpacing.radiusLarge,
+                          ),
+                          boxShadow: [AudyShadows.soft],
+                        ),
+                        child: Column(
+                          children: [
+                            _EmotionRow(
+                              label: 'Expected',
+                              emotion: widget.expectedEmotion,
+                            ),
+                            const SizedBox(height: AudySpacing.elementGap),
+                            _EmotionRow(
+                              label: 'You showed',
+                              emotion: widget.detectedEmotion,
+                            ),
+                            const SizedBox(height: AudySpacing.smallGap),
+                            Text(
+                              'Confidence: ${(widget.confidence * 100).round()}%',
+                              style: AudyTypography.bodySmall.copyWith(
+                                color: AudyColors.textLight,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: AudySpacing.sectionGap),
+                      _FeedbackSection(
+                        isMatch: isMatch,
+                        expectedEmotion: widget.expectedEmotion,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: AudySpacing.elementGap),
+              SizedBox(
+                width: double.infinity,
+                height: AudySpacing.buttonHeight + 12,
+                child: ElevatedButton(
+                  onPressed: _isContinuing ? null : _handleContinueTap,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: isMatch
+                        ? AudyColors.mintGreen
+                        : AudyColors.skyBlue,
+                    foregroundColor: AudyColors.textOnColor,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(
+                        AudySpacing.radiusXLarge,
+                      ),
+                    ),
+                    elevation: 4,
+                  ),
+                  child: Text(
+                    controller.tr('next_round'),
+                    style: AudyTypography.buttonText,
+                  ),
+                ),
+              ),
+              const SizedBox(height: AudySpacing.sectionGap),
+            ],
+          );
+        },
+      ),
     );
   }
 }

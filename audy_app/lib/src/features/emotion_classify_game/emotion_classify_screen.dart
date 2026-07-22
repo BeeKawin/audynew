@@ -396,7 +396,7 @@ class _EmotionClassifyScreenState extends State<EmotionClassifyScreen> {
     if (!mounted) return;
 
     final targetEmotion = controller.currentClassifyQuestion.correctAnswer;
-    final completed = await Navigator.push<bool>(
+    final didCompleteMimic = await Navigator.push<bool>(
       context,
       MaterialPageRoute(
         builder: (_) => SelfieCaptureScreen(
@@ -408,14 +408,14 @@ class _EmotionClassifyScreenState extends State<EmotionClassifyScreen> {
 
     if (!mounted) return;
 
+    if (didCompleteMimic == true) {
+      controller.advanceClassifyRound();
+    }
     setState(() {
       _selectedAnswer = null;
       _showingFeedback = false;
       _isCorrect = false;
     });
-    if (completed == true) {
-      controller.advanceClassifyRound();
-    }
   }
 
   List<String> _orderedOptionsFor(EmotionQuestion question) {
