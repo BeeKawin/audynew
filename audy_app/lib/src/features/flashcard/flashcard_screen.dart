@@ -153,9 +153,7 @@ class _FlashcardScreenState extends State<FlashcardScreen> {
     final total = _controller.sessionTotalCards;
     final mistakes = _controller.sessionMistakes;
     final points = (correct * 5 - mistakes).clamp(0, correct * 5);
-    final stars = mistakes == 0
-        ? 3
-        : (mistakes <= total ? 2 : 1);
+    final stars = mistakes == 0 ? 3 : (mistakes <= total ? 2 : 1);
 
     await appController.trackFlashcardCompleted();
     if (points > 0) {
@@ -428,41 +426,59 @@ class _PlayState extends StatelessWidget {
         final spacing = adaptive.space(8);
         final runSpacing = adaptive.space(8);
 
-        final scenarioHeight = scenario.isNotEmpty 
-            ? (108.0 + 14.0) * scale 
+        final scenarioHeight = scenario.isNotEmpty
+            ? (108.0 + 14.0) * scale
             : 0.0;
         final buttonHeight = (62.0 + 14.0) * scale;
         final deckPadding = 28.0 * scale;
-        final handPadding = 24.0;
         final gapHeight = 14.0 * scale;
 
-        final totalOverhead = scenarioHeight + buttonHeight + deckPadding + handPadding + gapHeight + 16.0;
-        final availableHeight = screenHeight - totalOverhead;
+        // Only the deck's own footprint is load-bearing for overflow here:
+        // the hand zone below it sits in an Expanded and already scrolls
+        // internally if its content doesn't fit, so — unlike an earlier
+        // version of this budget — it isn't part of this check. A small
+        // safety margin absorbs rounding differences between this estimate
+        // and Flutter's actual rendered padding/borders.
+        const safetyMargin = 8.0;
+        final totalOverhead =
+            scenarioHeight +
+            buttonHeight +
+            deckPadding +
+            gapHeight +
+            16.0 +
+            safetyMargin;
+        final availableDeckHeight = screenHeight - totalOverhead;
 
         final count = controller.cardCount;
-        double cardWidth = count <= 3 ? 108.0 : 88.0;
         final minWidth = 80.0;
         final maxAllowedWidth = adaptive.isPhone ? 140.0 : 180.0;
+        double cardWidth = minWidth;
+
+        double deckHeightFor(double w) {
+          final deckInnerWidth = screenWidth - (24.0 * scale);
+          final deckCols = math.max(
+            1,
+            ((deckInnerWidth + spacing) / (w + spacing)).floor(),
+          );
+          final deckRows = (count / deckCols).ceil();
+          return deckRows * (w * 1.3) + (deckRows - 1) * runSpacing;
+        }
 
         for (double w = maxAllowedWidth; w >= minWidth; w -= 1.0) {
-          final h = w * 1.3;
-
-          final deckInnerWidth = screenWidth - (24.0 * scale);
-          final deckCols = ((deckInnerWidth + spacing) / (w + spacing)).floor();
-          if (deckCols <= 0) continue;
-          final deckRows = (count / deckCols).ceil();
-          final deckHeight = deckRows * h + (deckRows - 1) * runSpacing;
-
-          final handInnerWidth = screenWidth - 16.0;
-          final handCols = ((handInnerWidth + spacing) / (w + spacing)).floor();
-          if (handCols <= 0) continue;
-          final handRows = (count / handCols).ceil();
-          final handHeight = handRows * h + (handRows - 1) * runSpacing;
-
-          if (deckHeight + handHeight <= availableHeight) {
+          if (deckHeightFor(w) <= availableDeckHeight) {
             cardWidth = w;
             break;
           }
+        }
+
+        // Final safety net: on a screen too short for even the smallest
+        // card size to fit the deck, shrink further so the deck can never
+        // overflow the column, regardless of resolution.
+        final fittedDeckHeight = deckHeightFor(cardWidth);
+        if (fittedDeckHeight > availableDeckHeight &&
+            availableDeckHeight > 0 &&
+            fittedDeckHeight > 0) {
+          cardWidth = cardWidth * (availableDeckHeight / fittedDeckHeight);
         }
 
         final cardHeight = cardWidth * 1.3;
@@ -755,10 +771,7 @@ class _EmptySlot extends StatelessWidget {
       decoration: BoxDecoration(
         color: AudyColors.backgroundSoft.withValues(alpha: 0.4),
         borderRadius: BorderRadius.circular(AudySpacing.radiusLarge),
-        border: Border.all(
-          color: AudyColors.borderLight,
-          width: 2,
-        ),
+        border: Border.all(color: AudyColors.borderLight, width: 2),
       ),
     );
   }
@@ -916,10 +929,7 @@ class _ErrorState extends StatelessWidget {
 // ---------------------------------------------------------------------------
 
 class AnimatedEntrance extends StatelessWidget {
-  const AnimatedEntrance({
-    super.key,
-    required this.child,
-  });
+  const AnimatedEntrance({super.key, required this.child});
 
   final Widget child;
 
@@ -932,10 +942,7 @@ class AnimatedEntrance extends StatelessWidget {
       builder: (context, value, child) {
         return Transform.scale(
           scale: 0.84 + 0.16 * value,
-          child: Opacity(
-            opacity: value,
-            child: child,
-          ),
+          child: Opacity(opacity: value, child: child),
         );
       },
       child: child,

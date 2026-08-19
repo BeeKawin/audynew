@@ -52,7 +52,6 @@ class UserProfile {
   }
 }
 
-
 /// Auth service wrapping Supabase auth operations
 /// Provides sign in, sign up, sign out, and profile management
 class AuthService {
@@ -195,7 +194,10 @@ class AuthService {
   ///
   /// Uses the `link_student_by_email` SECURITY DEFINER RPC for the same RLS
   /// reason as [linkChildToParent].
-  Future<void> linkStudentToTeacher(String teacherId, String studentEmail) async {
+  Future<void> linkStudentToTeacher(
+    String teacherId,
+    String studentEmail,
+  ) async {
     try {
       await _client.rpc(
         'link_student_by_email',
@@ -283,7 +285,10 @@ class AuthService {
   ///
   /// Best-effort: swallows errors like [syncStudentStats] so gameplay is never
   /// blocked by a failed sync.
-  Future<void> syncGameSession(String studentId, GameSessionData session) async {
+  Future<void> syncGameSession(
+    String studentId,
+    GameSessionData session,
+  ) async {
     try {
       await _client.from('game_sessions').insert({
         'student_id': studentId,
@@ -364,17 +369,55 @@ class AuthService {
     bool isCompleted,
   ) async {
     try {
-      await _client.from('assignments').update({
-        'current_count': progress,
-        'is_completed': isCompleted,
-      }).eq('id', assignmentId);
+      await _client
+          .from('assignments')
+          .update({'current_count': progress, 'is_completed': isCompleted})
+          .eq('id', assignmentId);
     } catch (e) {
       debugPrint('updateAssignmentProgress error: $e');
+      rethrow;
+    }
+  }
+
+  /// Change how many completions an assignment requires. Re-derives
+  /// is_completed from the (unchanged) current progress against the new
+  /// target so a lowered target can flip an assignment to complete.
+  Future<void> updateAssignmentTarget(
+    String assignmentId,
+    int targetCount,
+    int currentCount,
+  ) async {
+    try {
+      await _client
+          .from('assignments')
+          .update({
+            'target_count': targetCount,
+            'is_completed': currentCount >= targetCount,
+          })
+          .eq('id', assignmentId);
+    } catch (e) {
+      debugPrint('updateAssignmentTarget error: $e');
+      rethrow;
+    }
+  }
+
+  /// Permanently remove an assignment (a teacher "disabling" a task).
+  Future<void> deleteAssignment(String assignmentId) async {
+    try {
+      await _client.from('assignments').delete().eq('id', assignmentId);
+    } catch (e) {
+      debugPrint('deleteAssignment error: $e');
+      rethrow;
     }
   }
 
   /// Add custom classmate name/noun to class word bank
-  Future<void> addClassWord(String teacherId, String word, {String? category, String? imageUrl}) async {
+  Future<void> addClassWord(
+    String teacherId,
+    String word, {
+    String? category,
+    String? imageUrl,
+  }) async {
     try {
       await _client.from('class_words').insert({
         'teacher_id': teacherId,
@@ -388,6 +431,16 @@ class AuthService {
     }
   }
 
+  /// Remove a custom flashcard word from the classroom word bank
+  Future<void> deleteClassWord(String wordId) async {
+    try {
+      await _client.from('class_words').delete().eq('id', wordId);
+    } catch (e) {
+      debugPrint('deleteClassWord error: $e');
+      rethrow;
+    }
+  }
+
   /// Fetch custom words for a classroom (from teacher ID)
   Future<List<ClassWord>> fetchClassWords(String teacherId) async {
     try {
@@ -395,13 +448,14 @@ class AuthService {
           .from('class_words')
           .select('*')
           .eq('teacher_id', teacherId);
-      return (response as List).map((json) => ClassWord.fromJson(json as Map<String, dynamic>)).toList();
+      return (response as List)
+          .map((json) => ClassWord.fromJson(json as Map<String, dynamic>))
+          .toList();
     } catch (e) {
       debugPrint('fetchClassWords error: $e');
       return [];
     }
   }
-
 
   /// Convert Supabase error messages to user-friendly messages
   String _getFriendlyErrorMessage(String error) {

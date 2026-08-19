@@ -171,95 +171,99 @@ class _EmotionClassifyScreenState extends State<EmotionClassifyScreen> {
                 onForceLeftTap: () => _triggerVirtualInput('force', 1),
                 onForceRightTap: () => _triggerVirtualInput('force', 2),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      InkWell(
-                        onTap: () {
-                          SoundService.instance.playTap();
-                          controller.resetClassifyGame();
-                          Navigator.pop(context);
-                        },
-                        borderRadius: BorderRadius.circular(
-                          AudySpacing.radiusMedium,
-                        ),
-                        child: SizedBox(
-                          width: AudySpacing.touchTargetMin,
-                          height: AudySpacing.touchTargetMin,
-                          child: const Icon(
-                            Icons.arrow_back_rounded,
-                            size: AudySpacing.iconMedium,
+              // Safety net: none of the content below is Expanded any more,
+              // so a screen too short to fit it all naturally scrolls
+              // instead of throwing a layout overflow.
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        InkWell(
+                          onTap: () {
+                            SoundService.instance.playTap();
+                            controller.resetClassifyGame();
+                            Navigator.pop(context);
+                          },
+                          borderRadius: BorderRadius.circular(
+                            AudySpacing.radiusMedium,
                           ),
-                        ),
-                      ),
-                      const SizedBox(width: AudySpacing.elementGap),
-                      Text(
-                        controller.tr(
-                          'round_format',
-                          params: {
-                            'current': controller.classifyCurrentRound
-                                .toString(),
-                            'total': controller.classifyTotalRounds.toString(),
-                          },
-                        ),
-                        style: AudyTypography.labelLarge,
-                      ),
-                      const SizedBox(width: AudySpacing.elementGap),
-                      Text(
-                        controller.tr(
-                          'score_format',
-                          params: {
-                            'score': controller.classifyScore.toString(),
-                          },
-                        ),
-                        style: AudyTypography.labelLarge.copyWith(
-                          color: AudyColors.mintGreen,
-                        ),
-                      ),
-                      if (_showGuide) ...[
-                        SizedBox(width: headerGap),
-                        Flexible(
-                          child: Align(
-                            alignment: Alignment.centerLeft,
-                            child: ConstrainedBox(
-                              constraints: BoxConstraints(
-                                maxWidth: guideMaxWidth,
-                              ),
-                              child: GameGuideBox(
-                                message: controller.tr(
-                                  'guide_emotion_classify',
-                                ),
-                                onDismissed: () =>
-                                    setState(() => _showGuide = false),
-                              ),
+                          child: SizedBox(
+                            width: AudySpacing.touchTargetMin,
+                            height: AudySpacing.touchTargetMin,
+                            child: const Icon(
+                              Icons.arrow_back_rounded,
+                              size: AudySpacing.iconMedium,
                             ),
                           ),
                         ),
+                        const SizedBox(width: AudySpacing.elementGap),
+                        Text(
+                          controller.tr(
+                            'round_format',
+                            params: {
+                              'current': controller.classifyCurrentRound
+                                  .toString(),
+                              'total': controller.classifyTotalRounds
+                                  .toString(),
+                            },
+                          ),
+                          style: AudyTypography.labelLarge,
+                        ),
+                        const SizedBox(width: AudySpacing.elementGap),
+                        Text(
+                          controller.tr(
+                            'score_format',
+                            params: {
+                              'score': controller.classifyScore.toString(),
+                            },
+                          ),
+                          style: AudyTypography.labelLarge.copyWith(
+                            color: AudyColors.mintGreen,
+                          ),
+                        ),
+                        if (_showGuide) ...[
+                          SizedBox(width: headerGap),
+                          Flexible(
+                            child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: ConstrainedBox(
+                                constraints: BoxConstraints(
+                                  maxWidth: guideMaxWidth,
+                                ),
+                                child: GameGuideBox(
+                                  message: controller.tr(
+                                    'guide_emotion_classify',
+                                  ),
+                                  onDismissed: () =>
+                                      setState(() => _showGuide = false),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ],
-                    ],
-                  ),
-                  SizedBox(height: sectionGap),
-                  Center(
-                    child: Text(
-                      controller.tr('what_emotion'),
-                      style: AudyTypography.headingLarge,
-                      textAlign: TextAlign.center,
                     ),
-                  ),
-                  SizedBox(height: sectionGap),
-                  Center(
-                    child: EmotionCharacterWidget(
-                      emotion: question.correctAnswer,
-                      size: characterSize,
-                      useHumanImage: true,
-                      imagePath: imagePath,
+                    SizedBox(height: sectionGap),
+                    Center(
+                      child: Text(
+                        controller.tr('what_emotion'),
+                        style: AudyTypography.headingLarge,
+                        textAlign: TextAlign.center,
+                      ),
                     ),
-                  ),
-                  SizedBox(height: sectionGap),
-                  Expanded(
-                    child: Center(
+                    SizedBox(height: sectionGap),
+                    Center(
+                      child: EmotionCharacterWidget(
+                        emotion: question.correctAnswer,
+                        size: characterSize,
+                        useHumanImage: true,
+                        imagePath: imagePath,
+                      ),
+                    ),
+                    SizedBox(height: sectionGap),
+                    Center(
                       child: ConstrainedBox(
                         constraints: BoxConstraints(
                           maxWidth: 600,
@@ -329,19 +333,19 @@ class _EmotionClassifyScreenState extends State<EmotionClassifyScreen> {
                         ),
                       ),
                     ),
-                  ),
-                  if (_showingFeedback) ...[
-                    const SizedBox(height: AudySpacing.elementGap),
-                    Center(
-                      child: Text(
-                        controller.classifyFeedback,
-                        textAlign: TextAlign.center,
-                        style: AudyTypography.bodyLarge,
+                    if (_showingFeedback) ...[
+                      const SizedBox(height: AudySpacing.elementGap),
+                      Center(
+                        child: Text(
+                          controller.classifyFeedback,
+                          textAlign: TextAlign.center,
+                          style: AudyTypography.bodyLarge,
+                        ),
                       ),
-                    ),
+                    ],
+                    const SizedBox(height: AudySpacing.smallGap),
                   ],
-                  const SizedBox(height: AudySpacing.smallGap),
-                ],
+                ),
               ),
             );
           },

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/app_routes.dart';
 import '../../core/audy_theme.dart';
 import '../../core/audy_ui.dart';
 import '../../services/auth_service.dart';
@@ -126,10 +127,13 @@ class _ParentDashboardState extends State<ParentDashboard> {
             icon: const Icon(Icons.logout_rounded),
             onPressed: () async {
               SoundService.instance.playTap();
+              // Clear the whole stack and leave for login immediately so the
+              // parent/teacher shell never re-renders as the student
+              // dashboard while sign-out finishes in the background.
+              Navigator.of(
+                context,
+              ).pushNamedAndRemoveUntil(AppRoutes.login, (route) => false);
               await controller.logout();
-              if (context.mounted) {
-                Navigator.pushReplacementNamed(context, '/login');
-              }
             },
             tooltip: 'Sign Out',
           ),

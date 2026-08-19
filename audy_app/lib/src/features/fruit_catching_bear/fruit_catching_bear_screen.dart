@@ -114,7 +114,7 @@ class _FruitCatchingBearScreenState extends State<FruitCatchingBearScreen> {
       (_) => _tickGame(),
     );
     _spawnLoop = Timer.periodic(
-      const Duration(milliseconds: 900),
+      const Duration(milliseconds: 1200),
       (_) => _spawnItem(),
     );
   }
@@ -122,7 +122,14 @@ class _FruitCatchingBearScreenState extends State<FruitCatchingBearScreen> {
   void _spawnItem() {
     if (!mounted || _isGameOver) return;
 
-    final isBomb = _score >= 2 && _random.nextDouble() < 0.2;
+    // Never let a second bomb fall while one is still in the air — two
+    // bombs in different lanes at once can trap the player with no safe
+    // lane to dodge into. Capping it at one live bomb keeps a dodge always
+    // possible.
+    final hasLiveBomb = _items.any(
+      (item) => item.type == _FallingItemType.bomb,
+    );
+    final isBomb = !hasLiveBomb && _score >= 2 && _random.nextDouble() < 0.2;
     final laneX = _random.nextBool() ? 0.25 : 0.75;
     setState(() {
       _items.add(

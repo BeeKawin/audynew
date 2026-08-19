@@ -165,9 +165,7 @@ class _AudyAppState extends State<AudyApp> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                const CircularProgressIndicator(
-                  color: AudyColors.skyBlue,
-                ),
+                const CircularProgressIndicator(color: AudyColors.skyBlue),
               ],
             ),
           ),
@@ -176,8 +174,9 @@ class _AudyAppState extends State<AudyApp> {
     }
 
     // Determine initial route based on auth state
-    final initialRoute =
-        controller.isLoggedIn ? AppRoutes.dashboard : AppRoutes.login;
+    final initialRoute = controller.isLoggedIn
+        ? AppRoutes.dashboard
+        : AppRoutes.login;
 
     return AudyScope(
       controller: controller,
@@ -279,7 +278,8 @@ class _AudyAppState extends State<AudyApp> {
           AppRoutes.social: (_) => const SocialPracticePage(),
           AppRoutes.rewards: (_) => _HomeShell(currentIndex: 2),
           AppRoutes.profile: (_) => _HomeShell(currentIndex: 3),
-          AppRoutes.preferences: (_) => const PreferencesPage(isOnboarding: true),
+          AppRoutes.preferences: (_) =>
+              const PreferencesPage(isOnboarding: true),
           AppRoutes.meltdown: (_) => const MeltdownScreen(),
           AppRoutes.emotionDown: (_) => const EmotionDownScreen(),
           AppRoutes.passcodeBypass: (_) => const PasscodeBypassScreen(),
@@ -294,16 +294,21 @@ class _AudyAppState extends State<AudyApp> {
               return PageRouteBuilder(
                 pageBuilder: (context, animation, secondaryAnimation) =>
                     const MeltdownScreen(),
-                transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                  return FadeTransition(
-                    opacity: animation.drive(
-                      CurveTween(
-                        curve: const Interval(0.0, 1.0, curve: Curves.easeInOut),
-                      ),
-                    ),
-                    child: child,
-                  );
-                },
+                transitionsBuilder:
+                    (context, animation, secondaryAnimation, child) {
+                      return FadeTransition(
+                        opacity: animation.drive(
+                          CurveTween(
+                            curve: const Interval(
+                              0.0,
+                              1.0,
+                              curve: Curves.easeInOut,
+                            ),
+                          ),
+                        ),
+                        child: child,
+                      );
+                    },
                 transitionDuration: const Duration(seconds: 2),
                 reverseTransitionDuration: const Duration(seconds: 1),
               );
@@ -312,16 +317,21 @@ class _AudyAppState extends State<AudyApp> {
               return PageRouteBuilder(
                 pageBuilder: (context, animation, secondaryAnimation) =>
                     const EmotionDownScreen(),
-                transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                  return FadeTransition(
-                    opacity: animation.drive(
-                      CurveTween(
-                        curve: const Interval(0.0, 1.0, curve: Curves.easeInOut),
-                      ),
-                    ),
-                    child: child,
-                  );
-                },
+                transitionsBuilder:
+                    (context, animation, secondaryAnimation, child) {
+                      return FadeTransition(
+                        opacity: animation.drive(
+                          CurveTween(
+                            curve: const Interval(
+                              0.0,
+                              1.0,
+                              curve: Curves.easeInOut,
+                            ),
+                          ),
+                        ),
+                        child: child,
+                      );
+                    },
                 transitionDuration: const Duration(seconds: 2),
                 reverseTransitionDuration: const Duration(seconds: 1),
               );
@@ -375,6 +385,13 @@ class _HomeShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final role = AudyScope.of(context).currentUser?.role;
+    // Parents and teachers get their own portal (ParentDashboard /
+    // TeacherDashboard, reached via DashboardPage's role check) — they don't
+    // get the student's Home/Games/Rewards/Profile navbar, and they sign out
+    // via that portal's own button rather than backing out of it.
+    final isStudent = role == null || role == 'child';
+
     final pages = const [
       DashboardPage(),
       GamesHubPage(),
@@ -382,38 +399,44 @@ class _HomeShell extends StatelessWidget {
       ProfilePage(),
     ];
 
-    return Scaffold(
+    final shell = Scaffold(
       body: pages[currentIndex],
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: currentIndex,
-        onTap: (index) {
-          final routes = [
-            AppRoutes.dashboard,
-            AppRoutes.games,
-            AppRoutes.rewards,
-            AppRoutes.profile,
-          ];
-          Navigator.pushReplacementNamed(context, routes[index]);
-        },
-        items: [
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.home_rounded),
-            label: AudyScope.of(context).tr('home'),
-          ),
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.sports_esports_rounded),
-            label: AudyScope.of(context).tr('games'),
-          ),
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.workspace_premium_rounded),
-            label: AudyScope.of(context).tr('rewards'),
-          ),
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.person_rounded),
-            label: AudyScope.of(context).tr('profile'),
-          ),
-        ],
-      ),
+      bottomNavigationBar: !isStudent
+          ? null
+          : BottomNavigationBar(
+              currentIndex: currentIndex,
+              onTap: (index) {
+                final routes = [
+                  AppRoutes.dashboard,
+                  AppRoutes.games,
+                  AppRoutes.rewards,
+                  AppRoutes.profile,
+                ];
+                Navigator.pushReplacementNamed(context, routes[index]);
+              },
+              items: [
+                BottomNavigationBarItem(
+                  icon: const Icon(Icons.home_rounded),
+                  label: AudyScope.of(context).tr('home'),
+                ),
+                BottomNavigationBarItem(
+                  icon: const Icon(Icons.sports_esports_rounded),
+                  label: AudyScope.of(context).tr('games'),
+                ),
+                BottomNavigationBarItem(
+                  icon: const Icon(Icons.workspace_premium_rounded),
+                  label: AudyScope.of(context).tr('rewards'),
+                ),
+                BottomNavigationBarItem(
+                  icon: const Icon(Icons.person_rounded),
+                  label: AudyScope.of(context).tr('profile'),
+                ),
+              ],
+            ),
     );
+
+    if (isStudent) return shell;
+
+    return PopScope(canPop: false, child: shell);
   }
 }
