@@ -13,7 +13,9 @@ logger = logging.getLogger(__name__)
 
 # Try to import transformers, provide fallback if not available
 try:
+    # pyrefly: ignore [missing-import]
     from transformers import ViTForImageClassification, ViTImageProcessor
+    # pyrefly: ignore [missing-import]
     import torch
 
     TRANSFORMERS_AVAILABLE = True
