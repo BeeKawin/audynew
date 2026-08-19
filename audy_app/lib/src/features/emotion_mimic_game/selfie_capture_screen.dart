@@ -11,12 +11,18 @@ import '../../core/audy_theme.dart';
 import '../../core/audy_ui.dart';
 import '../../core/emotion_character_widget.dart';
 import '../../services/bluetooth_service.dart';
+import '../../services/debug_broadcast_service.dart';
 import '../../services/emotion_service.dart';
 import '../../services/face_guidance_service.dart';
 import '../../services/sound_service.dart';
 import '../../widgets/robot_panel_layout.dart';
 import '../../widgets/virtual_robot_panel.dart';
 import 'mimic_result_screen.dart';
+
+/// Emotion labels the debug broadcast tool can pick a "wrong" answer from —
+/// matches the classify game's fixed option set (the real source of
+/// [SelfieCaptureScreen.targetEmotion] in the live app).
+const List<String> _debugMimicEmotionPool = ['Happy', 'Sad', 'Angry', 'Scared'];
 
 class SelfieCaptureScreen extends StatefulWidget {
   const SelfieCaptureScreen({super.key, required this.targetEmotion});
@@ -35,6 +41,7 @@ class _SelfieCaptureScreenState extends State<SelfieCaptureScreen> {
   CameraController? _cameraController;
   CameraDescription? _selectedCamera;
   StreamSubscription<AudyBleMessage>? _bleInputSub;
+  StreamSubscription<DebugMimicEvent>? _debugMimicSub;
   FaceGuidanceResult _faceGuidanceResult = const FaceGuidanceResult(
     status: FaceGuidanceStatus.unsupported,
   );
@@ -51,6 +58,9 @@ class _SelfieCaptureScreenState extends State<SelfieCaptureScreen> {
     _bleInputSub = AudyBluetoothService.instance.incomingMessages.listen(
       _handleBleInput,
     );
+    _debugMimicSub = DebugBroadcastService.instance.mimicEvents.listen(
+      _handleDebugMimicEvent,
+    );
     _initCamera();
   }
 
@@ -61,6 +71,31 @@ class _SelfieCaptureScreenState extends State<SelfieCaptureScreen> {
     if (_isProcessing || !_isCameraReady) return;
 
     unawaited(_takePhoto());
+  }
+
+  // Debug broadcast hook: another device's DEBUG page can force this round
+  // to resolve as correct or incorrect, without a real camera capture
+  // matching the target emotion. Still takes a real photo (for the result
+  // screen) when the camera is ready, but the verdict is forced rather than
+  // detected — so it works regardless of whether a face is actually in
+  // frame.
+  void _handleDebugMimicEvent(DebugMimicEvent event) {
+    if (!mounted) return;
+    if (ModalRoute.of(context)?.isCurrent != true) return;
+    if (_isProcessing || !_isCameraReady) return;
+
+    final forcedEmotion = event.correct
+        ? widget.targetEmotion
+        : _randomWrongEmotion();
+    unawaited(_takePhoto(forcedEmotion: forcedEmotion));
+  }
+
+  String _randomWrongEmotion() {
+    final wrongOptions = _debugMimicEmotionPool
+        .where((e) => e.toLowerCase() != widget.targetEmotion.toLowerCase())
+        .toList();
+    wrongOptions.shuffle();
+    return wrongOptions.isNotEmpty ? wrongOptions.first : 'Sad';
   }
 
   void _triggerVirtualInput(String channel, int value) {
@@ -120,7 +155,12 @@ class _SelfieCaptureScreenState extends State<SelfieCaptureScreen> {
     }
   }
 
-  Future<void> _takePhoto() async {
+  /// Takes a photo and resolves the round. When [forcedEmotion] is set (a
+  /// debug broadcast event), the face-detection requirement is skipped and
+  /// the "detected" emotion is forced to that value rather than run through
+  /// [EmotionService.detectEmotion] — so the debug event always resolves
+  /// the round, even if no face is actually in frame.
+  Future<void> _takePhoto({String? forcedEmotion}) async {
     if (_cameraController == null ||
         !_cameraController!.value.isInitialized ||
         _isProcessing) {
@@ -140,7 +180,9 @@ class _SelfieCaptureScreenState extends State<SelfieCaptureScreen> {
       final image = await _cameraController!.takePicture();
       final rawFile = File(image.path);
 
-      final preparedFile = await _prepareImageForDetection(rawFile);
+      final preparedFile = forcedEmotion != null
+          ? await _compressImage(rawFile)
+          : await _prepareImageForDetection(rawFile);
       if (preparedFile == null) {
         if (mounted) {
           setState(() => _isProcessing = false);
@@ -150,7 +192,9 @@ class _SelfieCaptureScreenState extends State<SelfieCaptureScreen> {
       }
 
       if (mounted) {
-        final result = await EmotionService.detectEmotion(preparedFile);
+        final result = forcedEmotion != null
+            ? EmotionResult(detectedEmotion: forcedEmotion, confidence: 0.99)
+            : await EmotionService.detectEmotion(preparedFile);
 
         if (mounted) {
           final isMatch =
@@ -334,6 +378,7 @@ class _SelfieCaptureScreenState extends State<SelfieCaptureScreen> {
   @override
   void dispose() {
     _bleInputSub?.cancel();
+    _debugMimicSub?.cancel();
     unawaited(_stopFaceGuidanceStream());
     unawaited(_faceGuidance.dispose());
     unawaited(_cameraController?.dispose() ?? Future<void>.value());

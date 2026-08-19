@@ -479,6 +479,16 @@ class AudyBluetoothService {
     debugPrint('AudyBluetoothService: Parsed incoming: ${parsed.raw}');
   }
 
+  /// Injects a synthetic touch event as if it had come from the real robot
+  /// over BLE. Used by the debug broadcast tool so any screen already
+  /// listening to [incomingMessages] (emotion classify, fruit catching
+  /// bear, selfie capture, etc.) reacts exactly like a real touch — no
+  /// per-screen wiring needed. Same validation as a real incoming message,
+  /// so an invalid channel/value pair is silently dropped.
+  void injectDebugMessage(String channel, int value) {
+    _publishIncomingMessage(channel, value);
+  }
+
   bool _isValidIncomingMessage(String channel, int value) {
     switch (channel) {
       case 'tummy':

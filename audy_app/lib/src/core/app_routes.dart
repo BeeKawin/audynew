@@ -30,11 +30,15 @@ final class AppRoutes {
   static const passcodeBypass = '/passcode-bypass';
   static const device = '/device';
   static const assignments = '/assignments';
+  static const debugBroadcast = '/debug-broadcast';
 
   /// Navigate after game completion, checking if meltdown protection should trigger.
   /// If 5 games have been played, navigates to meltdown screen.
   /// Otherwise, pops back to the games hub.
-  static void navigateAfterGameCompletion(BuildContext context, AudyController controller) {
+  static void navigateAfterGameCompletion(
+    BuildContext context,
+    AudyController controller,
+  ) {
     if (controller.shouldTriggerMeltdown) {
       // Navigate to meltdown screen with gentle transition
       Navigator.of(context).pushNamed(meltdown);

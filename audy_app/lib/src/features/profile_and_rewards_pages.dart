@@ -30,7 +30,11 @@ String _localizedLevelName(BuildContext context, String levelName) {
   }
 }
 
-String _localizedFeatureTitle(BuildContext context, String gameType, String title) {
+String _localizedFeatureTitle(
+  BuildContext context,
+  String gameType,
+  String title,
+) {
   switch (gameType) {
     case 'emotion_classify':
       return _tr(context, 'emotion_classify');
@@ -358,7 +362,13 @@ class _ProfilePageState extends State<ProfilePage> {
             Center(
               child: Column(
                 children: [
-                  const AudyMascot(size: 120),
+                  GestureDetector(
+                    onTap: () {
+                      SoundService.instance.playTap();
+                      Navigator.pushNamed(context, AppRoutes.debugBroadcast);
+                    },
+                    child: const AudyMascot(size: 120),
+                  ),
                   SizedBox(height: adaptive.space(16)),
                   Text(
                     _tr(context, 'profile'),
@@ -626,8 +636,9 @@ class _ParentDashboardTab extends StatelessWidget {
       builder: (context, snapshot) {
         final analytics = snapshot.data ?? _emptyAnalytics();
         final latest = analytics.latestSession;
-        final difficultyRecommendations =
-            _skillDifficultyRecommendations(controller.skillPercentages);
+        final difficultyRecommendations = _skillDifficultyRecommendations(
+          controller.skillPercentages,
+        );
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -855,7 +866,6 @@ class _ParentDashboardTab extends StatelessWidget {
   String _formatPercent(double value) {
     return '${(value * 100).round()}%';
   }
-
 }
 
 class _InstitutionPanelTab extends StatelessWidget {
@@ -871,8 +881,9 @@ class _InstitutionPanelTab extends StatelessWidget {
   Widget build(BuildContext context) {
     final child = controller.currentChildProfile;
     final group = controller.groupPerformance;
-    final difficultyRecommendations =
-        _skillDifficultyRecommendations(group.averageSkillProgress);
+    final difficultyRecommendations = _skillDifficultyRecommendations(
+      group.averageSkillProgress,
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1444,7 +1455,6 @@ class _SettingsTabContent extends StatelessWidget {
       ],
     );
   }
-
 }
 
 class _InstitutionStatRow extends StatelessWidget {
@@ -2570,10 +2580,7 @@ class _RewardsAchievementsTab extends StatelessWidget {
 }
 
 class _FeatureAnalyticsCard extends StatelessWidget {
-  const _FeatureAnalyticsCard({
-    required this.adaptive,
-    required this.feature,
-  });
+  const _FeatureAnalyticsCard({required this.adaptive, required this.feature});
 
   final AudyAdaptive adaptive;
   final ParentFeatureAnalytics feature;
@@ -2607,7 +2614,11 @@ class _FeatureAnalyticsCard extends StatelessWidget {
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  _localizedFeatureTitle(context, feature.gameType, feature.title),
+                  _localizedFeatureTitle(
+                    context,
+                    feature.gameType,
+                    feature.title,
+                  ),
                   style: TextStyle(
                     fontSize: adaptive.space(17),
                     fontWeight: FontWeight.w800,
@@ -2659,8 +2670,8 @@ class _FeatureAnalyticsCard extends StatelessWidget {
           Text(
             accuracy == null
                 ? (hasSessions
-                    ? _tr(context, 'recorded_activity')
-                    : _tr(context, 'no_sessions_yet'))
+                      ? _tr(context, 'recorded_activity')
+                      : _tr(context, 'no_sessions_yet'))
                 : _tr(
                     context,
                     'percent_correct',
@@ -2704,10 +2715,7 @@ class _MiniMetric extends StatelessWidget {
 }
 
 class _RecentSessionRow extends StatelessWidget {
-  const _RecentSessionRow({
-    required this.adaptive,
-    required this.session,
-  });
+  const _RecentSessionRow({required this.adaptive, required this.session});
 
   final AudyAdaptive adaptive;
   final ParentRecentSession session;
@@ -2740,7 +2748,11 @@ class _RecentSessionRow extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  _localizedFeatureTitle(context, session.gameType, session.title),
+                  _localizedFeatureTitle(
+                    context,
+                    session.gameType,
+                    session.title,
+                  ),
                   style: TextStyle(
                     fontSize: adaptive.space(15),
                     fontWeight: FontWeight.w800,
@@ -3495,53 +3507,56 @@ class _AddRewardDialogState extends State<_AddRewardDialog> {
               Wrap(
                 spacing: widget.adaptive.space(8),
                 runSpacing: widget.adaptive.space(8),
-                children: RewardCondition.values.where((c) => c != RewardCondition.emotionMimic).map((condition) {
-                  final isSelected = _selectedCondition == condition;
-                  return InkWell(
-                    onTap: () {
-                      SoundService.instance.playTap();
-                      setState(() => _selectedCondition = condition);
-                    },
-                    borderRadius: BorderRadius.circular(999),
-                    child: Container(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: widget.adaptive.space(12),
-                        vertical: widget.adaptive.space(10),
-                      ),
-                      decoration: BoxDecoration(
-                        color: isSelected
-                            ? const Color(0xFFF8C7DF)
-                            : const Color(0xFFF8F9FA),
+                children: RewardCondition.values
+                    .where((c) => c != RewardCondition.emotionMimic)
+                    .map((condition) {
+                      final isSelected = _selectedCondition == condition;
+                      return InkWell(
+                        onTap: () {
+                          SoundService.instance.playTap();
+                          setState(() => _selectedCondition = condition);
+                        },
                         borderRadius: BorderRadius.circular(999),
-                        border: isSelected
-                            ? Border.all(
-                                color: const Color(0xFF5D6A7E),
-                                width: 1.5,
-                              )
-                            : null,
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            _getConditionIcon(condition),
-                            size: widget.adaptive.space(18),
-                            color: const Color(0xFF243A5A),
+                        child: Container(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: widget.adaptive.space(12),
+                            vertical: widget.adaptive.space(10),
                           ),
-                          SizedBox(width: widget.adaptive.space(6)),
-                          Text(
-                            _getConditionLabel(context, condition),
-                            style: TextStyle(
-                              fontSize: widget.adaptive.space(14),
-                              fontWeight: FontWeight.w700,
-                              color: const Color(0xFF243A5A),
-                            ),
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? const Color(0xFFF8C7DF)
+                                : const Color(0xFFF8F9FA),
+                            borderRadius: BorderRadius.circular(999),
+                            border: isSelected
+                                ? Border.all(
+                                    color: const Color(0xFF5D6A7E),
+                                    width: 1.5,
+                                  )
+                                : null,
                           ),
-                        ],
-                      ),
-                    ),
-                  );
-                }).toList(),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                _getConditionIcon(condition),
+                                size: widget.adaptive.space(18),
+                                color: const Color(0xFF243A5A),
+                              ),
+                              SizedBox(width: widget.adaptive.space(6)),
+                              Text(
+                                _getConditionLabel(context, condition),
+                                style: TextStyle(
+                                  fontSize: widget.adaptive.space(14),
+                                  fontWeight: FontWeight.w700,
+                                  color: const Color(0xFF243A5A),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    })
+                    .toList(),
               ),
               SizedBox(height: widget.adaptive.space(20)),
 

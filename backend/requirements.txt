@@ -3,6 +3,7 @@ uvicorn>=0.27.0
 python-dotenv>=1.0.0
 pydantic>=2.0.0
 python-multipart>=0.0.6
+websockets>=12.0  # WebSocket support for uvicorn (debug broadcast relay)
 
 # AI/ML - HuggingFace ViT for facial emotion recognition
 torch>=2.0.0

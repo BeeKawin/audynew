@@ -26,7 +26,9 @@ import 'src/features/read_pronounce/read_pronounce_controller.dart';
 import 'src/features/reaction_game/reaction_game_screen.dart';
 import 'src/features/road_safety/road_safety_screen.dart';
 import 'src/features/sorting_game/sort_level_select_screen.dart';
+import 'src/features/debug/debug_broadcast_page.dart';
 import 'src/services/bluetooth_service.dart';
+import 'src/services/debug_broadcast_service.dart';
 import 'src/services/emotion_service.dart';
 import 'src/services/sound_service.dart';
 import 'src/state/audy_controller.dart';
@@ -62,6 +64,11 @@ void main() async {
   } catch (e) {
     debugPrint('Bluetooth service initialization failed: $e');
   }
+
+  // Connect to the debug broadcast relay in the background — best-effort,
+  // never blocks startup. Keeps the app ready to receive a debug event
+  // from another device at any time, not just while the debug page is open.
+  DebugBroadcastService.instance.ensureConnected();
 
   // Initialize database and storage
   bool dbInitialized = false;
@@ -285,6 +292,7 @@ class _AudyAppState extends State<AudyApp> {
           AppRoutes.passcodeBypass: (_) => const PasscodeBypassScreen(),
           AppRoutes.device: (_) => const DeviceConnectionPage(),
           AppRoutes.assignments: (_) => const AssignmentsPage(),
+          AppRoutes.debugBroadcast: (_) => const DebugBroadcastPage(),
         },
         onGenerateRoute: (settings) {
           debugPrint('onGenerateRoute: ${settings.name}');
