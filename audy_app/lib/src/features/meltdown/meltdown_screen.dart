@@ -197,46 +197,92 @@ class _MeltdownScreenState extends State<MeltdownScreen>
     super.dispose();
   }
 
+  void _onStop() {
+    Navigator.of(context).pushNamed(AppRoutes.passcodeBypass);
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
-        color: AudyColors.backgroundPrimary,
-        child: Stack(
-          children: [
-            // Wave background
-            const AnimatedWaveBackground(),
+    return PopScope(
+      canPop: false,
+      child: Scaffold(
+        body: Container(
+          color: AudyColors.backgroundPrimary,
+          child: Stack(
+            children: [
+              // Wave background
+              const AnimatedWaveBackground(),
 
-            // Main content
-            SafeArea(
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    // Spinning mascot placeholder
-                    _buildSpinningMascot(),
+              // Main content
+              SafeArea(
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      // Spinning mascot placeholder
+                      _buildSpinningMascot(),
 
-                    const SizedBox(height: 48),
+                      const SizedBox(height: 48),
 
-                    // Timer display
-                    _buildTimerDisplay(),
+                      // Timer display
+                      _buildTimerDisplay(),
 
-                    const SizedBox(height: 24),
+                      const SizedBox(height: 24),
 
-                    // Calm text
-                    Text(
-                      'Take a break',
-                      style: AudyTypography.headingMedium.copyWith(
-                        color: AudyColors.textPrimary.withValues(alpha: 0.8),
+                      // Calm text
+                      Text(
+                        'Take a break',
+                        style: AudyTypography.headingMedium.copyWith(
+                          color: AudyColors.textPrimary.withValues(alpha: 0.8),
+                        ),
                       ),
-                    ),
 
-                    const SizedBox(height: 48),
+                      const SizedBox(height: 48),
 
-                    // Return button (appears after timer)
-                    _buildReturnButton(),
-                  ],
+                      // Return button (appears after timer)
+                      _buildReturnButton(),
+                    ],
+                  ),
                 ),
+              ),
+
+              // Parent/teacher override — small and unobtrusive on purpose.
+              SafeArea(
+                child: Align(
+                  alignment: Alignment.topRight,
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: _buildStopButton(),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStopButton() {
+    return InkWell(
+      onTap: _onStop,
+      borderRadius: BorderRadius.circular(AudySpacing.radiusXLarge),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.7),
+          borderRadius: BorderRadius.circular(AudySpacing.radiusXLarge),
+          border: Border.all(color: AudyColors.borderLight, width: 2),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.lock_outline_rounded, size: 18, color: AudyColors.textSecondary),
+            const SizedBox(width: 6),
+            Text(
+              'Stop',
+              style: AudyTypography.labelMedium.copyWith(
+                color: AudyColors.textSecondary,
               ),
             ),
           ],

@@ -82,7 +82,6 @@ class GamesHubPage extends StatelessWidget {
     return AudyFeaturePage(
       title: controller.tr('games'),
       subtitle: controller.tr('play_and_learn'),
-      leadingLabel: controller.tr('back_home'),
       mascot: const AudyMascot(size: 132),
       childBuilder: (context, adaptive) {
         return AudyAdaptiveGrid(

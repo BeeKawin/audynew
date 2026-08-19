@@ -174,6 +174,16 @@ class _FlashcardScreenState extends State<FlashcardScreen> {
     );
   }
 
+  // Mocked/deferred anger-detection trigger for this phase: tapping the bear
+  // mascot sends the child to the EmotionDown restriction screen. A later
+  // phase should replace this with a real emotion-recognition signal.
+  void _onBearTap() {
+    if (!mounted) return;
+    final route = ModalRoute.of(context);
+    if (route != null && !route.isCurrent) return;
+    Navigator.of(context).pushNamed(AppRoutes.emotionDown);
+  }
+
   @override
   Widget build(BuildContext context) {
     return AudyResponsivePage(
@@ -219,6 +229,7 @@ class _FlashcardScreenState extends State<FlashcardScreen> {
           adaptive: adaptive,
           controller: _controller,
           onSubmit: _handleSubmit,
+          onBearTap: _onBearTap,
           onSpeakScenario: () {
             final scenario = _controller.currentRound?.scenario ?? '';
             final lang = _controller.currentRound?.language ?? 'en';
@@ -392,12 +403,14 @@ class _PlayState extends StatelessWidget {
     required this.adaptive,
     required this.controller,
     required this.onSubmit,
+    this.onBearTap,
     this.onSpeakScenario,
   });
 
   final AudyAdaptive adaptive;
   final FlashcardController controller;
   final VoidCallback onSubmit;
+  final VoidCallback? onBearTap;
   final VoidCallback? onSpeakScenario;
 
   @override
@@ -460,7 +473,10 @@ class _PlayState extends StatelessWidget {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const AudyMascot(size: 90),
+                  GestureDetector(
+                    onTap: onBearTap,
+                    child: const AudyMascot(size: 90),
+                  ),
                   SizedBox(width: adaptive.space(12)),
                   Expanded(
                     child: Container(

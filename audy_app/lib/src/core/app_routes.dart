@@ -26,6 +26,8 @@ final class AppRoutes {
   static const profile = '/profile';
   static const preferences = '/preferences';
   static const meltdown = '/meltdown';
+  static const emotionDown = '/emotion-down';
+  static const passcodeBypass = '/passcode-bypass';
   static const device = '/device';
   static const assignments = '/assignments';
 

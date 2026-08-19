@@ -701,13 +701,11 @@ class AudyFeaturePage extends StatelessWidget {
     super.key,
     required this.title,
     required this.subtitle,
-    required this.leadingLabel,
     required this.childBuilder,
     this.mascot,
   });
   final String title;
   final String subtitle;
-  final String leadingLabel;
   final Widget Function(BuildContext context, AudyAdaptive adaptive)
   childBuilder;
   final Widget? mascot;
@@ -718,11 +716,6 @@ class AudyFeaturePage extends StatelessWidget {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            AudyBackButton(
-              label: leadingLabel,
-              onPressed: () => Navigator.pop(context),
-            ),
-            SizedBox(height: adaptive.space(22)),
             Center(
               child: Column(
                 children: [

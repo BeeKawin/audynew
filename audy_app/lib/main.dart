@@ -11,7 +11,9 @@ import 'src/features/emotion_classify_game/emotion_classify_screen.dart';
 import 'src/features/feature_pages.dart';
 import 'src/features/flashcard/flashcard_difficulty_screen.dart';
 import 'src/features/fruit_catching_bear/fruit_catching_bear_screen.dart';
+import 'src/features/emotiondown/emotiondown_screen.dart';
 import 'src/features/meltdown/meltdown_screen.dart';
+import 'src/features/passcode_bypass/passcode_bypass_screen.dart';
 import 'src/features/minipuzzle_game/minipuzzle_game.dart';
 import 'src/features/minipuzzle_game/minipuzzle_level_select.dart';
 import 'src/features/minipuzzle_game/minipuzzle_game_screen.dart';
@@ -279,6 +281,8 @@ class _AudyAppState extends State<AudyApp> {
           AppRoutes.profile: (_) => _HomeShell(currentIndex: 3),
           AppRoutes.preferences: (_) => const PreferencesPage(isOnboarding: true),
           AppRoutes.meltdown: (_) => const MeltdownScreen(),
+          AppRoutes.emotionDown: (_) => const EmotionDownScreen(),
+          AppRoutes.passcodeBypass: (_) => const PasscodeBypassScreen(),
           AppRoutes.device: (_) => const DeviceConnectionPage(),
           AppRoutes.assignments: (_) => const AssignmentsPage(),
         },
@@ -290,6 +294,24 @@ class _AudyAppState extends State<AudyApp> {
               return PageRouteBuilder(
                 pageBuilder: (context, animation, secondaryAnimation) =>
                     const MeltdownScreen(),
+                transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                  return FadeTransition(
+                    opacity: animation.drive(
+                      CurveTween(
+                        curve: const Interval(0.0, 1.0, curve: Curves.easeInOut),
+                      ),
+                    ),
+                    child: child,
+                  );
+                },
+                transitionDuration: const Duration(seconds: 2),
+                reverseTransitionDuration: const Duration(seconds: 1),
+              );
+            case AppRoutes.emotionDown:
+              // Same calm cross-fade treatment as the meltdown screen.
+              return PageRouteBuilder(
+                pageBuilder: (context, animation, secondaryAnimation) =>
+                    const EmotionDownScreen(),
                 transitionsBuilder: (context, animation, secondaryAnimation, child) {
                   return FadeTransition(
                     opacity: animation.drive(

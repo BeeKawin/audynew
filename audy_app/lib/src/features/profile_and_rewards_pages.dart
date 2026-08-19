@@ -148,14 +148,6 @@ class _RewardsPageState extends State<RewardsPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      AudyBackButton(
-                        label: _tr(context, 'back_home'),
-                        onPressed: () {
-                          SoundService.instance.playTap();
-                          Navigator.pop(context);
-                        },
-                      ),
-                      SizedBox(height: adaptive.space(28)),
                       Text(
                         _tr(context, 'your_rewards'),
                         style: TextStyle(
@@ -366,17 +358,6 @@ class _ProfilePageState extends State<ProfilePage> {
             Center(
               child: Column(
                 children: [
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: AudyBackButton(
-                      label: _tr(context, 'back_home'),
-                      onPressed: () {
-                        SoundService.instance.playTap();
-                        Navigator.pop(context);
-                      },
-                    ),
-                  ),
-                  SizedBox(height: adaptive.space(20)),
                   const AudyMascot(size: 120),
                   SizedBox(height: adaptive.space(16)),
                   Text(
