@@ -17,14 +17,17 @@ class DebugMimicEvent {
 }
 
 /// Connects to the Python backend's `/ws/debug-broadcast` relay so a DEBUG
-/// page on one device can trigger a fake robot touch or emotion-mimic
-/// result on every *other* connected device, as if it were a real event.
+/// page on one device can trigger a fake robot touch, emotion-mimic
+/// result, or emotion-down lock on every *other* connected device, as if
+/// it were a real event.
 ///
 /// This is a bare global fan-out — no pairing, no auth, no history. Touch
 /// events are injected straight into [AudyBluetoothService.incomingMessages]
 /// so any screen already listening for real BLE input reacts automatically;
 /// mimic-result events are exposed via [mimicEvents] for the emotion mimic
-/// screen to consume directly.
+/// screen to consume directly; emotion-down events are exposed via
+/// [emotionDownEvents] for the app shell to push the EmotionDown screen on
+/// top of whatever is currently showing.
 class DebugBroadcastService {
   DebugBroadcastService._();
 
@@ -39,6 +42,10 @@ class DebugBroadcastService {
   final StreamController<DebugMimicEvent> _mimicController =
       StreamController<DebugMimicEvent>.broadcast();
   Stream<DebugMimicEvent> get mimicEvents => _mimicController.stream;
+
+  final StreamController<void> _emotionDownController =
+      StreamController<void>.broadcast();
+  Stream<void> get emotionDownEvents => _emotionDownController.stream;
 
   static String get _wsUrl {
     final httpBase = ApiConfig.baseUrl;
@@ -105,6 +112,8 @@ class DebugBroadcastService {
             DebugMimicEvent(correct: correct, receivedAt: DateTime.now()),
           );
         }
+      case 'emotion_down':
+        _emotionDownController.add(null);
     }
   }
 
@@ -120,5 +129,10 @@ class DebugBroadcastService {
     _channel?.sink.add(
       jsonEncode({'type': 'mimic_result', 'correct': correct}),
     );
+  }
+
+  Future<void> sendEmotionDown() async {
+    await ensureConnected();
+    _channel?.sink.add(jsonEncode({'type': 'emotion_down'}));
   }
 }

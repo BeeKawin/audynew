@@ -10,10 +10,11 @@ import '../../services/sound_service.dart';
 /// Every button here broadcasts a fake event over the backend's
 /// `/ws/debug-broadcast` relay. Any other device with the app open receives
 /// it and executes it exactly as if it were real: touch events are injected
-/// into the same [AudyBluetoothService] stream real BLE touches use, and
+/// into the same [AudyBluetoothService] stream real BLE touches use,
 /// "Emotion Mimic" events resolve whichever device is on the selfie-capture
-/// screen right now. There's no pairing — this is a global broadcast, so
-/// every connected device reacts.
+/// screen right now, and "Emotion Down" pushes the EmotionDown lock screen
+/// on top of whatever every other device is currently showing. There's no
+/// pairing — this is a global broadcast, so every connected device reacts.
 class DebugBroadcastPage extends StatefulWidget {
   const DebugBroadcastPage({super.key});
 
@@ -94,6 +95,12 @@ class _DebugBroadcastPageState extends State<DebugBroadcastPage> {
     _logEvent('Sent: Emotion Mimic ${correct ? 'Correct' : 'Incorrect'}');
   }
 
+  Future<void> _sendEmotionDown() async {
+    SoundService.instance.playTap();
+    await DebugBroadcastService.instance.sendEmotionDown();
+    _logEvent('Sent: Emotion Down');
+  }
+
   @override
   Widget build(BuildContext context) {
     return AudyResponsivePage(
@@ -161,6 +168,23 @@ class _DebugBroadcastPageState extends State<DebugBroadcastPage> {
                   icon: Icons.cancel_rounded,
                   color: AudyColors.error,
                   onTap: () => _sendMimicResult(false),
+                ),
+              ],
+            ),
+            SizedBox(height: adaptive.space(28)),
+            AudySectionTitle(title: 'Emotion Down'),
+            SizedBox(height: adaptive.space(14)),
+            AudyAdaptiveGrid(
+              adaptive: adaptive,
+              phoneColumns: 2,
+              tabletColumns: 2,
+              desktopColumns: 2,
+              items: [
+                _DebugActionCard(
+                  label: 'Trigger Emotion Down',
+                  icon: Icons.sentiment_very_dissatisfied_rounded,
+                  color: AudyColors.blushPink,
+                  onTap: _sendEmotionDown,
                 ),
               ],
             ),

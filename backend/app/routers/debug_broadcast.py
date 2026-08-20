@@ -10,6 +10,7 @@ without the physical BLE hardware or camera.
 Message shape (JSON, sender -> relay -> all other clients, unchanged):
   {"type": "touch", "channel": "ears", "value": 1}
   {"type": "mimic_result", "correct": true}
+  {"type": "emotion_down"}
 """
 
 import json

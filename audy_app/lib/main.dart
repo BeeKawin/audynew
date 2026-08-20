@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -97,10 +99,21 @@ class _AudyAppState extends State<AudyApp> {
   late final AudyController controller;
   final int _currentIndex = 0;
   bool _isInitializing = true;
+  final _navigatorKey = GlobalKey<NavigatorState>();
+  StreamSubscription<void>? _emotionDownSub;
 
   @override
   void initState() {
     super.initState();
+
+    // Debug-broadcast "emotion down" trigger: push the EmotionDown lock
+    // screen on top of whatever this device is currently showing, the same
+    // way a real anger-detection signal would.
+    _emotionDownSub = DebugBroadcastService.instance.emotionDownEvents.listen(
+      (_) {
+        _navigatorKey.currentState?.pushNamed(AppRoutes.emotionDown);
+      },
+    );
     // Only use storage if database was initialized successfully
     controller = AudyController(
       storage: widget.dbInitialized ? ServiceLocator().storageRepository : null,
@@ -142,6 +155,7 @@ class _AudyAppState extends State<AudyApp> {
 
   @override
   void dispose() {
+    _emotionDownSub?.cancel();
     controller.dispose();
     SoundService.instance.dispose();
     super.dispose();
@@ -188,6 +202,7 @@ class _AudyAppState extends State<AudyApp> {
     return AudyScope(
       controller: controller,
       child: MaterialApp(
+        navigatorKey: _navigatorKey,
         debugShowCheckedModeBanner: false,
         title: 'AUDY - Autism-Friendly Learning',
         theme: ThemeData(
