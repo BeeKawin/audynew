@@ -39,6 +39,10 @@ class _FlashcardScreenState extends State<FlashcardScreen> {
     super.initState();
     _controller = FlashcardController(difficulty: widget.difficulty)
       ..addListener(_onControllerChanged);
+    // Make `await _tts.speak(...)` actually wait for the word to finish
+    // being spoken instead of returning as soon as playback starts — the
+    // submit flow relies on this to read each selected card in turn.
+    unawaited(_tts.awaitSpeakCompletion(true));
     _sessionStartedAt = DateTime.now();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final scope = AudyScope.of(context);
@@ -433,13 +437,15 @@ class _PlayState extends StatelessWidget {
         final deckPadding = 28.0 * scale;
         final gapHeight = 14.0 * scale;
 
-        // Only the deck's own footprint is load-bearing for overflow here:
-        // the hand zone below it sits in an Expanded and already scrolls
-        // internally if its content doesn't fit, so — unlike an earlier
-        // version of this budget — it isn't part of this check. A small
-        // safety margin absorbs rounding differences between this estimate
-        // and Flutter's actual rendered padding/borders.
+        // The deck's footprint AND one full row of hand cards both have to
+        // fit, or the hand zone (an Expanded + internally-scrolling list)
+        // gets squeezed down to a sliver — the player then sees only a thin
+        // strip of each card (looks broken) and has to scroll blindly to
+        // find the one they want. A small safety margin absorbs rounding
+        // differences between this estimate and Flutter's actual rendered
+        // padding/borders.
         const safetyMargin = 8.0;
+        const handRowPadding = 24.0; // _HandZone's Container vertical padding
         final totalOverhead =
             scenarioHeight +
             buttonHeight +
@@ -447,7 +453,7 @@ class _PlayState extends StatelessWidget {
             gapHeight +
             16.0 +
             safetyMargin;
-        final availableDeckHeight = screenHeight - totalOverhead;
+        final availableHeight = screenHeight - totalOverhead;
 
         final count = controller.cardCount;
         final minWidth = 80.0;
@@ -464,21 +470,25 @@ class _PlayState extends StatelessWidget {
           return deckRows * (w * 1.3) + (deckRows - 1) * runSpacing;
         }
 
+        double handRowHeightFor(double w) => (w * 1.3) + handRowPadding;
+
         for (double w = maxAllowedWidth; w >= minWidth; w -= 1.0) {
-          if (deckHeightFor(w) <= availableDeckHeight) {
+          if (deckHeightFor(w) + handRowHeightFor(w) <= availableHeight) {
             cardWidth = w;
             break;
           }
         }
 
         // Final safety net: on a screen too short for even the smallest
-        // card size to fit the deck, shrink further so the deck can never
-        // overflow the column, regardless of resolution.
-        final fittedDeckHeight = deckHeightFor(cardWidth);
-        if (fittedDeckHeight > availableDeckHeight &&
-            availableDeckHeight > 0 &&
-            fittedDeckHeight > 0) {
-          cardWidth = cardWidth * (availableDeckHeight / fittedDeckHeight);
+        // card size to fit the deck plus one visible hand row, shrink
+        // further so neither zone can ever overflow the column, regardless
+        // of resolution.
+        final fittedTotalHeight =
+            deckHeightFor(cardWidth) + handRowHeightFor(cardWidth);
+        if (fittedTotalHeight > availableHeight &&
+            availableHeight > 0 &&
+            fittedTotalHeight > 0) {
+          cardWidth = cardWidth * (availableHeight / fittedTotalHeight);
         }
 
         final cardHeight = cardWidth * 1.3;

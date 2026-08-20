@@ -72,14 +72,21 @@ class GeminiTTSService {
     await _playAudioBytes(wavBytes);
   }
 
-  /// Play audio from bytes
+  /// Play audio from bytes and wait until playback actually finishes.
+  ///
+  /// `AudioPlayer.play()` only awaits playback *starting*, not finishing —
+  /// callers (e.g. Flashcard's submit flow) need to know when the word has
+  /// actually been spoken, so we also wait for the completion event.
   Future<void> _playAudioBytes(Uint8List audioBytes) async {
-    if (_audioPlayer == null) {
+    final player = _audioPlayer;
+    if (player == null) {
       throw Exception('Audio player not initialized');
     }
 
-    await _audioPlayer!.stop();
-    await _audioPlayer!.play(BytesSource(audioBytes));
+    await player.stop();
+    final completion = player.onPlayerComplete.first;
+    await player.play(BytesSource(audioBytes));
+    await completion;
   }
 
   /// Stop any ongoing speech
