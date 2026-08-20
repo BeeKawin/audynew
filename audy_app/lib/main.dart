@@ -68,9 +68,10 @@ void main() async {
   }
 
   // Connect to the debug broadcast relay in the background — best-effort,
-  // never blocks startup. Keeps the app ready to receive a debug event
-  // from another device at any time, not just while the debug page is open.
-  DebugBroadcastService.instance.ensureConnected();
+  // never blocks startup — and keep retrying forever if it drops. Keeps the
+  // app ready to send/receive a debug event at any time, without the user
+  // ever having to open the debug page first.
+  DebugBroadcastService.instance.start();
 
   // Initialize database and storage
   bool dbInitialized = false;

@@ -21,6 +21,10 @@ class DebugMimicEvent {
 /// result, or emotion-down lock on every *other* connected device, as if
 /// it were a real event.
 ///
+/// [start] connects immediately and keeps retrying on a timer whenever the
+/// socket drops, so every device stays reachable for remote control without
+/// the user ever opening the DEBUG page.
+///
 /// This is a bare global fan-out — no pairing, no auth, no history. Touch
 /// events are injected straight into [AudyBluetoothService.incomingMessages]
 /// so any screen already listening for real BLE input reacts automatically;
@@ -36,6 +40,8 @@ class DebugBroadcastService {
   WebSocketChannel? _channel;
   StreamSubscription<dynamic>? _subscription;
   bool _connecting = false;
+  Timer? _reconnectTimer;
+  static const _reconnectInterval = Duration(seconds: 3);
 
   final ValueNotifier<bool> isConnected = ValueNotifier<bool>(false);
 
@@ -55,8 +61,20 @@ class DebugBroadcastService {
     return '$wsBase/ws/debug-broadcast';
   }
 
+  /// Connects now and keeps retrying in the background for the lifetime of
+  /// the app, so any device is reachable for remote control the moment it
+  /// launches — no need to ever open the DEBUG page first. Safe to call
+  /// more than once; only the first call starts the retry timer.
+  void start() {
+    unawaited(ensureConnected());
+    _reconnectTimer ??= Timer.periodic(_reconnectInterval, (_) {
+      if (!isConnected.value) unawaited(ensureConnected());
+    });
+  }
+
   /// Connects if not already connected/connecting. Safe to call repeatedly
-  /// (e.g. once at app startup, and again from the debug page itself).
+  /// (e.g. from [start], and again from the debug page itself for an
+  /// immediate retry instead of waiting for the next timer tick).
   Future<void> ensureConnected() async {
     if (_channel != null || _connecting) return;
     _connecting = true;
