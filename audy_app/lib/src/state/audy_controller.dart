@@ -1745,7 +1745,11 @@ class AudyController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Speak bot response (Thai TTS) using Gemini TTS with fallback
+  /// Speak bot response (Thai TTS) for Social Practice.
+  ///
+  /// Uses on-device TTS rather than the Gemini backend voice — for now, to
+  /// avoid the network round-trip and backend API cost while that voice
+  /// pipeline is still being evaluated.
   Future<void> speakThaiResponse(String text) async {
     final trimmed = text.trim();
     if (trimmed.isEmpty) return;
@@ -1756,7 +1760,7 @@ class AudyController extends ChangeNotifier {
       debugPrint('Social Chat BLE emotion signal failed: $e');
     }
 
-    await geminiTtsService.speakThai(trimmed);
+    await speechService.speakThai(trimmed);
   }
 
   /// Listen for Thai speech (STT)
