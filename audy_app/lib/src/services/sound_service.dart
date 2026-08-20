@@ -221,23 +221,25 @@ class SoundService {
   void playInstructionReadPronounce() =>
       _playInstruction(AppSounds.instructionReadPronounce);
 
-  /// Play background music (soundtrack) on loop at low volume
-  void playBGM() {
+  /// Play background music on loop at low volume. Defaults to the main
+  /// soundtrack; pass [soundPath] to loop a different ambient track (e.g.
+  /// the EmotionDown screen's calming loop) instead.
+  void playBGM({String soundPath = AppSounds.soundtrack}) {
     if (!_initialized) {
       debugPrint('SoundService: Not initialized, cannot play BGM');
       return;
     }
 
-    final source = _sources[AppSounds.soundtrack];
+    final source = _sources[soundPath];
     if (source == null) {
-      debugPrint('SoundService: BGM source not preloaded');
+      debugPrint('SoundService: BGM source not preloaded - $soundPath');
       return;
     }
 
     try {
       stopBGM(); // Stop any existing BGM first
       _bgmHandle = _soloud.play(source, volume: _bgmVolume, looping: true);
-      debugPrint('SoundService: BGM started');
+      debugPrint('SoundService: BGM started - $soundPath');
     } catch (e) {
       debugPrint('SoundService: Failed to play BGM - $e');
     }

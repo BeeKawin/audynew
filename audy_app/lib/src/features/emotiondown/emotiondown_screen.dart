@@ -4,7 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../core/app_routes.dart';
+import '../../core/app_sounds.dart';
 import '../../core/audy_theme.dart';
+import '../../services/sound_service.dart';
 import '../../state/audy_controller.dart';
 import '../meltdown/wave_painter.dart';
 
@@ -43,11 +45,15 @@ class _EmotionDownScreenState extends State<EmotionDownScreen>
       vsync: this,
       duration: const Duration(seconds: 20),
     )..repeat();
+
+    // Calming ambient loop for as long as this screen is up.
+    SoundService.instance.playBGM(soundPath: AppSounds.emotionDownAmbient);
   }
 
   @override
   void dispose() {
     _spinController.dispose();
+    SoundService.instance.stopBGM();
 
     SystemChrome.setEnabledSystemUIMode(
       SystemUiMode.manual,

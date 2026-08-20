@@ -411,6 +411,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   icon: Icons.family_restroom_outlined,
                   selected: selectedTab == 1,
                   color: const Color(0xFFBDD8F2),
+                  enabled: false,
                   onTap: () {
                     SoundService.instance.playTap();
                     setState(() => selectedTab = 1);
@@ -421,6 +422,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   icon: Icons.school_outlined,
                   selected: selectedTab == 2,
                   color: const Color(0xFFC9E8C1),
+                  enabled: false,
                   onTap: () {
                     SoundService.instance.playTap();
                     setState(() => selectedTab = 2);
@@ -1555,6 +1557,7 @@ class _RewardTabChip extends StatelessWidget {
     required this.selected,
     required this.color,
     required this.onTap,
+    this.enabled = true,
   });
 
   final String label;
@@ -1562,41 +1565,52 @@ class _RewardTabChip extends StatelessWidget {
   final bool selected;
   final Color color;
   final VoidCallback onTap;
+  final bool enabled;
 
   @override
   Widget build(BuildContext context) {
+    final contentColor = enabled
+        ? const Color(0xFF243A5A)
+        : const Color(0xFF243A5A).withValues(alpha: 0.4);
+
     return InkWell(
-      onTap: onTap,
+      onTap: enabled ? onTap : null,
       borderRadius: BorderRadius.circular(999),
       child: Ink(
         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
         decoration: BoxDecoration(
-          color: color,
+          color: enabled ? color : color.withValues(alpha: 0.35),
           borderRadius: BorderRadius.circular(999),
-          border: selected
+          border: selected && enabled
               ? Border.all(color: const Color(0xFF5D6A7E), width: 1.5)
               : null,
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFFA5B4C7).withValues(alpha: 0.16),
-              blurRadius: 12,
-              offset: const Offset(0, 6),
-            ),
-          ],
+          boxShadow: enabled
+              ? [
+                  BoxShadow(
+                    color: const Color(0xFFA5B4C7).withValues(alpha: 0.16),
+                    blurRadius: 12,
+                    offset: const Offset(0, 6),
+                  ),
+                ]
+              : null,
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 20, color: const Color(0xFF243A5A)),
+            Icon(icon, size: 20, color: contentColor),
             const SizedBox(width: 8),
             Text(
               label,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
-                color: Color(0xFF243A5A),
+                color: contentColor,
               ),
             ),
+            if (!enabled) ...[
+              const SizedBox(width: 6),
+              Icon(Icons.lock_outline_rounded, size: 16, color: contentColor),
+            ],
           ],
         ),
       ),

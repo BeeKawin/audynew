@@ -52,6 +52,10 @@ class AppSounds {
   // to the assets directory rather than Flutter's full asset key.
   static const String relaxingMusic = 'sounds/relaxing.mp3';
 
+  // Same track, loaded through SoLoud (SoundService.playBGM) for the
+  // EmotionDown screen's ambient loop — SoLoud needs the full asset key.
+  static const String emotionDownAmbient = 'assets/sounds/relaxing.mp3';
+
   /// All sounds that should be preloaded at app start
   static const List<String> allSounds = [
     correct,
@@ -77,5 +81,6 @@ class AppSounds {
     achievement,
     levelUp,
     soundtrack,
+    emotionDownAmbient,
   ];
 }

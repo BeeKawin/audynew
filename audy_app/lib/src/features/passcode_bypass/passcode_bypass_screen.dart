@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 
 import '../../core/app_routes.dart';
 import '../../core/audy_theme.dart';
+import '../../services/sound_service.dart';
 import '../../state/audy_controller.dart';
 
 /// Parent/teacher override screen for the Meltdown and EmotionDown
@@ -42,6 +43,7 @@ class _PasscodeBypassScreenState extends State<PasscodeBypassScreen>
   void _onDigit(String digit) {
     if (_entered.length >= PasscodeBypassScreen.codeLength) return;
     HapticFeedback.selectionClick();
+    SoundService.instance.playTap();
     setState(() {
       _isError = false;
       _entered += digit;
@@ -55,6 +57,7 @@ class _PasscodeBypassScreenState extends State<PasscodeBypassScreen>
   void _onBackspace() {
     if (_entered.isEmpty) return;
     HapticFeedback.selectionClick();
+    SoundService.instance.playTap();
     setState(() {
       _isError = false;
       _entered = _entered.substring(0, _entered.length - 1);
@@ -64,11 +67,13 @@ class _PasscodeBypassScreenState extends State<PasscodeBypassScreen>
   Future<void> _checkCode() async {
     if (_entered == PasscodeBypassScreen._validCode) {
       HapticFeedback.mediumImpact();
+      SoundService.instance.playCorrect();
       await _onSuccess();
       return;
     }
 
     HapticFeedback.heavyImpact();
+    SoundService.instance.playWrong();
     setState(() => _isError = true);
     unawaited(_shakeController.forward(from: 0));
 
@@ -79,6 +84,12 @@ class _PasscodeBypassScreenState extends State<PasscodeBypassScreen>
 
   Future<void> _onSuccess() async {
     final controller = AudyScope.of(context);
+
+    // Belt-and-braces: the EmotionDown screen underneath this one is
+    // replaced-away rather than popped, so it never gets a chance to stop
+    // its own ambient loop. Stop it here so unlocking never leaves it
+    // playing under the games screen.
+    SoundService.instance.stopBGM();
 
     try {
       await controller.resetMeltdownState();
