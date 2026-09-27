@@ -87,6 +87,8 @@ class _DeviceConnectionPageState extends State<DeviceConnectionPage> {
     18: 'rainbow',
     19: 'all_off',
     20: 'nose_lights',
+    21: 'emerald_ears_only',
+    22: 'flashcard_robot_colors',
   };
   double _space(dynamic adaptive, num value) {
     return (adaptive.space(value.toDouble()) as num).toDouble();
@@ -129,9 +131,9 @@ class _DeviceConnectionPageState extends State<DeviceConnectionPage> {
       });
 
       if (device == null) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(_tr(context, 'device_not_found'))));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(_tr(context, 'device_not_found'))),
+        );
         return;
       }
 
@@ -143,15 +145,13 @@ class _DeviceConnectionPageState extends State<DeviceConnectionPage> {
 
       if (!mounted) return;
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(_tr(context, 'connected_to_audy'))));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(_tr(context, 'connected_to_audy'))),
+      );
     } catch (e) {
       if (!mounted) return;
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
             _tr(context, 'connection_failed', params: {'error': e.toString()}),
@@ -210,21 +210,21 @@ class _DeviceConnectionPageState extends State<DeviceConnectionPage> {
         _lastSent = payload;
       });
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(_tr(context, 'sent_format', params: {'payload': payload})),
+          content: Text(
+            _tr(context, 'sent_format', params: {'payload': payload}),
+          ),
         ),
       );
     } catch (e) {
       if (!mounted) return;
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(_tr(context, 'send_failed', params: {'error': e.toString()})),
+          content: Text(
+            _tr(context, 'send_failed', params: {'error': e.toString()}),
+          ),
         ),
       );
     } finally {

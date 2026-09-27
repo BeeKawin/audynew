@@ -8,6 +8,7 @@ import '../../core/app_routes.dart';
 import '../../core/audy_theme.dart';
 import '../../core/audy_ui.dart';
 import '../../services/bluetooth_service.dart';
+import '../../services/interactive_input_service.dart';
 import '../../services/sound_service.dart';
 import '../../state/audy_controller.dart';
 import '../../widgets/game_guide_box.dart';
@@ -62,16 +63,43 @@ class _FruitCatchingBearScreenState extends State<FruitCatchingBearScreen> {
   @override
   void initState() {
     super.initState();
+    SoundService.instance.playFruitCatchIntro();
+    unawaited(_sendGameEnterBleState());
     _startedAt = DateTime.now();
     _loadHighScore();
     _startGame();
-    _bleInputSub = AudyBluetoothService.instance.incomingMessages.listen(
+    _bleInputSub = InteractiveInputService.instance.incomingMessages.listen(
       _handleBleInput,
     );
   }
 
+  Future<void> _sendGameEnterBleState() async {
+    try {
+      await AudyBluetoothService.instance.setLed(21);
+    } catch (e) {
+      debugPrint('FruitCatchingBearScreen: Entry LED state skipped - $e');
+    }
+  }
+
+  Future<void> _sendCompletionBleCelebration() async {
+    try {
+      await AudyBluetoothService.instance.celebrateGameCompletion();
+    } catch (e) {
+      debugPrint('FruitCatchingBearScreen: Completion BLE skipped - $e');
+    }
+  }
+
+  Future<void> _resetGameBleState() async {
+    try {
+      await AudyBluetoothService.instance.setLed(0);
+    } catch (e) {
+      debugPrint('FruitCatchingBearScreen: Exit LED reset skipped - $e');
+    }
+  }
+
   void _handleBleInput(AudyBleMessage message) {
     if (!mounted || _isGameOver) return;
+    if (ModalRoute.of(context)?.isCurrent != true) return;
 
     if (message.channel == 'ears') {
       if (message.value == 1) {
@@ -218,11 +246,13 @@ class _FruitCatchingBearScreenState extends State<FruitCatchingBearScreen> {
   }
 
   void _endGame() {
+    if (_isGameOver) return;
     _elapsedTime = DateTime.now().difference(_startedAt);
     _isGameOver = true;
     _gameLoop?.cancel();
     _spawnLoop?.cancel();
     SoundService.instance.playGameComplete();
+    unawaited(_sendCompletionBleCelebration());
   }
 
   void _changeLane(double laneX) {
@@ -246,6 +276,7 @@ class _FruitCatchingBearScreenState extends State<FruitCatchingBearScreen> {
       _startedAt = DateTime.now();
       _elapsedTime = Duration.zero;
     });
+    unawaited(_sendGameEnterBleState());
     _startGame();
   }
 
@@ -261,6 +292,7 @@ class _FruitCatchingBearScreenState extends State<FruitCatchingBearScreen> {
 
   @override
   void dispose() {
+    unawaited(_resetGameBleState());
     _gameLoop?.cancel();
     _spawnLoop?.cancel();
     _bleInputSub?.cancel();
@@ -454,7 +486,9 @@ class _GameStage extends StatelessWidget {
                   child: Image.asset(backgroundAsset, fit: BoxFit.cover),
                 ),
                 Positioned.fill(
-                  child: ColoredBox(color: Colors.white.withValues(alpha: 0.08)),
+                  child: ColoredBox(
+                    color: Colors.white.withValues(alpha: 0.08),
+                  ),
                 ),
                 Positioned.fill(
                   child: Row(
@@ -471,9 +505,7 @@ class _GameStage extends StatelessWidget {
                           ),
                         ),
                       ),
-                      const Expanded(
-                        child: SizedBox.shrink(),
-                      ),
+                      const Expanded(child: SizedBox.shrink()),
                     ],
                   ),
                 ),

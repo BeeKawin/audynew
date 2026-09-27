@@ -8,6 +8,7 @@ import 'src/features/assignments_page.dart';
 import 'src/features/auth/login_page.dart';
 import 'src/features/dashboard_page.dart';
 import 'src/features/emotion_classify_game/emotion_classify_screen.dart';
+import 'src/features/emotion_mimic_game/emotion_mimic_screen.dart';
 import 'src/features/feature_pages.dart';
 import 'src/features/flashcard/flashcard_difficulty_screen.dart';
 import 'src/features/fruit_catching_bear/fruit_catching_bear_screen.dart';
@@ -22,6 +23,7 @@ import 'src/features/read_pronounce/read_pronounce_hub.dart';
 import 'src/features/read_pronounce/read_pronounce_practice.dart';
 import 'src/features/read_pronounce/read_pronounce_controller.dart';
 import 'src/features/reaction_game/reaction_game_screen.dart';
+import 'src/features/remote_control/remote_control_page.dart';
 import 'src/features/road_safety/road_safety_screen.dart';
 import 'src/features/sorting_game/sort_level_select_screen.dart';
 import 'src/services/bluetooth_service.dart';
@@ -251,7 +253,7 @@ class _AudyAppState extends State<AudyApp> {
           AppRoutes.dashboard: (_) => _HomeShell(currentIndex: _currentIndex),
           AppRoutes.games: (_) => _HomeShell(currentIndex: 1),
           AppRoutes.emotionClassify: (_) => const EmotionClassifyScreen(),
-          AppRoutes.emotionMimic: (_) => const EmotionClassifyScreen(),
+          AppRoutes.emotionMimic: (_) => const EmotionMimicScreen(),
           AppRoutes.miniPuzzle: (_) => const MiniPuzzleGameSelection(),
           AppRoutes.sortingGame: (_) => const SortLevelSelectScreen(),
           AppRoutes.flashcard: (_) => const FlashcardDifficultyScreen(),
@@ -281,6 +283,7 @@ class _AudyAppState extends State<AudyApp> {
           AppRoutes.meltdown: (_) => const MeltdownScreen(),
           AppRoutes.device: (_) => const DeviceConnectionPage(),
           AppRoutes.assignments: (_) => const AssignmentsPage(),
+          AppRoutes.remoteControl: (_) => const RemoteControlPage(),
         },
         onGenerateRoute: (settings) {
           debugPrint('onGenerateRoute: ${settings.name}');

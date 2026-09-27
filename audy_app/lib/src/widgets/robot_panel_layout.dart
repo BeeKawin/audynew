@@ -9,6 +9,7 @@ class RobotPanelLayout extends StatelessWidget {
     required this.child,
     required this.showPanel,
     required this.panelBuilder,
+    this.enabled = false,
     this.gap,
   });
 
@@ -16,11 +17,12 @@ class RobotPanelLayout extends StatelessWidget {
   final Widget child;
   final bool showPanel;
   final Widget Function(bool isHorizontal) panelBuilder;
+  final bool enabled;
   final double? gap;
 
   @override
   Widget build(BuildContext context) {
-    if (!showPanel) return child;
+    if (!enabled || !showPanel) return child;
 
     return LayoutBuilder(
       builder: (context, constraints) {

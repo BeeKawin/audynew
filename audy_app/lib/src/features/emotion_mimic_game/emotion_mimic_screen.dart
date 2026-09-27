@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../core/audy_theme.dart';
 import '../../core/audy_ui.dart';
 import '../../core/emotion_character_widget.dart';
 import '../../services/bluetooth_service.dart';
+import '../../services/realtime_control_service.dart';
 import '../../services/sound_service.dart';
 import '../../state/audy_controller.dart';
 import '../../widgets/game_guide_box.dart';
@@ -24,12 +27,36 @@ class EmotionMimicScreen extends StatefulWidget {
 
 class _EmotionMimicScreenState extends State<EmotionMimicScreen> {
   final DateTime _sessionStartedAt = DateTime.now();
+  StreamSubscription<RealtimeControlEvent>? _controlSubscription;
   bool _showGuide = true;
+  String? _remoteEmotion;
 
   @override
   void initState() {
     super.initState();
     SoundService.instance.playInstructionEmotionMimic();
+    _controlSubscription = RealtimeControlService.instance.events.listen(
+      _handleRemoteControl,
+    );
+  }
+
+  void _handleRemoteControl(RealtimeControlEvent event) {
+    if (!mounted || ModalRoute.of(context)?.isCurrent != true) return;
+
+    final isCorrect = switch (event.action) {
+      RemoteControlAction.correctMimic => true,
+      RemoteControlAction.incorrectMimic => false,
+      _ => null,
+    };
+    if (isCorrect == null) return;
+
+    final controller = AudyScope.of(context);
+    final emotion = selectMimicEmotion(
+      correctEmotion: controller.currentMimicTarget,
+      isCorrect: isCorrect,
+      availableEmotions: controller.mimicEmotionPool,
+    );
+    setState(() => _remoteEmotion = emotion);
   }
 
   void _triggerVirtualInput(String channel, int value) {
@@ -156,19 +183,62 @@ class _EmotionMimicScreenState extends State<EmotionMimicScreen> {
                   ),
                   const Spacer(),
                   Center(
-                    child: Container(
-                      width: double.infinity,
-                      height: adaptive.space(180),
-                      constraints: BoxConstraints(
-                        maxWidth: adaptive.space(320),
-                      ),
-                      decoration: BoxDecoration(
-                        color: AudyColors.backgroundSoft,
-                        borderRadius: BorderRadius.circular(
-                          AudySpacing.radiusXLarge,
-                        ),
-                        boxShadow: AudyShadows.cardShadow,
-                      ),
+                    child: AnimatedSwitcher(
+                      duration: AudyAnimation.normal,
+                      child: _remoteEmotion == null
+                          ? Container(
+                              key: const ValueKey('waiting'),
+                              width: double.infinity,
+                              height: adaptive.space(180),
+                              constraints: BoxConstraints(
+                                maxWidth: adaptive.space(320),
+                              ),
+                              decoration: BoxDecoration(
+                                color: AudyColors.backgroundSoft,
+                                borderRadius: BorderRadius.circular(
+                                  AudySpacing.radiusMedium,
+                                ),
+                              ),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.sync_rounded,
+                                    size: adaptive.space(48),
+                                    color: AudyColors.skyBlue,
+                                  ),
+                                  SizedBox(height: adaptive.space(10)),
+                                  Text(
+                                    controller.tr('remote_mimic_waiting'),
+                                    textAlign: TextAlign.center,
+                                    style: AudyTypography.labelMedium,
+                                  ),
+                                ],
+                              ),
+                            )
+                          : Column(
+                              key: ValueKey(_remoteEmotion),
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                EmotionCharacterWidget(
+                                  emotion: _remoteEmotion!,
+                                  size: adaptive.space(120),
+                                ),
+                                SizedBox(height: adaptive.space(12)),
+                                Text(
+                                  controller.tr(
+                                    'remote_mimic_result',
+                                    params: {
+                                      'emotion': controller.tr(
+                                        _remoteEmotion!.toLowerCase(),
+                                      ),
+                                    },
+                                  ),
+                                  textAlign: TextAlign.center,
+                                  style: AudyTypography.headingSmall,
+                                ),
+                              ],
+                            ),
                     ),
                   ),
                   const SizedBox(height: AudySpacing.sectionGap),
@@ -179,5 +249,11 @@ class _EmotionMimicScreenState extends State<EmotionMimicScreen> {
         );
       },
     );
+  }
+
+  @override
+  void dispose() {
+    _controlSubscription?.cancel();
+    super.dispose();
   }
 }

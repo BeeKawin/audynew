@@ -43,6 +43,11 @@ class AppSounds {
       'assets/sounds/instruction_minipuzzle_puzzle.mp3';
   static const String instructionReadPronounce =
       'assets/sounds/instruction_read_pronounce.mp3';
+  static const String flashcardInstruction =
+      'assets/sounds/flashcard_instruction.mp3';
+  static const String flashcardTransition =
+      'assets/sounds/flashcard_transition.mp3';
+  static const String fruitCatchIntro = 'assets/sounds/fruitcatch_intro.mp3';
 
   // Achievement sounds
   static const String achievement = 'assets/sounds/achievement.mp3';
@@ -74,6 +79,9 @@ class AppSounds {
     instructionMiniPuzzleOddOneOut,
     instructionMiniPuzzlePuzzle,
     instructionReadPronounce,
+    flashcardInstruction,
+    flashcardTransition,
+    fruitCatchIntro,
     achievement,
     levelUp,
     soundtrack,

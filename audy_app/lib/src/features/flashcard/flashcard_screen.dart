@@ -8,6 +8,8 @@ import '../../core/app_routes.dart';
 import '../../core/audy_theme.dart';
 import '../../core/audy_ui.dart';
 import '../../data/models/game_session_model.dart';
+import '../../services/bluetooth_service.dart';
+import '../../services/interactive_input_service.dart';
 import '../../services/sound_service.dart';
 import '../../state/audy_controller.dart';
 import '../../widgets/game_guide_box.dart';
@@ -29,16 +31,27 @@ class _FlashcardScreenState extends State<FlashcardScreen> {
   final FlutterTts _tts = FlutterTts();
   Timer? _previewTimer;
   Timer? _feedbackTimer;
+  StreamSubscription<AudyBleMessage>? _bleInputSub;
   late DateTime _sessionStartedAt;
   bool _hasRecordedCompletion = false;
   bool _showGuide = true;
+  bool _isSubmitting = false;
   String? _spokenRoundId;
+  String? _robotBindingRoundId;
+  String? _leftRobotCardId;
+  String? _middleRobotCardId;
+  String? _rightRobotCardId;
 
   @override
   void initState() {
     super.initState();
+    SoundService.instance.playFlashcardInstruction();
     _controller = FlashcardController(difficulty: widget.difficulty)
       ..addListener(_onControllerChanged);
+    unawaited(_sendGameEnterBleState());
+    _bleInputSub = InteractiveInputService.instance.incomingMessages.listen(
+      _handleBleInput,
+    );
     _sessionStartedAt = DateTime.now();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final scope = AudyScope.of(context);
@@ -50,12 +63,102 @@ class _FlashcardScreenState extends State<FlashcardScreen> {
 
   @override
   void dispose() {
+    unawaited(_resetGameBleState());
     _previewTimer?.cancel();
     _feedbackTimer?.cancel();
+    _bleInputSub?.cancel();
     _controller.removeListener(_onControllerChanged);
     _controller.dispose();
     _tts.stop();
     super.dispose();
+  }
+
+  Future<void> _sendGameEnterBleState() async {
+    try {
+      final bluetooth = AudyBluetoothService.instance;
+      await bluetooth.setArms(3);
+      await bluetooth.setLed(22);
+    } catch (e) {
+      debugPrint('FlashcardScreen: Entry BLE state skipped - $e');
+    }
+  }
+
+  Future<void> _resetGameBleState() async {
+    try {
+      final bluetooth = AudyBluetoothService.instance;
+      await bluetooth.setArms(0);
+      await bluetooth.setLed(0);
+    } catch (e) {
+      debugPrint('FlashcardScreen: Exit BLE reset skipped - $e');
+    }
+  }
+
+  Future<void> _sendCompletionBleCelebration() async {
+    try {
+      await AudyBluetoothService.instance.celebrateGameCompletion();
+    } catch (e) {
+      debugPrint('FlashcardScreen: Completion BLE skipped - $e');
+    }
+  }
+
+  void _handleBleInput(AudyBleMessage message) {
+    if (!mounted || widget.difficulty != FlashcardDifficulty.easy) return;
+    if (ModalRoute.of(context)?.isCurrent != true) return;
+    if (_controller.phase != FlashcardGamePhase.playing || _isSubmitting) {
+      return;
+    }
+
+    if (message.channel == 'ears') {
+      if (message.value == 1) {
+        if (_controller.resetUnlockedSelectedCards()) {
+          SoundService.instance.playTap();
+        }
+      } else if (message.value == 2 && _controller.canSubmit) {
+        unawaited(_handleSubmit());
+      }
+      return;
+    }
+
+    if (_controller.isDeckFull) return;
+    _bindRobotCardsForCurrentRound();
+
+    String? selectedCardId;
+    if (message.channel == 'force' && message.value == 1) {
+      selectedCardId = _leftRobotCardId;
+    } else if (message.channel == 'tummy' && message.value == 1) {
+      selectedCardId = _middleRobotCardId;
+    } else if (message.channel == 'force' && message.value == 2) {
+      selectedCardId = _rightRobotCardId;
+    }
+
+    if (selectedCardId == null) return;
+    for (final card in _controller.handCards) {
+      if (card.id == selectedCardId) {
+        SoundService.instance.playTap();
+        _controller.selectCard(card);
+        unawaited(_speakCard(card));
+        return;
+      }
+    }
+  }
+
+  void _bindRobotCardsForCurrentRound() {
+    final roundId = _controller.currentRound?.roundId;
+    final bindingsReady =
+        _leftRobotCardId != null &&
+        _middleRobotCardId != null &&
+        _rightRobotCardId != null;
+    if (roundId == null || (_robotBindingRoundId == roundId && bindingsReady)) {
+      return;
+    }
+
+    final cards = _controller.handCards;
+    if (cards.length < 3) return;
+
+    _robotBindingRoundId = roundId;
+    _leftRobotCardId = cards[0].id;
+    _middleRobotCardId = cards[1].id;
+    _rightRobotCardId = cards[2].id;
   }
 
   void _onControllerChanged() {
@@ -69,6 +172,7 @@ class _FlashcardScreenState extends State<FlashcardScreen> {
     }
 
     if (_controller.phase == FlashcardGamePhase.playing) {
+      _bindRobotCardsForCurrentRound();
       final round = _controller.currentRound;
       if (round != null && _spokenRoundId != round.roundId) {
         _spokenRoundId = round.roundId;
@@ -103,6 +207,12 @@ class _FlashcardScreenState extends State<FlashcardScreen> {
     // return the wrong ones to the hand for another try.
     _feedbackTimer = Timer(const Duration(milliseconds: 1400), () {
       if (!mounted) return;
+      final isAdvancingToNextRound =
+          _controller.lastValidation?.isCorrect == true &&
+          _controller.roundNumber < FlashcardController.totalRounds;
+      if (isAdvancingToNextRound) {
+        SoundService.instance.playFlashcardTransition();
+      }
       unawaited(_controller.continueAfterFeedback());
     });
   }
@@ -126,26 +236,33 @@ class _FlashcardScreenState extends State<FlashcardScreen> {
   }
 
   Future<void> _handleSubmit() async {
-    if (!_controller.canSubmit) return;
-    SoundService.instance.playTap();
-    final selected = _controller.selectedCards;
-    for (final card in selected) {
-      await _speakCard(card);
-      await Future<void>.delayed(const Duration(milliseconds: 180));
-    }
-    await _controller.submit();
-    // Gentle, non-punishing feedback: celebrate a full sentence, otherwise a
-    // soft "try again" rather than a harsh buzzer.
-    if (_controller.lastValidation?.isCorrect == true) {
-      SoundService.instance.playCorrect();
-    } else {
-      SoundService.instance.playTryAgain();
+    if (_isSubmitting || !_controller.canSubmit) return;
+    _isSubmitting = true;
+
+    try {
+      SoundService.instance.playTap();
+      final selected = _controller.selectedCards;
+      for (final card in selected) {
+        await _speakCard(card);
+        await Future<void>.delayed(const Duration(milliseconds: 180));
+      }
+      await _controller.submit();
+      // Gentle, non-punishing feedback: celebrate a full sentence, otherwise a
+      // soft "try again" rather than a harsh buzzer.
+      if (_controller.lastValidation?.isCorrect == true) {
+        SoundService.instance.playCorrect();
+      } else {
+        SoundService.instance.playTryAgain();
+      }
+    } finally {
+      _isSubmitting = false;
     }
   }
 
   Future<void> _recordCompletion() async {
     if (_hasRecordedCompletion) return;
     _hasRecordedCompletion = true;
+    unawaited(_sendCompletionBleCelebration());
 
     final appController = AudyScope.of(context);
     final endedAt = DateTime.now();
@@ -153,9 +270,7 @@ class _FlashcardScreenState extends State<FlashcardScreen> {
     final total = _controller.sessionTotalCards;
     final mistakes = _controller.sessionMistakes;
     final points = (correct * 5 - mistakes).clamp(0, correct * 5);
-    final stars = mistakes == 0
-        ? 3
-        : (mistakes <= total ? 2 : 1);
+    final stars = mistakes == 0 ? 3 : (mistakes <= total ? 2 : 1);
 
     await appController.trackFlashcardCompleted();
     if (points > 0) {
@@ -415,15 +530,21 @@ class _PlayState extends StatelessWidget {
         final spacing = adaptive.space(8);
         final runSpacing = adaptive.space(8);
 
-        final scenarioHeight = scenario.isNotEmpty 
-            ? (108.0 + 14.0) * scale 
+        final scenarioHeight = scenario.isNotEmpty
+            ? (108.0 + 14.0) * scale
             : 0.0;
         final buttonHeight = (62.0 + 14.0) * scale;
         final deckPadding = 28.0 * scale;
         final handPadding = 24.0;
         final gapHeight = 14.0 * scale;
 
-        final totalOverhead = scenarioHeight + buttonHeight + deckPadding + handPadding + gapHeight + 16.0;
+        final totalOverhead =
+            scenarioHeight +
+            buttonHeight +
+            deckPadding +
+            handPadding +
+            gapHeight +
+            16.0;
         final availableHeight = screenHeight - totalOverhead;
 
         final count = controller.cardCount;
@@ -739,10 +860,7 @@ class _EmptySlot extends StatelessWidget {
       decoration: BoxDecoration(
         color: AudyColors.backgroundSoft.withValues(alpha: 0.4),
         borderRadius: BorderRadius.circular(AudySpacing.radiusLarge),
-        border: Border.all(
-          color: AudyColors.borderLight,
-          width: 2,
-        ),
+        border: Border.all(color: AudyColors.borderLight, width: 2),
       ),
     );
   }
@@ -900,10 +1018,7 @@ class _ErrorState extends StatelessWidget {
 // ---------------------------------------------------------------------------
 
 class AnimatedEntrance extends StatelessWidget {
-  const AnimatedEntrance({
-    super.key,
-    required this.child,
-  });
+  const AnimatedEntrance({super.key, required this.child});
 
   final Widget child;
 
@@ -916,10 +1031,7 @@ class AnimatedEntrance extends StatelessWidget {
       builder: (context, value, child) {
         return Transform.scale(
           scale: 0.84 + 0.16 * value,
-          child: Opacity(
-            opacity: value,
-            child: child,
-          ),
+          child: Opacity(opacity: value, child: child),
         );
       },
       child: child,

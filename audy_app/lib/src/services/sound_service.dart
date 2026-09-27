@@ -138,10 +138,7 @@ class SoundService {
   void playGameComplete() => play(AppSounds.gameComplete);
 
   /// Play Bluetooth-gated bear feedback after the generic completion sound.
-  void playBearCompletionFeedback({
-    required int score,
-    required int maxScore,
-  }) {
+  void playBearCompletionFeedback({required int score, required int maxScore}) {
     if (!_enabled ||
         maxScore <= 0 ||
         !AudyBluetoothService.instance.isConnected) {
@@ -220,6 +217,16 @@ class SoundService {
   /// Play read and speak instruction sound
   void playInstructionReadPronounce() =>
       _playInstruction(AppSounds.instructionReadPronounce);
+
+  /// Play Flashcard instruction sound
+  void playFlashcardInstruction() =>
+      _playInstruction(AppSounds.flashcardInstruction);
+
+  /// Play Flashcard transition sound
+  void playFlashcardTransition() => play(AppSounds.flashcardTransition);
+
+  /// Play Fruit Catch intro sound
+  void playFruitCatchIntro() => _playInstruction(AppSounds.fruitCatchIntro);
 
   /// Play background music (soundtrack) on loop at low volume
   void playBGM() {

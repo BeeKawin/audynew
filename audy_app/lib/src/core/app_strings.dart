@@ -69,10 +69,7 @@ class AppStrings {
     'back': {'en': 'Back', 'th': 'กลับ'},
 
     // Games Hub
-    'emotion_game': {
-      'en': 'Emotion Game',
-      'th': 'เกมเรียนรู้อารมณ์',
-    },
+    'emotion_game': {'en': 'Emotion Game', 'th': 'เกมเรียนรู้อารมณ์'},
     'emotion_classify': {
       'en': 'What is this emotion?',
       'th': 'นี่คืออารมณ์อะไร?',
@@ -265,6 +262,14 @@ class AppStrings {
     'rainbow': {'en': 'Rainbow', 'th': 'สายรุ้ง'},
     'all_off': {'en': 'All off', 'th': 'ปิดทั้งหมด'},
     'nose_lights': {'en': 'Nose lights', 'th': 'ไฟจมูก'},
+    'emerald_ears_only': {
+      'en': 'Emerald ears only',
+      'th': 'ไฟหูสีเขียวมรกตเท่านั้น',
+    },
+    'flashcard_robot_colors': {
+      'en': 'Left ear red / Right ear blue / Arms and tummy green',
+      'th': 'หูซ้ายสีแดง / หูขวาสีน้ำเงิน / แขนและท้องสีเขียว',
+    },
     // Virtual Robot
     'virtual_robot': {'en': 'Virtual Robot', 'th': 'หุ่นยนต์เสมือน'},
     'virtual_robot_controls': {
@@ -285,6 +290,61 @@ class AppStrings {
     'virtual_ear_right': {'en': 'Right ear', 'th': 'หูขวา'},
     'virtual_force_left': {'en': 'Squeeze L', 'th': 'บีบซ้าย'},
     'virtual_force_right': {'en': 'Squeeze R', 'th': 'บีบขวา'},
+    'open_app_controls': {
+      'en': 'Open app controls',
+      'th': 'เปิดหน้าควบคุมแอป',
+    },
+    'control_page_title': {
+      'en': 'App Controls',
+      'th': 'ปุ่มควบคุมแอป',
+    },
+    'control_page_instruction': {
+      'en': 'Tap a button to help players on other devices.',
+      'th': 'แตะปุ่มเพื่อช่วยผู้เล่นบนอุปกรณ์อื่น',
+    },
+    'control_robot_section': {
+      'en': 'Robot controls',
+      'th': 'ปุ่มควบคุมหุ่นยนต์',
+    },
+    'control_mimic_section': {
+      'en': 'Mimic emotion',
+      'th': 'เลียนแบบอารมณ์',
+    },
+    'control_left_ear': {'en': 'Left Ear', 'th': 'หูซ้าย'},
+    'control_right_ear': {'en': 'Right Ear', 'th': 'หูขวา'},
+    'control_nose': {'en': 'Nose', 'th': 'จมูก'},
+    'control_left_arm': {'en': 'Left Arm', 'th': 'แขนซ้าย'},
+    'control_right_arm': {'en': 'Right Arm', 'th': 'แขนขวา'},
+    'control_tummy': {'en': 'Tummy', 'th': 'ท้อง'},
+    'control_correct_mimic': {
+      'en': 'Correct Mimic Emotion',
+      'th': 'เลียนแบบอารมณ์ถูกต้อง',
+    },
+    'control_incorrect_mimic': {
+      'en': 'Incorrect Mimic Emotion',
+      'th': 'เลียนแบบอารมณ์ไม่ถูกต้อง',
+    },
+    'control_ready': {
+      'en': 'Ready to send a control.',
+      'th': 'พร้อมส่งคำสั่ง',
+    },
+    'control_sending': {'en': 'Sending…', 'th': 'กำลังส่ง…'},
+    'control_sent': {
+      'en': 'Sent: {action}',
+      'th': 'ส่งแล้ว: {action}',
+    },
+    'control_send_failed': {
+      'en': 'Could not send. Check the connection and try again.',
+      'th': 'ส่งไม่ได้ กรุณาตรวจสอบการเชื่อมต่อแล้วลองอีกครั้ง',
+    },
+    'remote_mimic_waiting': {
+      'en': 'Waiting for a mimic control',
+      'th': 'กำลังรอคำสั่งเลียนแบบอารมณ์',
+    },
+    'remote_mimic_result': {
+      'en': 'Mimic: {emotion}',
+      'th': 'เลียนแบบ: {emotion}',
+    },
     'tummy_clicked': {'en': 'Tummy clicked', 'th': 'แตะที่ท้อง'},
     'tummy_not_clicked': {'en': 'Tummy not clicked', 'th': 'ไม่ได้แตะที่ท้อง'},
     'nose_clicked': {'en': 'Nose clicked', 'th': 'แตะที่จมูก'},
@@ -463,6 +523,7 @@ class AppStrings {
     'surprised': {'en': 'Surprised', 'th': 'ประหลาดใจ'},
     'scared': {'en': 'Scared', 'th': 'กลัว'},
     'calm': {'en': 'Calm', 'th': 'สงบ'},
+    'disgust': {'en': 'Disgust', 'th': 'รังเกียจ'},
     'proud': {'en': 'Proud', 'th': 'ภาคภูมิใจ'},
 
     // Chat

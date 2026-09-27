@@ -7,6 +7,7 @@ import '../../core/audy_theme.dart';
 import '../../core/audy_ui.dart';
 import '../../data/models/game_session_model.dart';
 import '../../services/bluetooth_service.dart';
+import '../../services/interactive_input_service.dart';
 import '../../services/sound_service.dart';
 import '../../state/audy_controller.dart';
 import '../../widgets/game_guide_box.dart';
@@ -36,7 +37,7 @@ class _ReactionTimePageState extends State<ReactionTimePage> {
     super.initState();
     unawaited(_sendGameEnterBleState());
     SoundService.instance.playInstructionReactionTime();
-    _bleInputSub = AudyBluetoothService.instance.incomingMessages.listen(
+    _bleInputSub = InteractiveInputService.instance.incomingMessages.listen(
       _handleBleInput,
     );
   }
@@ -51,6 +52,7 @@ class _ReactionTimePageState extends State<ReactionTimePage> {
 
   void _handleBleInput(AudyBleMessage message) {
     if (!mounted) return;
+    if (ModalRoute.of(context)?.isCurrent != true) return;
     if (message.channel != 'tummy' || message.value != 1) return;
 
     final controller = AudyScope.of(context);

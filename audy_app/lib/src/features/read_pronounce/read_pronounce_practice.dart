@@ -6,6 +6,7 @@ import 'package:avatar_glow/avatar_glow.dart';
 import 'package:flutter/material.dart';
 
 import '../../services/bluetooth_service.dart';
+import '../../services/interactive_input_service.dart';
 import '../../services/sound_service.dart';
 import '../../services/auth_service.dart';
 import '../../state/audy_controller.dart';
@@ -84,7 +85,7 @@ class _ReadPronouncePracticeScreenState
 
     unawaited(_sendGameEnterBleState());
     SoundService.instance.playInstructionReadPronounce();
-    _bleMicSub = AudyBluetoothService.instance.incomingMessages.listen(
+    _bleMicSub = InteractiveInputService.instance.incomingMessages.listen(
       _handleBleInput,
     );
   }
@@ -101,6 +102,7 @@ class _ReadPronouncePracticeScreenState
 
   void _handleBleInput(AudyBleMessage message) {
     if (!mounted) return;
+    if (ModalRoute.of(context)?.isCurrent != true) return;
     if (message.channel != 'nose' || message.value != 1) return;
 
     unawaited(_handleVoiceButtonTap());

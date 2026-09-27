@@ -17,10 +17,8 @@ enum FlashcardGamePhase {
 }
 
 class FlashcardController extends ChangeNotifier {
-  FlashcardController({
-    required this.difficulty,
-    FlashcardApiService? api,
-  }) : _api = api ?? FlashcardApiService();
+  FlashcardController({required this.difficulty, FlashcardApiService? api})
+    : _api = api ?? FlashcardApiService();
 
   /// Chosen difficulty. Drives sentence length and hint visibility.
   final FlashcardDifficulty difficulty;
@@ -120,12 +118,16 @@ class FlashcardController extends ChangeNotifier {
     if (teacherId != null && teacherId.isNotEmpty) {
       try {
         final words = await AuthService().fetchClassWords(teacherId);
-        _customCards = words.map((w) => {
-          'id': w.id,
-          'category': w.category ?? 'noun',
-          'word': w.word,
-          'image_url': w.imageUrl,
-        }).toList();
+        _customCards = words
+            .map(
+              (w) => {
+                'id': w.id,
+                'category': w.category ?? 'noun',
+                'word': w.word,
+                'image_url': w.imageUrl,
+              },
+            )
+            .toList();
       } catch (e) {
         debugPrint('Failed to load custom class cards: $e');
       }
@@ -161,7 +163,9 @@ class FlashcardController extends ChangeNotifier {
       // Preview cards in a random order so the sequence isn't the answer.
       _previewOrder
         ..clear()
-        ..addAll(List<int>.generate(round.cards.length, (i) => i)..shuffle(_random));
+        ..addAll(
+          List<int>.generate(round.cards.length, (i) => i)..shuffle(_random),
+        );
       phase = FlashcardGamePhase.previewing;
     } catch (e) {
       errorMessage = 'flashcard_error';
@@ -202,6 +206,22 @@ class FlashcardController extends ChangeNotifier {
     _selectedCards.removeWhere((item) => item.id == card.id);
     _handCards.add(card);
     notifyListeners();
+  }
+
+  /// Return every unlocked card to the hand so the player can reorder them.
+  bool resetUnlockedSelectedCards() {
+    if (phase != FlashcardGamePhase.playing) return false;
+
+    final cardsToReset = _selectedCards
+        .where((card) => !isLocked(card.id))
+        .toList(growable: false);
+    if (cardsToReset.isEmpty) return false;
+
+    final resetIds = cardsToReset.map((card) => card.id).toSet();
+    _selectedCards.removeWhere((card) => resetIds.contains(card.id));
+    _handCards.addAll(cardsToReset);
+    notifyListeners();
+    return true;
   }
 
   Future<void> submit() async {
@@ -249,9 +269,7 @@ class FlashcardController extends ChangeNotifier {
     if (wrongCards.isNotEmpty) {
       mistakes += wrongCards.length;
       sessionMistakes += wrongCards.length;
-      _selectedCards.removeWhere(
-        (c) => wrongCards.any((w) => w.id == c.id),
-      );
+      _selectedCards.removeWhere((c) => wrongCards.any((w) => w.id == c.id));
       _handCards.addAll(wrongCards);
     }
 
