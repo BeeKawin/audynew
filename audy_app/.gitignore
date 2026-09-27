@@ -47,6 +47,7 @@ google-services.json
 GoogleService-Info.plist
 
 # Local tool output
+flutter_*.png
 dist/
 tmp/
 temp/
