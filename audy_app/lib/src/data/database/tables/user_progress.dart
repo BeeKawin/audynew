@@ -11,14 +11,15 @@ class UserProgress extends Table {
   DateTimeColumn get updatedAt => dateTime()();
   BoolColumn get isSynced => boolean().withDefault(const Constant(false))();
 
-  // Game-specific counters for achievement tracking
+  // Persisted gameplay counters for progress reporting
   IntColumn get puzzleGamesCompleted =>
       integer().withDefault(const Constant(0))();
   IntColumn get readingExercisesCompleted =>
       integer().withDefault(const Constant(0))();
   IntColumn get sortingGamesCompleted =>
       integer().withDefault(const Constant(0))();
-  IntColumn get emotionsRecognized => integer().withDefault(const Constant(0))();
+  IntColumn get emotionsRecognized =>
+      integer().withDefault(const Constant(0))();
   IntColumn get chatMessagesSent => integer().withDefault(const Constant(0))();
   IntColumn get colorsSortedCorrectly =>
       integer().withDefault(const Constant(0))();

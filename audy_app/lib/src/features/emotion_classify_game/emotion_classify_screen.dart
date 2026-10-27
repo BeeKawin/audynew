@@ -10,7 +10,6 @@ import '../../services/bluetooth_service.dart';
 import '../../services/interactive_input_service.dart';
 import '../../services/sound_service.dart';
 import '../../state/audy_controller.dart';
-import '../../widgets/game_guide_box.dart';
 import '../../widgets/robot_panel_layout.dart';
 import '../../widgets/virtual_robot_panel.dart';
 import '../emotion_mimic_game/selfie_capture_screen.dart';
@@ -43,7 +42,6 @@ class _EmotionClassifyScreenState extends State<EmotionClassifyScreen> {
   String? _selectedAnswer;
   bool _showingFeedback = false;
   bool _isCorrect = false;
-  bool _showGuide = true;
   final Map<int, String> _roundImagePaths = {};
   final DateTime _sessionStartedAt = DateTime.now();
 
@@ -147,11 +145,7 @@ class _EmotionClassifyScreenState extends State<EmotionClassifyScreen> {
     return AudyResponsivePage(
       scrollable: false,
       builder: (context, adaptive) {
-        final headerGap = adaptive.space(10);
         final sectionGap = adaptive.space(14);
-        final guideMaxWidth = adaptive.isPhone
-            ? adaptive.space(300)
-            : adaptive.space(420);
         final characterSize = adaptive.isPhone
             ? adaptive.space(180)
             : adaptive.space(220);
@@ -220,26 +214,6 @@ class _EmotionClassifyScreenState extends State<EmotionClassifyScreen> {
                           color: AudyColors.mintGreen,
                         ),
                       ),
-                      if (_showGuide) ...[
-                        SizedBox(width: headerGap),
-                        Flexible(
-                          child: Align(
-                            alignment: Alignment.centerLeft,
-                            child: ConstrainedBox(
-                              constraints: BoxConstraints(
-                                maxWidth: guideMaxWidth,
-                              ),
-                              child: GameGuideBox(
-                                message: controller.tr(
-                                  'guide_emotion_classify',
-                                ),
-                                onDismissed: () =>
-                                    setState(() => _showGuide = false),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
                     ],
                   ),
                   SizedBox(height: sectionGap),

@@ -1,7 +1,6 @@
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
 from app.routers import thai_chat, emotion, tts, flashcard
-from app.config import settings
+from app.cors import configure_cors
 
 app = FastAPI(
     title="AUDY Backend API",
@@ -9,19 +8,7 @@ app = FastAPI(
     version="1.1.0",
 )
 
-# CORS for Flutter app
-# TODO: Replace with your Railway URL and custom domain when deployed
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
-        "*",  # Allow all for development - restrict in production
-        # "https://your-app.web.app",  # Flutter web app
-        # "https://your-app.firebaseapp.com",
-    ],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+configure_cors(app)
 
 # Include routers
 app.include_router(thai_chat.router)

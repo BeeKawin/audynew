@@ -42,6 +42,7 @@ dev_dependencies:
   drift_dev: ^2.32.1
   build_runner: ^2.13.1
   flutter_scene_importer: ^0.12.0
+  flutter_launcher_icons: ^0.13.1
 
 flutter:
   uses-material-design: true
@@ -50,10 +51,14 @@ flutter:
     - assets/images/
     - assets/images/games/basket/
     - assets/images/games/basket/fruits/
-    - assets/images/sorting/
     - assets/mascot/
     - assets/3d/
     - assets/ai/
     - assets/images/games/flashcard/animals/
     - assets/images/games/flashcard/fruits/
     - assets/images/games/flashcard/vetgetable/
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/icon/AUDY_Icon.png"

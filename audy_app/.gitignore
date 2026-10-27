@@ -51,6 +51,8 @@ flutter_*.png
 dist/
 tmp/
 temp/
+.vercel/
+/web/drift_worker.js*
 
 # Symbolication related
 app.*.symbols

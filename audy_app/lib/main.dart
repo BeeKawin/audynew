@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+import 'src/core/build_config.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'src/core/app_routes.dart';
@@ -6,6 +8,10 @@ import 'src/core/audy_theme.dart';
 import 'src/data/service_locator.dart';
 import 'src/features/assignments_page.dart';
 import 'src/features/auth/login_page.dart';
+import 'src/features/caretaker/caretaker_shell.dart';
+import 'src/features/caretaker/caretaker_routes.dart';
+import 'src/features/caretaker/caretaker_ui.dart';
+import 'src/services/auth_service.dart';
 import 'src/features/dashboard_page.dart';
 import 'src/features/emotion_classify_game/emotion_classify_screen.dart';
 import 'src/features/emotion_mimic_game/emotion_mimic_screen.dart';
@@ -22,15 +28,12 @@ import 'src/features/profile_and_rewards_pages.dart';
 import 'src/features/read_pronounce/read_pronounce_hub.dart';
 import 'src/features/read_pronounce/read_pronounce_practice.dart';
 import 'src/features/read_pronounce/read_pronounce_controller.dart';
-import 'src/features/reaction_game/reaction_game_screen.dart';
 import 'src/features/remote_control/remote_control_page.dart';
 import 'src/features/road_safety/road_safety_screen.dart';
-import 'src/features/sorting_game/sort_level_select_screen.dart';
 import 'src/services/bluetooth_service.dart';
 import 'src/services/emotion_service.dart';
 import 'src/services/sound_service.dart';
 import 'src/state/audy_controller.dart';
-import 'src/widgets/achievement_toast.dart';
 import 'src/features/device/device_connection_page.dart';
 import 'src/features/social_chat/social_chat_page.dart';
 import 'src/features/settings/preferences_page.dart';
@@ -40,8 +43,8 @@ void main() async {
 
   // Initialize Supabase first
   await Supabase.initialize(
-    url: 'https://zltkubxggxprdjnspbfk.supabase.co',
-    anonKey: 'sb_publishable_oMatucQUNC7OFMhiC1SsaA_PzHzj-2z',
+    url: BuildConfig.supabaseUrl,
+    anonKey: BuildConfig.supabasePublishableKey,
   );
 
   // Initialize services
@@ -49,7 +52,7 @@ void main() async {
 
   // Initialize sound service
   try {
-    await SoundService.instance.initialize();
+    if (!kIsWeb) await SoundService.instance.initialize();
     debugPrint('Sound service initialized successfully');
   } catch (e) {
     debugPrint('Sound service initialization failed: $e');
@@ -57,7 +60,7 @@ void main() async {
 
   // Initialize Bluetooth service
   try {
-    await AudyBluetoothService.instance.initialize();
+    if (!kIsWeb) await AudyBluetoothService.instance.initialize();
     debugPrint('Bluetooth service initialized successfully');
   } catch (e) {
     debugPrint('Bluetooth service initialization failed: $e');
@@ -66,8 +69,10 @@ void main() async {
   // Initialize database and storage
   bool dbInitialized = false;
   try {
-    await ServiceLocator().initialize();
-    dbInitialized = true;
+    if (!kIsWeb) {
+      await ServiceLocator().initialize();
+      dbInitialized = true;
+    }
     debugPrint('Database initialized successfully');
   } catch (e) {
     debugPrint('Database initialization failed: $e');
@@ -98,20 +103,6 @@ class _AudyAppState extends State<AudyApp> {
     controller = AudyController(
       storage: widget.dbInitialized ? ServiceLocator().storageRepository : null,
     );
-
-    // Set up achievement unlock callback
-    controller.onAchievementUnlock = (achievement) {
-      // Play achievement sound
-      SoundService.instance.playAchievement();
-      if (mounted) {
-        AchievementToast.show(
-          context,
-          icon: Icons.auto_awesome_rounded,
-          title: achievement.title,
-          description: achievement.description,
-        );
-      }
-    };
 
     // Set up level up callback
     controller.onLevelUp = (newLevel) {
@@ -165,9 +156,7 @@ class _AudyAppState extends State<AudyApp> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                const CircularProgressIndicator(
-                  color: AudyColors.skyBlue,
-                ),
+                const CircularProgressIndicator(color: AudyColors.skyBlue),
               ],
             ),
           ),
@@ -176,14 +165,64 @@ class _AudyAppState extends State<AudyApp> {
     }
 
     // Determine initial route based on auth state
-    final initialRoute =
-        controller.isLoggedIn ? AppRoutes.dashboard : AppRoutes.login;
+    final initialRoute = controller.isLoggedIn
+        ? AppRoutes.dashboard
+        : AppRoutes.login;
 
     return AudyScope(
       controller: controller,
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
         title: 'AUDY - Autism-Friendly Learning',
+        builder: (context, child) => ListenableBuilder(
+          listenable: controller,
+          builder: (context, _) {
+            final media = MediaQuery.of(context);
+            return MediaQuery(
+              data: media.copyWith(
+                textScaler: controller.appSettings.largerText
+                    ? _LargerTextScaler(media.textScaler)
+                    : media.textScaler,
+              ),
+              child: Listener(
+                onPointerDown: kIsWeb
+                    ? (_) => SoundService.instance.unlockBrowserAudio()
+                    : null,
+                child: Stack(
+                  children: [
+                    AbsorbPointer(
+                      absorbing: controller.isPreparingWebAccount,
+                      child: child ?? const SizedBox.shrink(),
+                    ),
+                    if (controller.isPreparingWebAccount)
+                      const Positioned.fill(
+                        child: ColoredBox(
+                          color: AudyColors.backgroundPrimary,
+                          child: Center(child: CircularProgressIndicator()),
+                        ),
+                      ),
+                    if (kIsWeb && controller.webStorageMessage != null)
+                      Positioned(
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        child: Material(
+                          color: AudyColors.warning,
+                          child: SafeArea(
+                            top: false,
+                            child: Padding(
+                              padding: const EdgeInsets.all(12),
+                              child: Text(controller.webStorageMessage!),
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
         theme: ThemeData(
           useMaterial3: true,
           scaffoldBackgroundColor: AudyColors.backgroundPrimary,
@@ -248,18 +287,44 @@ class _AudyAppState extends State<AudyApp> {
           ),
         ),
         initialRoute: initialRoute,
+        // A browser refresh cannot restore in-memory game/result arguments.
+        // Restore the authenticated home and start a new game from there.
+        onGenerateInitialRoutes: kIsWeb
+            ? (_) => [
+                MaterialPageRoute(
+                  builder: (_) => const _HomeShell(currentIndex: 0),
+                ),
+              ]
+            : null,
+        onUnknownRoute: kIsWeb
+            ? (_) => MaterialPageRoute(
+                builder: (_) => const _HomeShell(currentIndex: 0),
+              )
+            : null,
         routes: {
+          for (final route in [
+            AppRoutes.caretaker,
+            AppRoutes.caretakerChildren,
+            AppRoutes.caretakerProfile,
+            AppRoutes.caretakerCustomization,
+            AppRoutes.caretakerEdit,
+            AppRoutes.caretakerStudyPlan,
+            AppRoutes.caretakerGuide,
+            AppRoutes.caretakerAssignments,
+            AppRoutes.caretakerLegacyHome,
+            AppRoutes.caretakerLegacyProgress,
+            AppRoutes.caretakerLegacyProfile,
+          ])
+            route: (_) => CaretakerRoute(route),
           AppRoutes.login: (_) => const LoginPage(),
           AppRoutes.dashboard: (_) => _HomeShell(currentIndex: _currentIndex),
           AppRoutes.games: (_) => _HomeShell(currentIndex: 1),
           AppRoutes.emotionClassify: (_) => const EmotionClassifyScreen(),
           AppRoutes.emotionMimic: (_) => const EmotionMimicScreen(),
           AppRoutes.miniPuzzle: (_) => const MiniPuzzleGameSelection(),
-          AppRoutes.sortingGame: (_) => const SortLevelSelectScreen(),
           AppRoutes.flashcard: (_) => const FlashcardDifficultyScreen(),
           AppRoutes.roadSafety: (_) => const RoadSafetyScreen(),
           AppRoutes.fruitCatchingBear: (_) => const FruitCatchingBearScreen(),
-          AppRoutes.reactionTime: (_) => const ReactionTimePage(),
           AppRoutes.readingHub: (_) => const ReadPronounceHub(),
           AppRoutes.letters: (_) => const ReadPronouncePracticeScreen(
             title: 'letters_practice',
@@ -279,7 +344,8 @@ class _AudyAppState extends State<AudyApp> {
           AppRoutes.social: (_) => const SocialPracticePage(),
           AppRoutes.rewards: (_) => _HomeShell(currentIndex: 2),
           AppRoutes.profile: (_) => _HomeShell(currentIndex: 3),
-          AppRoutes.preferences: (_) => const PreferencesPage(isOnboarding: true),
+          AppRoutes.preferences: (_) =>
+              const PreferencesPage(isOnboarding: true),
           AppRoutes.meltdown: (_) => const MeltdownScreen(),
           AppRoutes.device: (_) => const DeviceConnectionPage(),
           AppRoutes.assignments: (_) => const AssignmentsPage(),
@@ -293,16 +359,21 @@ class _AudyAppState extends State<AudyApp> {
               return PageRouteBuilder(
                 pageBuilder: (context, animation, secondaryAnimation) =>
                     const MeltdownScreen(),
-                transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                  return FadeTransition(
-                    opacity: animation.drive(
-                      CurveTween(
-                        curve: const Interval(0.0, 1.0, curve: Curves.easeInOut),
-                      ),
-                    ),
-                    child: child,
-                  );
-                },
+                transitionsBuilder:
+                    (context, animation, secondaryAnimation, child) {
+                      return FadeTransition(
+                        opacity: animation.drive(
+                          CurveTween(
+                            curve: const Interval(
+                              0.0,
+                              1.0,
+                              curve: Curves.easeInOut,
+                            ),
+                          ),
+                        ),
+                        child: child,
+                      );
+                    },
                 transitionDuration: const Duration(seconds: 2),
                 reverseTransitionDuration: const Duration(seconds: 1),
               );
@@ -356,45 +427,87 @@ class _HomeShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final pages = const [
-      DashboardPage(),
-      GamesHubPage(),
-      RewardsPage(),
-      ProfilePage(),
-    ];
-
-    return Scaffold(
-      body: pages[currentIndex],
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: currentIndex,
-        onTap: (index) {
-          final routes = [
+    final controller = AudyScope.of(context);
+    if (!controller.isLoggedIn) return const LoginPage();
+    final role = controller.currentUser?.role;
+    if (controller.currentUser?.mode == AppMode.caretaker) {
+      return CaretakerAccountGuard(
+        child: CaretakerShell(
+          key: ValueKey(controller.currentUser!.id),
+          initialTab: currentIndex == 3
+              ? 2
+              : currentIndex == 2
+              ? 1
+              : 0,
+        ),
+      );
+    }
+    if (controller.currentUser?.mode == AppMode.unknown) {
+      return const Scaffold(
+        body: Center(child: Text('This account role is not supported.')),
+      );
+    }
+    final isCaregiver = role == 'parent' || role == 'teacher';
+    final pages = isCaregiver
+        ? const <Widget>[DashboardPage(), RewardsPage(), ProfilePage()]
+        : const <Widget>[
+            DashboardPage(),
+            GamesHubPage(),
+            RewardsPage(),
+            ProfilePage(),
+          ];
+    final routes = isCaregiver
+        ? const [AppRoutes.dashboard, AppRoutes.rewards, AppRoutes.profile]
+        : const [
             AppRoutes.dashboard,
             AppRoutes.games,
             AppRoutes.rewards,
             AppRoutes.profile,
           ];
+    final selectedIndex = isCaregiver
+        ? switch (currentIndex) {
+            2 => 1,
+            3 => 2,
+            _ => 0,
+          }
+        : currentIndex;
+
+    return Scaffold(
+      body: pages[selectedIndex],
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: selectedIndex,
+        onTap: (index) {
           Navigator.pushReplacementNamed(context, routes[index]);
         },
         items: [
           BottomNavigationBarItem(
             icon: const Icon(Icons.home_rounded),
-            label: AudyScope.of(context).tr('home'),
+            label: controller.tr('home'),
           ),
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.sports_esports_rounded),
-            label: AudyScope.of(context).tr('games'),
-          ),
+          if (!isCaregiver)
+            BottomNavigationBarItem(
+              icon: const Icon(Icons.sports_esports_rounded),
+              label: controller.tr('games'),
+            ),
           BottomNavigationBarItem(
             icon: const Icon(Icons.workspace_premium_rounded),
-            label: AudyScope.of(context).tr('rewards'),
+            label: controller.tr(isCaregiver ? 'child_progress' : 'rewards'),
           ),
           BottomNavigationBarItem(
             icon: const Icon(Icons.person_rounded),
-            label: AudyScope.of(context).tr('profile'),
+            label: controller.tr('profile'),
           ),
         ],
       ),
     );
   }
+}
+
+class _LargerTextScaler extends TextScaler {
+  const _LargerTextScaler(this.base);
+  final TextScaler base;
+  @override
+  double scale(double fontSize) => base.scale(fontSize) * 1.2;
+  @override
+  double get textScaleFactor => base.scale(14) / 14 * 1.2;
 }

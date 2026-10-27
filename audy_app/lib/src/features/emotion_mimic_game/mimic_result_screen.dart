@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 
 import '../../core/audy_theme.dart';
@@ -18,7 +16,7 @@ class MimicResultScreen extends StatefulWidget {
     required this.confidence,
   });
 
-  final File capturedImage;
+  final ImageProvider capturedImage;
   final String expectedEmotion;
   final String detectedEmotion;
   final double confidence;
@@ -137,8 +135,8 @@ class _MimicResultScreenState extends State<MimicResultScreen> {
                         borderRadius: BorderRadius.circular(
                           AudySpacing.radiusXLarge,
                         ),
-                        child: Image.file(
-                          widget.capturedImage,
+                        child: Image(
+                          image: widget.capturedImage,
                           fit: BoxFit.cover,
                         ),
                       ),

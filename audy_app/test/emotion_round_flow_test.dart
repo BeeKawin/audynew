@@ -2,11 +2,29 @@ import 'package:audy_app/src/state/audy_controller.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   setUpAll(() async {
+    SharedPreferences.setMockInitialValues({});
+    final messenger =
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+    for (final channel in [
+      'xyz.luan/audioplayers',
+      'xyz.luan/audioplayers.global',
+      'flutter_tts',
+    ]) {
+      messenger.setMockMethodCallHandler(
+        MethodChannel(channel),
+        (_) async => 1,
+      );
+    }
+    messenger.setMockStreamHandler(
+      const EventChannel('xyz.luan/audioplayers.global/events'),
+      MockStreamHandler.inline(onListen: (_, sink) {}),
+    );
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(
           const MethodChannel('plugin.csdcorp.com/speech_to_text'),

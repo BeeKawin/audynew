@@ -4,41 +4,51 @@ import 'package:path_provider/path_provider.dart';
 
 import 'tables/user_progress.dart';
 import 'tables/user_rewards.dart';
-import 'tables/achievements.dart';
-import 'tables/user_achievements.dart';
 import 'tables/game_sessions.dart';
 import 'tables/user_preferences.dart';
 
 part 'database.g.dart';
 
-QueryExecutor _openConnection() {
+QueryExecutor _openConnection(
+  String name,
+  void Function(String)? onWebStorageWarning,
+) {
   return driftDatabase(
-    name: 'audy_db',
+    name: name,
     native: const DriftNativeOptions(
       databaseDirectory: getApplicationSupportDirectory,
     ),
     web: DriftWebOptions(
       sqlite3Wasm: Uri.parse('sqlite3.wasm'),
       driftWorker: Uri.parse('drift_worker.js'),
+      onResult: (result) {
+        if (result.chosenImplementation == WasmStorageImplementation.inMemory) {
+          onWebStorageWarning?.call(
+            'This browser can only keep local progress until this tab closes. Use regular browsing to keep it.',
+          );
+        } else if (result.chosenImplementation ==
+            WasmStorageImplementation.unsafeIndexedDb) {
+          onWebStorageWarning?.call(
+            'Please keep AUDY open in only one tab in this browser.',
+          );
+        }
+      },
     ),
   );
 }
 
 @DriftDatabase(
-  tables: [
-    UserProgress,
-    UserRewards,
-    Achievements,
-    UserAchievements,
-    GameSessions,
-    UserPreferences,
-  ],
+  tables: [UserProgress, UserRewards, GameSessions, UserPreferences],
 )
 class AppDatabase extends _$AppDatabase {
-  AppDatabase() : super(_openConnection());
+  AppDatabase({
+    String name = 'audy_db',
+    void Function(String)? onWebStorageWarning,
+  }) : super(_openConnection(name, onWebStorageWarning));
+  AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 8;
+  int get schemaVersion => 9;
 
   @override
   MigrationStrategy get migration {
@@ -85,6 +95,12 @@ class AppDatabase extends _$AppDatabase {
         // Migration from version 7 to 8: Reset analytics session history only.
         if (from <= 7) {
           await delete(gameSessions).go();
+        }
+        if (from <= 8) {
+          await transaction(() async {
+            await customStatement('DROP TABLE IF EXISTS user_achievements');
+            await customStatement('DROP TABLE IF EXISTS achievements');
+          });
         }
       },
     );

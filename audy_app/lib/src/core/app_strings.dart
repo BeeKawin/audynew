@@ -18,6 +18,12 @@ class AppStrings {
     'read_speak': {'en': 'Read & Speak', 'th': 'อ่านและพูด'},
     'social_chat': {'en': 'Social Chat', 'th': 'คุยแชท'},
     'rewards': {'en': 'Rewards', 'th': 'รางวัล'},
+    'child_progress': {'en': 'Child Progress', 'th': 'ความก้าวหน้าของเด็ก'},
+    'child_progress_description': {
+      'en': 'Review progress and set rewards.',
+      'th': 'ดูความก้าวหน้าและตั้งรางวัล',
+    },
+    'add_rewards': {'en': 'Add Rewards', 'th': 'เพิ่มรางวัล'},
     'assignments': {'en': 'Assignments', 'th': 'งานที่มอบหมาย'},
     'add_assignment': {'en': 'Add', 'th': 'เพิ่ม'},
     'create_assignment': {
@@ -65,6 +71,19 @@ class AppStrings {
     // Navigation
     'home': {'en': 'Home', 'th': 'หน้าหลัก'},
     'profile': {'en': 'Profile', 'th': 'โปรไฟล์'},
+    'parent_profile_description': {
+      'en': 'Manage your family profiles and learning dashboards.',
+      'th': 'จัดการโปรไฟล์ครอบครัวและแดชบอร์ดการเรียนรู้',
+    },
+    'children_under_care': {
+      'en': 'Children under your care',
+      'th': 'เด็กที่อยู่ในความดูแล',
+    },
+    'selected_child': {'en': 'Selected child', 'th': 'เด็กที่เลือก'},
+    'no_linked_children': {
+      'en': 'No linked child accounts yet.',
+      'th': 'ยังไม่มีบัญชีเด็กที่เชื่อมโยง',
+    },
     'back_home': {'en': 'Back to Home', 'th': 'กลับหน้าหลัก'},
     'back': {'en': 'Back', 'th': 'กลับ'},
 
@@ -94,14 +113,6 @@ class AppStrings {
     'guide_emotion_mimic': {
       'en': 'Look at the face. Then make the same expression!',
       'th': 'ดูใบหน้า แล้วทำหน้าแบบเดียวกัน!',
-    },
-    'guide_reaction_time': {
-      'en': 'Wait for green. Then tap fast.',
-      'th': 'รอให้เป็นสีเขียว แล้วแตะเร็วๆ',
-    },
-    'guide_sorting_game': {
-      'en': 'Tap a piece. Then tap the matching basket.',
-      'th': 'แตะชิ้นงาน แล้วแตะตะกร้าที่ตรงกัน',
     },
     'guide_flashcard': {
       'en': 'Watch the cards. Tap them in order.',
@@ -290,14 +301,8 @@ class AppStrings {
     'virtual_ear_right': {'en': 'Right ear', 'th': 'หูขวา'},
     'virtual_force_left': {'en': 'Squeeze L', 'th': 'บีบซ้าย'},
     'virtual_force_right': {'en': 'Squeeze R', 'th': 'บีบขวา'},
-    'open_app_controls': {
-      'en': 'Open app controls',
-      'th': 'เปิดหน้าควบคุมแอป',
-    },
-    'control_page_title': {
-      'en': 'App Controls',
-      'th': 'ปุ่มควบคุมแอป',
-    },
+    'open_app_controls': {'en': 'Open app controls', 'th': 'เปิดหน้าควบคุมแอป'},
+    'control_page_title': {'en': 'App Controls', 'th': 'ปุ่มควบคุมแอป'},
     'control_page_instruction': {
       'en': 'Tap a button to help players on other devices.',
       'th': 'แตะปุ่มเพื่อช่วยผู้เล่นบนอุปกรณ์อื่น',
@@ -306,10 +311,7 @@ class AppStrings {
       'en': 'Robot controls',
       'th': 'ปุ่มควบคุมหุ่นยนต์',
     },
-    'control_mimic_section': {
-      'en': 'Mimic emotion',
-      'th': 'เลียนแบบอารมณ์',
-    },
+    'control_mimic_section': {'en': 'Mimic emotion', 'th': 'เลียนแบบอารมณ์'},
     'control_left_ear': {'en': 'Left Ear', 'th': 'หูซ้าย'},
     'control_right_ear': {'en': 'Right Ear', 'th': 'หูขวา'},
     'control_nose': {'en': 'Nose', 'th': 'จมูก'},
@@ -324,15 +326,9 @@ class AppStrings {
       'en': 'Incorrect Mimic Emotion',
       'th': 'เลียนแบบอารมณ์ไม่ถูกต้อง',
     },
-    'control_ready': {
-      'en': 'Ready to send a control.',
-      'th': 'พร้อมส่งคำสั่ง',
-    },
+    'control_ready': {'en': 'Ready to send a control.', 'th': 'พร้อมส่งคำสั่ง'},
     'control_sending': {'en': 'Sending…', 'th': 'กำลังส่ง…'},
-    'control_sent': {
-      'en': 'Sent: {action}',
-      'th': 'ส่งแล้ว: {action}',
-    },
+    'control_sent': {'en': 'Sent: {action}', 'th': 'ส่งแล้ว: {action}'},
     'control_send_failed': {
       'en': 'Could not send. Check the connection and try again.',
       'th': 'ส่งไม่ได้ กรุณาตรวจสอบการเชื่อมต่อแล้วลองอีกครั้ง',
@@ -615,7 +611,6 @@ class AppStrings {
     'points': {'en': 'Points', 'th': 'คะแนน'},
     'games_played': {'en': 'Games Played', 'th': 'เกมที่เล่น'},
     'day_streak': {'en': 'Day Streak', 'th': 'วันต่อเนื่อง'},
-    'achievements': {'en': 'Achievements', 'th': 'ความสำเร็จ'},
     'completed': {'en': 'Completed', 'th': 'สำเร็จแล้ว'},
     'locked': {'en': 'Locked', 'th': 'ล็อก'},
     'reset_progress': {'en': 'Reset Progress', 'th': 'รีเซ็ตความก้าวหน้า'},
@@ -710,7 +705,6 @@ class AppStrings {
     'favorite_interests': {'en': 'Favorite Interests', 'th': 'ความสนใจที่ชอบ'},
     'edit_preferences': {'en': 'Edit Preferences', 'th': 'แก้ไขการตั้งค่า'},
     'none_selected': {'en': 'None selected', 'th': 'ยังไม่ได้เลือก'},
-    'your_achievements': {'en': 'Your Achievements', 'th': 'ความสำเร็จของคุณ'},
     'unlocked': {'en': 'Unlocked', 'th': 'ปลดล็อกแล้ว'},
     'sessions': {'en': 'Sessions', 'th': 'กิจกรรม'},
     'minutes': {'en': 'Minutes', 'th': 'นาที'},
@@ -758,6 +752,10 @@ class AppStrings {
       'en': 'Tap "Add Reward" to create your first reward!',
       'th': 'แตะ "เพิ่มรางวัล" เพื่อสร้างรางวัลแรกของคุณ!',
     },
+    'caregiver_reward_hint': {
+      'en': 'Rewards from your parent or teacher will appear here.',
+      'th': 'รางวัลจากผู้ปกครองหรือครูจะแสดงที่นี่',
+    },
     'max_rewards_reached': {'en': 'Max 3 rewards', 'th': 'สูงสุด 3 รางวัล'},
     'skins': {'en': 'Skins', 'th': 'สกิน'},
     'available_points': {'en': 'Available Points', 'th': 'คะแนนที่ใช้ได้'},
@@ -775,10 +773,6 @@ class AppStrings {
       'en': '{current} / {next} to {levelName}',
       'th': '{current} / {next} ไปสู่ {levelName}',
     },
-    'achievement_unlocked': {
-      'en': 'Achievement Unlocked!',
-      'th': 'ปลดล็อกความสำเร็จ!',
-    },
 
     // Create Reward Dialog
     'create_reward': {'en': 'Create Reward', 'th': 'สร้างรางวัล'},
@@ -789,6 +783,7 @@ class AppStrings {
     },
     'condition_label': {'en': 'Condition', 'th': 'เงื่อนไข'},
     'target_label': {'en': 'How many?', 'th': 'ทำกี่ครั้ง?'},
+    'chats_sent': {'en': 'Chats Sent', 'th': 'ข้อความที่ส่ง'},
     'create': {'en': 'Create', 'th': 'สร้าง'},
 
     // Reward Conditions (using existing keys from games section)
@@ -996,17 +991,12 @@ class AppStrings {
     // MiniPuzzle Game
     'minipuzzle_title': {'en': 'Mini Puzzle Games', 'th': 'เกมจิ๊กซอว์ย่อย'},
     'minipuzzle_pattern': {'en': 'Pattern Game', 'th': 'เกมลายลวดลาย'},
-    'minipuzzle_sorting': {'en': 'Sorting Game', 'th': 'เกมจัดเรียง'},
     'minipuzzle_puzzle': {'en': 'Puzzle Game', 'th': 'เกมจิ๊กซอว์'},
     'minipuzzle_odd_one_out': {'en': 'Odd One Out', 'th': 'หาตัวที่ต่าง'},
     'minipuzzle_visual_match': {'en': 'Visual Match', 'th': 'จับคู่ภาพ'},
     'minipuzzle_pattern_desc': {
       'en': 'Find the next shape in the pattern',
       'th': 'หารูปทรงถัดไปในลายลวดลาย',
-    },
-    'minipuzzle_sorting_desc': {
-      'en': 'Sort items into the right groups',
-      'th': 'จัดเรียงสิ่งของเข้ากลุ่มที่ถูกต้อง',
     },
     'minipuzzle_odd_one_out_desc': {
       'en': 'Find the item that is different',

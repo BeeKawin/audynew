@@ -6,7 +6,7 @@ class ProgressData {
   final int dayStreak;
   final DateTime? lastPlayedAt;
 
-  // Game-specific counters for achievement tracking
+  // Persisted gameplay counters for progress reporting
   final int puzzleGamesCompleted;
   final int readingExercisesCompleted;
   final int sortingGamesCompleted;
@@ -58,31 +58,11 @@ class RewardData {
   });
 }
 
-/// Achievement data with unlock status
-class AchievementData {
-  final int id;
-  final String key;
-  final String title;
-  final String description;
-  final bool unlocked;
-  final DateTime? unlockedAt;
-
-  const AchievementData({
-    required this.id,
-    required this.key,
-    required this.title,
-    required this.description,
-    required this.unlocked,
-    this.unlockedAt,
-  });
-}
-
 /// Weekly report data for parent dashboard
 class WeeklyReportData {
   final int gamesPlayed;
   final int pointsEarned;
   final int currentStreak;
-  final int achievementsUnlocked;
   final DateTime weekStart;
   final DateTime weekEnd;
   final Map<String, double> skillProgress;
@@ -92,7 +72,6 @@ class WeeklyReportData {
     required this.gamesPlayed,
     required this.pointsEarned,
     required this.currentStreak,
-    required this.achievementsUnlocked,
     required this.weekStart,
     required this.weekEnd,
     required this.skillProgress,
@@ -187,7 +166,6 @@ class ChildProfileData {
   final DateTime joinedDate;
   final int gamesPlayed;
   final int learningPoints;
-  final int achievementsUnlocked;
   final int dayStreak;
   final Map<String, double> skillAverages;
 
@@ -198,7 +176,6 @@ class ChildProfileData {
     required this.joinedDate,
     required this.gamesPlayed,
     required this.learningPoints,
-    required this.achievementsUnlocked,
     required this.dayStreak,
     required this.skillAverages,
   });
@@ -211,7 +188,6 @@ class GroupPerformanceData {
   final double averagePointsPerChild;
   final double averageStreak;
   final Map<String, double> averageSkillProgress;
-  final int totalAchievementsUnlocked;
   final DateTime reportGeneratedAt;
 
   const GroupPerformanceData({
@@ -220,7 +196,6 @@ class GroupPerformanceData {
     required this.averagePointsPerChild,
     required this.averageStreak,
     required this.averageSkillProgress,
-    required this.totalAchievementsUnlocked,
     required this.reportGeneratedAt,
   });
 }

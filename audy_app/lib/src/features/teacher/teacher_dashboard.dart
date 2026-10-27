@@ -8,7 +8,6 @@ import '../../services/sound_service.dart';
 import '../../state/audy_controller.dart';
 import 'student_detail_page.dart';
 
-
 class TeacherDashboard extends StatefulWidget {
   const TeacherDashboard({super.key});
 
@@ -74,8 +73,6 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
     {'key': 'emotion_classify', 'label': 'Emotion Recognition'},
     // {'key': 'emotion_mimic', 'label': 'Emotion Mimicking'},
     {'key': 'minipuzzle', 'label': 'Mini Puzzle'},
-    {'key': 'sorting', 'label': 'Shape Sorting'},
-    {'key': 'reaction_time', 'label': 'Reaction Time'},
     {'key': 'reading', 'label': 'Read & Speak'},
     {'key': 'social_chat', 'label': 'Social Chat'},
   ];
@@ -262,27 +259,33 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
         if (sessionsCount > 0) {
           final avg = accSums[key]! / sessionsCount;
           if (avg < 70) {
-            recs.add(_TeacherRecommendation(
-              gameType: key,
-              label: gameLabels[key]!,
-              reason: 'Class needs practice (low average: ${avg.round()}%)',
-              targetSkill: targetedSkills[key]!,
-            ));
+            recs.add(
+              _TeacherRecommendation(
+                gameType: key,
+                label: gameLabels[key]!,
+                reason: 'Class needs practice (low average: ${avg.round()}%)',
+                targetSkill: targetedSkills[key]!,
+              ),
+            );
           } else if (avg >= 70 && avg < 85) {
-            recs.add(_TeacherRecommendation(
-              gameType: key,
-              label: gameLabels[key]!,
-              reason: 'Reinforce class skill (average: ${avg.round()}%)',
-              targetSkill: targetedSkills[key]!,
-            ));
+            recs.add(
+              _TeacherRecommendation(
+                gameType: key,
+                label: gameLabels[key]!,
+                reason: 'Reinforce class skill (average: ${avg.round()}%)',
+                targetSkill: targetedSkills[key]!,
+              ),
+            );
           }
         } else {
-          recs.add(_TeacherRecommendation(
-            gameType: key,
-            label: gameLabels[key]!,
-            reason: 'Unplayed class activity (explore)',
-            targetSkill: targetedSkills[key]!,
-          ));
+          recs.add(
+            _TeacherRecommendation(
+              gameType: key,
+              label: gameLabels[key]!,
+              reason: 'Unplayed class activity (explore)',
+              targetSkill: targetedSkills[key]!,
+            ),
+          );
         }
       }
     } else {
@@ -303,27 +306,33 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
           if (sessionsCount > 0) {
             final avg = accSums[key]! / sessionsCount;
             if (avg < 70) {
-              recs.add(_TeacherRecommendation(
-                gameType: key,
-                label: gameLabels[key]!,
-                reason: 'Student needs practice (low score: ${avg.round()}%)',
-                targetSkill: targetedSkills[key]!,
-              ));
+              recs.add(
+                _TeacherRecommendation(
+                  gameType: key,
+                  label: gameLabels[key]!,
+                  reason: 'Student needs practice (low score: ${avg.round()}%)',
+                  targetSkill: targetedSkills[key]!,
+                ),
+              );
             } else if (avg >= 70 && avg < 85) {
-              recs.add(_TeacherRecommendation(
-                gameType: key,
-                label: gameLabels[key]!,
-                reason: 'Reinforce student skill (score: ${avg.round()}%)',
-                targetSkill: targetedSkills[key]!,
-              ));
+              recs.add(
+                _TeacherRecommendation(
+                  gameType: key,
+                  label: gameLabels[key]!,
+                  reason: 'Reinforce student skill (score: ${avg.round()}%)',
+                  targetSkill: targetedSkills[key]!,
+                ),
+              );
             }
           } else {
-            recs.add(_TeacherRecommendation(
-              gameType: key,
-              label: gameLabels[key]!,
-              reason: 'Unplayed student activity (explore)',
-              targetSkill: targetedSkills[key]!,
-            ));
+            recs.add(
+              _TeacherRecommendation(
+                gameType: key,
+                label: gameLabels[key]!,
+                reason: 'Unplayed student activity (explore)',
+                targetSkill: targetedSkills[key]!,
+              ),
+            );
           }
         }
       }
@@ -331,10 +340,14 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
 
     recs.sort((a, b) {
       int getPriority(String reason) {
-        if (reason.contains('needs practice') || reason.contains('Needs practice')) return 1;
+        if (reason.contains('needs practice') ||
+            reason.contains('Needs practice')) {
+          return 1;
+        }
         if (reason.contains('Unplayed')) return 2;
         return 3;
       }
+
       return getPriority(a.reason).compareTo(getPriority(b.reason));
     });
 
@@ -404,23 +417,7 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          'Teacher Dashboard',
-          style: AudyTypography.headingLarge,
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout_rounded),
-            onPressed: () async {
-              SoundService.instance.playTap();
-              await controller.logout();
-              if (context.mounted) {
-                Navigator.pushReplacementNamed(context, '/login');
-              }
-            },
-            tooltip: 'Sign Out',
-          ),
-        ],
+        title: Text('Teacher Dashboard', style: AudyTypography.headingLarge),
       ),
       body: AudyResponsivePage(
         scrollable: true,
@@ -435,7 +432,9 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                   padding: EdgeInsets.all(adaptive.space(20)),
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(AudySpacing.radiusLarge),
+                    borderRadius: BorderRadius.circular(
+                      AudySpacing.radiusLarge,
+                    ),
                     border: Border.all(color: AudyColors.mintGreen, width: 2),
                   ),
                   child: Row(
@@ -484,14 +483,13 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                   const Center(
                     child: Padding(
                       padding: EdgeInsets.all(32),
-                      child: CircularProgressIndicator(color: AudyColors.skyBlue),
+                      child: CircularProgressIndicator(
+                        color: AudyColors.skyBlue,
+                      ),
                     ),
                   )
                 else if (_students.isEmpty) ...[
-                  Text(
-                    'Classroom Grid',
-                    style: AudyTypography.headingSmall,
-                  ),
+                  Text('Classroom Grid', style: AudyTypography.headingSmall),
                   SizedBox(height: adaptive.space(12)),
                   _buildEmptyStudentsCard(adaptive),
                 ] else
@@ -537,9 +535,13 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                       hintText: 'student@email.com',
                       prefixIcon: const Icon(Icons.person_add_alt_1_outlined),
                       filled: true,
-                      fillColor: AudyColors.backgroundSoft.withValues(alpha: 0.1),
+                      fillColor: AudyColors.backgroundSoft.withValues(
+                        alpha: 0.1,
+                      ),
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(AudySpacing.radiusMedium),
+                        borderRadius: BorderRadius.circular(
+                          AudySpacing.radiusMedium,
+                        ),
                         borderSide: BorderSide.none,
                       ),
                       contentPadding: const EdgeInsets.symmetric(
@@ -557,7 +559,9 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                     foregroundColor: AudyColors.textOnColor,
                     minimumSize: const Size(80, 56),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AudySpacing.radiusMedium),
+                      borderRadius: BorderRadius.circular(
+                        AudySpacing.radiusMedium,
+                      ),
                     ),
                   ),
                   child: _isLinking
@@ -689,7 +693,9 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                     foregroundColor: AudyColors.textPrimary,
                     minimumSize: const Size(140, 48),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AudySpacing.radiusMedium),
+                      borderRadius: BorderRadius.circular(
+                        AudySpacing.radiusMedium,
+                      ),
                     ),
                   ),
                 ),
@@ -706,8 +712,12 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                   ),
                   const SizedBox(width: 4),
                   IconButton(
-                    onPressed: () => setState(() => _selectedImageBase64 = null),
-                    icon: const Icon(Icons.delete_outline, color: AudyColors.error),
+                    onPressed: () =>
+                        setState(() => _selectedImageBase64 = null),
+                    icon: const Icon(
+                      Icons.delete_outline,
+                      color: AudyColors.error,
+                    ),
                   ),
                 ],
               ],
@@ -777,18 +787,30 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                 spacing: 10,
                 runSpacing: 10,
                 children: _classWords.map((classWord) {
-                  final hasImage = classWord.imageUrl != null && classWord.imageUrl!.isNotEmpty;
+                  final hasImage =
+                      classWord.imageUrl != null &&
+                      classWord.imageUrl!.isNotEmpty;
                   Widget? avatar;
                   if (hasImage) {
                     final imgStr = classWord.imageUrl!;
                     if (imgStr.startsWith('data:image')) {
                       final bytes = base64Decode(imgStr.split(',')[1]);
                       avatar = ClipOval(
-                        child: Image.memory(bytes, width: 24, height: 24, fit: BoxFit.cover),
+                        child: Image.memory(
+                          bytes,
+                          width: 24,
+                          height: 24,
+                          fit: BoxFit.cover,
+                        ),
                       );
                     } else if (imgStr.startsWith('assets/')) {
                       avatar = ClipOval(
-                        child: Image.asset(imgStr, width: 24, height: 24, fit: BoxFit.cover),
+                        child: Image.asset(
+                          imgStr,
+                          width: 24,
+                          height: 24,
+                          fit: BoxFit.cover,
+                        ),
                       );
                     }
                   }
@@ -837,11 +859,17 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                       children: [
                         Text(
                           classWord.word,
-                          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 13,
+                          ),
                         ),
                         const SizedBox(width: 6),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
                             color: catColor,
                             borderRadius: BorderRadius.circular(4),
@@ -857,8 +885,13 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                         ),
                       ],
                     ),
-                    backgroundColor: AudyColors.backgroundSoft.withValues(alpha: 0.15),
-                    side: const BorderSide(color: AudyColors.borderLight, width: 1.2),
+                    backgroundColor: AudyColors.backgroundSoft.withValues(
+                      alpha: 0.15,
+                    ),
+                    side: const BorderSide(
+                      color: AudyColors.borderLight,
+                      width: 1.2,
+                    ),
                   );
                 }).toList(),
               ),
@@ -903,9 +936,13 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                         color: !_assignToWholeClass
                             ? AudyColors.skyBlue
                             : AudyColors.backgroundSoft.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(AudySpacing.radiusMedium),
+                        borderRadius: BorderRadius.circular(
+                          AudySpacing.radiusMedium,
+                        ),
                         border: Border.all(
-                          color: !_assignToWholeClass ? AudyColors.skyBlue : AudyColors.borderLight,
+                          color: !_assignToWholeClass
+                              ? AudyColors.skyBlue
+                              : AudyColors.borderLight,
                           width: 1.5,
                         ),
                       ),
@@ -915,7 +952,9 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w700,
-                            color: !_assignToWholeClass ? AudyColors.textOnColor : AudyColors.textSecondary,
+                            color: !_assignToWholeClass
+                                ? AudyColors.textOnColor
+                                : AudyColors.textSecondary,
                           ),
                         ),
                       ),
@@ -935,9 +974,13 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                         color: _assignToWholeClass
                             ? AudyColors.skyBlue
                             : AudyColors.backgroundSoft.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(AudySpacing.radiusMedium),
+                        borderRadius: BorderRadius.circular(
+                          AudySpacing.radiusMedium,
+                        ),
                         border: Border.all(
-                          color: _assignToWholeClass ? AudyColors.skyBlue : AudyColors.borderLight,
+                          color: _assignToWholeClass
+                              ? AudyColors.skyBlue
+                              : AudyColors.borderLight,
                           width: 1.5,
                         ),
                       ),
@@ -947,7 +990,9 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w700,
-                            color: _assignToWholeClass ? AudyColors.textOnColor : AudyColors.textSecondary,
+                            color: _assignToWholeClass
+                                ? AudyColors.textOnColor
+                                : AudyColors.textSecondary,
                           ),
                         ),
                       ),
@@ -967,7 +1012,9 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                   labelText: 'Student',
                   prefixIcon: const Icon(Icons.person_outline),
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(AudySpacing.radiusMedium),
+                    borderRadius: BorderRadius.circular(
+                      AudySpacing.radiusMedium,
+                    ),
                   ),
                 ),
                 items: _students.map((student) {
@@ -1064,8 +1111,8 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                     _assignToWholeClass
                         ? 'Based on class-wide skill performance'
                         : (_selectedStudentId == null
-                            ? 'Select a student to see suggestions'
-                            : 'Based on student\'s individual needs'),
+                              ? 'Select a student to see suggestions'
+                              : 'Based on student\'s individual needs'),
                     style: TextStyle(fontSize: 12, color: AudyColors.textLight),
                   ),
                   const SizedBox(height: 10),
@@ -1075,9 +1122,16 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                       child: Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: AudyColors.backgroundSoft.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(AudySpacing.radiusMedium),
-                          border: Border.all(color: AudyColors.borderLight, width: 1.2),
+                          color: AudyColors.backgroundSoft.withValues(
+                            alpha: 0.15,
+                          ),
+                          borderRadius: BorderRadius.circular(
+                            AudySpacing.radiusMedium,
+                          ),
+                          border: Border.all(
+                            color: AudyColors.borderLight,
+                            width: 1.2,
+                          ),
                         ),
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1133,16 +1187,24 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: AudyColors.skyBlue,
                                 foregroundColor: AudyColors.textOnColor,
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 8,
+                                ),
                                 minimumSize: Size.zero,
                                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(AudySpacing.radiusSmall),
+                                  borderRadius: BorderRadius.circular(
+                                    AudySpacing.radiusSmall,
+                                  ),
                                 ),
                               ),
                               child: const Text(
                                 'Use',
-                                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                ),
                               ),
                             ),
                           ],
@@ -1188,7 +1250,9 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                   _assignMessage!,
                   style: TextStyle(
                     fontSize: 13,
-                    color: _assignIsError ? AudyColors.error : AudyColors.success,
+                    color: _assignIsError
+                        ? AudyColors.error
+                        : AudyColors.success,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -1230,17 +1294,13 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
             const Text(
               'Add student accounts using their emails above to track progress.',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 13,
-                color: AudyColors.textLight,
-              ),
+              style: TextStyle(fontSize: 13, color: AudyColors.textLight),
             ),
           ],
         ),
       ),
     );
   }
-
 
   Widget _buildClassroomGrid(AudyAdaptive adaptive) {
     return Card(
@@ -1258,7 +1318,11 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
           children: [
             Row(
               children: [
-                const Icon(Icons.group_rounded, color: AudyColors.skyBlue, size: 24),
+                const Icon(
+                  Icons.group_rounded,
+                  color: AudyColors.skyBlue,
+                  size: 24,
+                ),
                 const SizedBox(width: 8),
                 Text(
                   'My Classroom (${_students.length} Enrolled)',
@@ -1288,8 +1352,10 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                 final points = stats?['learning_points'] ?? 0;
                 final streak = stats?['day_streak'] ?? 0;
                 final assignments = _studentAssignments[student.id] ?? [];
-                final activeAssignments = assignments.where((a) => !(a['is_completed'] as bool)).length;
-                
+                final activeAssignments = assignments
+                    .where((a) => !(a['is_completed'] as bool))
+                    .length;
+
                 final avatarColors = [
                   AudyColors.skyBlue,
                   AudyColors.mintGreen,
@@ -1298,18 +1364,21 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                   AudyColors.softLavender,
                   AudyColors.blushPink,
                 ];
-                final avatarColor = avatarColors[student.name.hashCode % avatarColors.length];
+                final avatarColor =
+                    avatarColors[student.name.hashCode % avatarColors.length];
 
                 return Container(
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(AudySpacing.radiusMedium),
+                    borderRadius: BorderRadius.circular(
+                      AudySpacing.radiusMedium,
+                    ),
                     boxShadow: [
                       BoxShadow(
                         color: AudyColors.shadowSoft.withValues(alpha: 0.05),
                         blurRadius: 12,
                         offset: const Offset(0, 4),
-                      )
+                      ),
                     ],
                     border: Border.all(
                       color: AudyColors.borderLight,
@@ -1317,7 +1386,9 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                     ),
                   ),
                   child: ClipRRect(
-                    borderRadius: BorderRadius.circular(AudySpacing.radiusMedium - 1.5),
+                    borderRadius: BorderRadius.circular(
+                      AudySpacing.radiusMedium - 1.5,
+                    ),
                     child: Material(
                       color: Colors.transparent,
                       child: InkWell(
@@ -1327,11 +1398,15 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                           int totalSessionsCount = 0;
                           for (final sList in _studentSessions.values) {
                             for (final s in sList) {
-                              classAvgAccuracy += (s['accuracy_percent'] as num?)?.toDouble() ?? 0.0;
+                              classAvgAccuracy +=
+                                  (s['accuracy_percent'] as num?)?.toDouble() ??
+                                  0.0;
                               totalSessionsCount++;
                             }
                           }
-                          final avgAcc = totalSessionsCount > 0 ? classAvgAccuracy / totalSessionsCount : 0.0;
+                          final avgAcc = totalSessionsCount > 0
+                              ? classAvgAccuracy / totalSessionsCount
+                              : 0.0;
 
                           Navigator.push(
                             context,
@@ -1339,7 +1414,8 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                               builder: (context) => StudentDetailPage(
                                 student: student,
                                 stats: _studentStats[student.id],
-                                assignments: _studentAssignments[student.id] ?? [],
+                                assignments:
+                                    _studentAssignments[student.id] ?? [],
                                 sessions: _studentSessions[student.id] ?? [],
                                 classAverageAccuracy: avgAcc,
                               ),
@@ -1353,13 +1429,19 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                             children: [
                               // Top: Age & Status Badges
                               Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 6,
+                                      vertical: 3,
+                                    ),
                                     decoration: BoxDecoration(
-                                      color: AudyColors.skyBlue.withValues(alpha: 0.15),
+                                      color: AudyColors.skyBlue.withValues(
+                                        alpha: 0.15,
+                                      ),
                                       borderRadius: BorderRadius.circular(10),
                                     ),
                                     child: Text(
@@ -1373,15 +1455,24 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                                   ),
                                   if (activeAssignments > 0)
                                     Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 6,
+                                        vertical: 3,
+                                      ),
                                       decoration: BoxDecoration(
-                                        color: Colors.orange.withValues(alpha: 0.15),
+                                        color: Colors.orange.withValues(
+                                          alpha: 0.15,
+                                        ),
                                         borderRadius: BorderRadius.circular(10),
                                       ),
                                       child: Row(
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
-                                          const Icon(Icons.assignment_late_rounded, size: 8, color: Colors.orange),
+                                          const Icon(
+                                            Icons.assignment_late_rounded,
+                                            size: 8,
+                                            color: Colors.orange,
+                                          ),
                                           const SizedBox(width: 2),
                                           Text(
                                             '$activeAssignments tasks',
@@ -1396,15 +1487,24 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                                     )
                                   else if (assignments.isNotEmpty)
                                     Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 6,
+                                        vertical: 3,
+                                      ),
                                       decoration: BoxDecoration(
-                                        color: AudyColors.success.withValues(alpha: 0.15),
+                                        color: AudyColors.success.withValues(
+                                          alpha: 0.15,
+                                        ),
                                         borderRadius: BorderRadius.circular(10),
                                       ),
                                       child: const Row(
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
-                                          Icon(Icons.check_circle_rounded, size: 8, color: AudyColors.success),
+                                          Icon(
+                                            Icons.check_circle_rounded,
+                                            size: 8,
+                                            color: AudyColors.success,
+                                          ),
                                           SizedBox(width: 2),
                                           Text(
                                             'Done',
@@ -1433,7 +1533,9 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                                   ),
                                   child: CircleAvatar(
                                     radius: 28,
-                                    backgroundColor: avatarColor.withValues(alpha: 0.15),
+                                    backgroundColor: avatarColor.withValues(
+                                      alpha: 0.15,
+                                    ),
                                     child: Icon(
                                       Icons.face_rounded,
                                       color: avatarColor,

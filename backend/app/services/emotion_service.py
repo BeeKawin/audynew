@@ -8,6 +8,7 @@ from PIL import Image
 import io
 from typing import Dict
 import logging
+from app.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -62,14 +63,30 @@ class EmotionService:
         self.initialized = False
         self._load_error = None
 
-        if TRANSFORMERS_AVAILABLE:
-            self._load_model()
+        self._load_model()
 
     def _load_model(self):
-        """Emotion model loading is disabled."""
+        """Load the existing classifier only when enabled on the backend."""
         self.initialized = False
-        self._load_error = "Model download and loading is disabled."
-        logger.info("Emotion model loading is disabled")
+        if not settings.EMOTION_MODEL_ENABLED:
+            self._load_error = "Model download and loading is disabled."
+            return
+        if not TRANSFORMERS_AVAILABLE:
+            self._load_error = "Emotion model dependencies are not installed."
+            return
+        try:
+            self.processor = ViTImageProcessor.from_pretrained(self.model_name)
+            self.model = ViTForImageClassification.from_pretrained(
+                self.model_name, use_safetensors=True
+            )
+            self.model.eval()
+            self._load_error = None
+            self.initialized = True
+        except Exception:
+            self.model = None
+            self.processor = None
+            self._load_error = "Emotion model could not be loaded. Check the backend logs."
+            logger.exception("Emotion model loading failed")
 
     def is_ready(self) -> bool:
         """Check if model is loaded and ready."""

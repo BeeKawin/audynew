@@ -90,20 +90,35 @@ class _SocialPracticePageState extends State<SocialPracticePage> {
     if (!_isListening) {
       // Initialize STT on first use
       if (!_speechInitialized) {
-        _speechInitialized = await _speech.initialize(
-          onStatus: (status) {
-            if (status == 'notListening' || status == 'done') {
-              if (mounted && _isListening) {
+        try {
+          _speechInitialized = await _speech.initialize(
+            onStatus: (status) {
+              if (status == 'notListening' || status == 'done') {
+                if (mounted && _isListening) {
+                  setState(() => _isListening = false);
+                }
+              }
+            },
+            onError: (error) {
+              if (mounted) {
                 setState(() => _isListening = false);
               }
-            }
-          },
-          onError: (error) {
-            if (mounted) {
-              setState(() => _isListening = false);
-            }
-          },
+            },
+          );
+        } catch (_) {
+          _speechInitialized = false;
+        }
+      }
+      if (!mounted) return;
+      if (!_speechInitialized) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Voice input is unavailable. You can type your message instead.',
+            ),
+          ),
         );
+        return;
       }
       if (_speechInitialized) {
         SoundService.instance.playTap();

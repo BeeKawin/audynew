@@ -65,12 +65,19 @@ class EmotionService {
 
     request.files.add(multipartFile);
 
-    final streamedResponse = await request.send();
-    final response = await http.Response.fromStream(streamedResponse);
+    if (bytes.isEmpty || bytes.length > 10 * 1024 * 1024) {
+      throw const EmotionLoadException(
+        'Please take a new photo and try again.',
+      );
+    }
+    final response = await (() async {
+      final streamedResponse = await _client.send(request);
+      return http.Response.fromStream(streamedResponse);
+    })().timeout(const Duration(seconds: 45));
 
     if (response.statusCode != 200) {
       throw EmotionLoadException(
-        'API error: ${response.statusCode} - ${response.body}',
+        'The emotion service is unavailable. Please try again shortly.',
       );
     }
 

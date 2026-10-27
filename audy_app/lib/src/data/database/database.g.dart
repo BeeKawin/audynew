@@ -163,6 +163,17 @@ class $UserProgressTable extends UserProgress
     requiredDuringInsert: false,
     defaultValue: const Constant(0),
   );
+  static const VerificationMeta _colorsSortedCorrectlyMeta =
+      const VerificationMeta('colorsSortedCorrectly');
+  @override
+  late final GeneratedColumn<int> colorsSortedCorrectly = GeneratedColumn<int>(
+    'colors_sorted_correctly',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
   static const VerificationMeta _sortGameUnlockedLevelMeta =
       const VerificationMeta('sortGameUnlockedLevel');
   @override
@@ -200,6 +211,7 @@ class $UserProgressTable extends UserProgress
     sortingGamesCompleted,
     emotionsRecognized,
     chatMessagesSent,
+    colorsSortedCorrectly,
     sortGameUnlockedLevel,
     gamesInCurrentSession,
   ];
@@ -319,6 +331,15 @@ class $UserProgressTable extends UserProgress
         ),
       );
     }
+    if (data.containsKey('colors_sorted_correctly')) {
+      context.handle(
+        _colorsSortedCorrectlyMeta,
+        colorsSortedCorrectly.isAcceptableOrUnknown(
+          data['colors_sorted_correctly']!,
+          _colorsSortedCorrectlyMeta,
+        ),
+      );
+    }
     if (data.containsKey('sort_game_unlocked_level')) {
       context.handle(
         _sortGameUnlockedLevelMeta,
@@ -398,6 +419,10 @@ class $UserProgressTable extends UserProgress
         DriftSqlType.int,
         data['${effectivePrefix}chat_messages_sent'],
       )!,
+      colorsSortedCorrectly: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}colors_sorted_correctly'],
+      )!,
       sortGameUnlockedLevel: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}sort_game_unlocked_level'],
@@ -430,6 +455,7 @@ class UserProgressData extends DataClass
   final int sortingGamesCompleted;
   final int emotionsRecognized;
   final int chatMessagesSent;
+  final int colorsSortedCorrectly;
   final int sortGameUnlockedLevel;
   final int gamesInCurrentSession;
   const UserProgressData({
@@ -446,6 +472,7 @@ class UserProgressData extends DataClass
     required this.sortingGamesCompleted,
     required this.emotionsRecognized,
     required this.chatMessagesSent,
+    required this.colorsSortedCorrectly,
     required this.sortGameUnlockedLevel,
     required this.gamesInCurrentSession,
   });
@@ -469,6 +496,7 @@ class UserProgressData extends DataClass
     map['sorting_games_completed'] = Variable<int>(sortingGamesCompleted);
     map['emotions_recognized'] = Variable<int>(emotionsRecognized);
     map['chat_messages_sent'] = Variable<int>(chatMessagesSent);
+    map['colors_sorted_correctly'] = Variable<int>(colorsSortedCorrectly);
     map['sort_game_unlocked_level'] = Variable<int>(sortGameUnlockedLevel);
     map['games_in_current_session'] = Variable<int>(gamesInCurrentSession);
     return map;
@@ -491,6 +519,7 @@ class UserProgressData extends DataClass
       sortingGamesCompleted: Value(sortingGamesCompleted),
       emotionsRecognized: Value(emotionsRecognized),
       chatMessagesSent: Value(chatMessagesSent),
+      colorsSortedCorrectly: Value(colorsSortedCorrectly),
       sortGameUnlockedLevel: Value(sortGameUnlockedLevel),
       gamesInCurrentSession: Value(gamesInCurrentSession),
     );
@@ -523,6 +552,9 @@ class UserProgressData extends DataClass
       ),
       emotionsRecognized: serializer.fromJson<int>(json['emotionsRecognized']),
       chatMessagesSent: serializer.fromJson<int>(json['chatMessagesSent']),
+      colorsSortedCorrectly: serializer.fromJson<int>(
+        json['colorsSortedCorrectly'],
+      ),
       sortGameUnlockedLevel: serializer.fromJson<int>(
         json['sortGameUnlockedLevel'],
       ),
@@ -550,6 +582,7 @@ class UserProgressData extends DataClass
       'sortingGamesCompleted': serializer.toJson<int>(sortingGamesCompleted),
       'emotionsRecognized': serializer.toJson<int>(emotionsRecognized),
       'chatMessagesSent': serializer.toJson<int>(chatMessagesSent),
+      'colorsSortedCorrectly': serializer.toJson<int>(colorsSortedCorrectly),
       'sortGameUnlockedLevel': serializer.toJson<int>(sortGameUnlockedLevel),
       'gamesInCurrentSession': serializer.toJson<int>(gamesInCurrentSession),
     };
@@ -569,6 +602,7 @@ class UserProgressData extends DataClass
     int? sortingGamesCompleted,
     int? emotionsRecognized,
     int? chatMessagesSent,
+    int? colorsSortedCorrectly,
     int? sortGameUnlockedLevel,
     int? gamesInCurrentSession,
   }) => UserProgressData(
@@ -586,6 +620,7 @@ class UserProgressData extends DataClass
     sortingGamesCompleted: sortingGamesCompleted ?? this.sortingGamesCompleted,
     emotionsRecognized: emotionsRecognized ?? this.emotionsRecognized,
     chatMessagesSent: chatMessagesSent ?? this.chatMessagesSent,
+    colorsSortedCorrectly: colorsSortedCorrectly ?? this.colorsSortedCorrectly,
     sortGameUnlockedLevel: sortGameUnlockedLevel ?? this.sortGameUnlockedLevel,
     gamesInCurrentSession: gamesInCurrentSession ?? this.gamesInCurrentSession,
   );
@@ -622,6 +657,9 @@ class UserProgressData extends DataClass
       chatMessagesSent: data.chatMessagesSent.present
           ? data.chatMessagesSent.value
           : this.chatMessagesSent,
+      colorsSortedCorrectly: data.colorsSortedCorrectly.present
+          ? data.colorsSortedCorrectly.value
+          : this.colorsSortedCorrectly,
       sortGameUnlockedLevel: data.sortGameUnlockedLevel.present
           ? data.sortGameUnlockedLevel.value
           : this.sortGameUnlockedLevel,
@@ -647,6 +685,7 @@ class UserProgressData extends DataClass
           ..write('sortingGamesCompleted: $sortingGamesCompleted, ')
           ..write('emotionsRecognized: $emotionsRecognized, ')
           ..write('chatMessagesSent: $chatMessagesSent, ')
+          ..write('colorsSortedCorrectly: $colorsSortedCorrectly, ')
           ..write('sortGameUnlockedLevel: $sortGameUnlockedLevel, ')
           ..write('gamesInCurrentSession: $gamesInCurrentSession')
           ..write(')'))
@@ -668,6 +707,7 @@ class UserProgressData extends DataClass
     sortingGamesCompleted,
     emotionsRecognized,
     chatMessagesSent,
+    colorsSortedCorrectly,
     sortGameUnlockedLevel,
     gamesInCurrentSession,
   );
@@ -688,6 +728,7 @@ class UserProgressData extends DataClass
           other.sortingGamesCompleted == this.sortingGamesCompleted &&
           other.emotionsRecognized == this.emotionsRecognized &&
           other.chatMessagesSent == this.chatMessagesSent &&
+          other.colorsSortedCorrectly == this.colorsSortedCorrectly &&
           other.sortGameUnlockedLevel == this.sortGameUnlockedLevel &&
           other.gamesInCurrentSession == this.gamesInCurrentSession);
 }
@@ -706,6 +747,7 @@ class UserProgressCompanion extends UpdateCompanion<UserProgressData> {
   final Value<int> sortingGamesCompleted;
   final Value<int> emotionsRecognized;
   final Value<int> chatMessagesSent;
+  final Value<int> colorsSortedCorrectly;
   final Value<int> sortGameUnlockedLevel;
   final Value<int> gamesInCurrentSession;
   const UserProgressCompanion({
@@ -722,6 +764,7 @@ class UserProgressCompanion extends UpdateCompanion<UserProgressData> {
     this.sortingGamesCompleted = const Value.absent(),
     this.emotionsRecognized = const Value.absent(),
     this.chatMessagesSent = const Value.absent(),
+    this.colorsSortedCorrectly = const Value.absent(),
     this.sortGameUnlockedLevel = const Value.absent(),
     this.gamesInCurrentSession = const Value.absent(),
   });
@@ -739,6 +782,7 @@ class UserProgressCompanion extends UpdateCompanion<UserProgressData> {
     this.sortingGamesCompleted = const Value.absent(),
     this.emotionsRecognized = const Value.absent(),
     this.chatMessagesSent = const Value.absent(),
+    this.colorsSortedCorrectly = const Value.absent(),
     this.sortGameUnlockedLevel = const Value.absent(),
     this.gamesInCurrentSession = const Value.absent(),
   }) : updatedAt = Value(updatedAt);
@@ -756,6 +800,7 @@ class UserProgressCompanion extends UpdateCompanion<UserProgressData> {
     Expression<int>? sortingGamesCompleted,
     Expression<int>? emotionsRecognized,
     Expression<int>? chatMessagesSent,
+    Expression<int>? colorsSortedCorrectly,
     Expression<int>? sortGameUnlockedLevel,
     Expression<int>? gamesInCurrentSession,
   }) {
@@ -777,6 +822,8 @@ class UserProgressCompanion extends UpdateCompanion<UserProgressData> {
         'sorting_games_completed': sortingGamesCompleted,
       if (emotionsRecognized != null) 'emotions_recognized': emotionsRecognized,
       if (chatMessagesSent != null) 'chat_messages_sent': chatMessagesSent,
+      if (colorsSortedCorrectly != null)
+        'colors_sorted_correctly': colorsSortedCorrectly,
       if (sortGameUnlockedLevel != null)
         'sort_game_unlocked_level': sortGameUnlockedLevel,
       if (gamesInCurrentSession != null)
@@ -798,14 +845,14 @@ class UserProgressCompanion extends UpdateCompanion<UserProgressData> {
     Value<int>? sortingGamesCompleted,
     Value<int>? emotionsRecognized,
     Value<int>? chatMessagesSent,
+    Value<int>? colorsSortedCorrectly,
     Value<int>? sortGameUnlockedLevel,
     Value<int>? gamesInCurrentSession,
   }) {
     return UserProgressCompanion(
       id: id ?? this.id,
       learningPoints: learningPoints ?? this.learningPoints,
-      spentLearningPoints:
-          spentLearningPoints ?? this.spentLearningPoints,
+      spentLearningPoints: spentLearningPoints ?? this.spentLearningPoints,
       gamesPlayed: gamesPlayed ?? this.gamesPlayed,
       dayStreak: dayStreak ?? this.dayStreak,
       lastPlayedAt: lastPlayedAt ?? this.lastPlayedAt,
@@ -818,6 +865,8 @@ class UserProgressCompanion extends UpdateCompanion<UserProgressData> {
           sortingGamesCompleted ?? this.sortingGamesCompleted,
       emotionsRecognized: emotionsRecognized ?? this.emotionsRecognized,
       chatMessagesSent: chatMessagesSent ?? this.chatMessagesSent,
+      colorsSortedCorrectly:
+          colorsSortedCorrectly ?? this.colorsSortedCorrectly,
       sortGameUnlockedLevel:
           sortGameUnlockedLevel ?? this.sortGameUnlockedLevel,
       gamesInCurrentSession:
@@ -871,6 +920,11 @@ class UserProgressCompanion extends UpdateCompanion<UserProgressData> {
     if (chatMessagesSent.present) {
       map['chat_messages_sent'] = Variable<int>(chatMessagesSent.value);
     }
+    if (colorsSortedCorrectly.present) {
+      map['colors_sorted_correctly'] = Variable<int>(
+        colorsSortedCorrectly.value,
+      );
+    }
     if (sortGameUnlockedLevel.present) {
       map['sort_game_unlocked_level'] = Variable<int>(
         sortGameUnlockedLevel.value,
@@ -900,6 +954,7 @@ class UserProgressCompanion extends UpdateCompanion<UserProgressData> {
           ..write('sortingGamesCompleted: $sortingGamesCompleted, ')
           ..write('emotionsRecognized: $emotionsRecognized, ')
           ..write('chatMessagesSent: $chatMessagesSent, ')
+          ..write('colorsSortedCorrectly: $colorsSortedCorrectly, ')
           ..write('sortGameUnlockedLevel: $sortGameUnlockedLevel, ')
           ..write('gamesInCurrentSession: $gamesInCurrentSession')
           ..write(')'))
@@ -1470,718 +1525,6 @@ class UserRewardsCompanion extends UpdateCompanion<UserReward> {
           ..write('isClaimed: $isClaimed, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
-          ..write(')'))
-        .toString();
-  }
-}
-
-class $AchievementsTable extends Achievements
-    with TableInfo<$AchievementsTable, Achievement> {
-  @override
-  final GeneratedDatabase attachedDatabase;
-  final String? _alias;
-  $AchievementsTable(this.attachedDatabase, [this._alias]);
-  static const VerificationMeta _idMeta = const VerificationMeta('id');
-  @override
-  late final GeneratedColumn<int> id = GeneratedColumn<int>(
-    'id',
-    aliasedName,
-    false,
-    hasAutoIncrement: true,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'PRIMARY KEY AUTOINCREMENT',
-    ),
-  );
-  static const VerificationMeta _keyMeta = const VerificationMeta('key');
-  @override
-  late final GeneratedColumn<String> key = GeneratedColumn<String>(
-    'key',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-    defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'),
-  );
-  static const VerificationMeta _titleMeta = const VerificationMeta('title');
-  @override
-  late final GeneratedColumn<String> title = GeneratedColumn<String>(
-    'title',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _descriptionMeta = const VerificationMeta(
-    'description',
-  );
-  @override
-  late final GeneratedColumn<String> description = GeneratedColumn<String>(
-    'description',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-  @override
-  List<GeneratedColumn> get $columns => [id, key, title, description];
-  @override
-  String get aliasedName => _alias ?? actualTableName;
-  @override
-  String get actualTableName => $name;
-  static const String $name = 'achievements';
-  @override
-  VerificationContext validateIntegrity(
-    Insertable<Achievement> instance, {
-    bool isInserting = false,
-  }) {
-    final context = VerificationContext();
-    final data = instance.toColumns(true);
-    if (data.containsKey('id')) {
-      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
-    }
-    if (data.containsKey('key')) {
-      context.handle(
-        _keyMeta,
-        key.isAcceptableOrUnknown(data['key']!, _keyMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_keyMeta);
-    }
-    if (data.containsKey('title')) {
-      context.handle(
-        _titleMeta,
-        title.isAcceptableOrUnknown(data['title']!, _titleMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_titleMeta);
-    }
-    if (data.containsKey('description')) {
-      context.handle(
-        _descriptionMeta,
-        description.isAcceptableOrUnknown(
-          data['description']!,
-          _descriptionMeta,
-        ),
-      );
-    } else if (isInserting) {
-      context.missing(_descriptionMeta);
-    }
-    return context;
-  }
-
-  @override
-  Set<GeneratedColumn> get $primaryKey => {id};
-  @override
-  Achievement map(Map<String, dynamic> data, {String? tablePrefix}) {
-    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return Achievement(
-      id: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}id'],
-      )!,
-      key: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}key'],
-      )!,
-      title: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}title'],
-      )!,
-      description: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}description'],
-      )!,
-    );
-  }
-
-  @override
-  $AchievementsTable createAlias(String alias) {
-    return $AchievementsTable(attachedDatabase, alias);
-  }
-}
-
-class Achievement extends DataClass implements Insertable<Achievement> {
-  final int id;
-  final String key;
-  final String title;
-  final String description;
-  const Achievement({
-    required this.id,
-    required this.key,
-    required this.title,
-    required this.description,
-  });
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    map['id'] = Variable<int>(id);
-    map['key'] = Variable<String>(key);
-    map['title'] = Variable<String>(title);
-    map['description'] = Variable<String>(description);
-    return map;
-  }
-
-  AchievementsCompanion toCompanion(bool nullToAbsent) {
-    return AchievementsCompanion(
-      id: Value(id),
-      key: Value(key),
-      title: Value(title),
-      description: Value(description),
-    );
-  }
-
-  factory Achievement.fromJson(
-    Map<String, dynamic> json, {
-    ValueSerializer? serializer,
-  }) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return Achievement(
-      id: serializer.fromJson<int>(json['id']),
-      key: serializer.fromJson<String>(json['key']),
-      title: serializer.fromJson<String>(json['title']),
-      description: serializer.fromJson<String>(json['description']),
-    );
-  }
-  @override
-  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return <String, dynamic>{
-      'id': serializer.toJson<int>(id),
-      'key': serializer.toJson<String>(key),
-      'title': serializer.toJson<String>(title),
-      'description': serializer.toJson<String>(description),
-    };
-  }
-
-  Achievement copyWith({
-    int? id,
-    String? key,
-    String? title,
-    String? description,
-  }) => Achievement(
-    id: id ?? this.id,
-    key: key ?? this.key,
-    title: title ?? this.title,
-    description: description ?? this.description,
-  );
-  Achievement copyWithCompanion(AchievementsCompanion data) {
-    return Achievement(
-      id: data.id.present ? data.id.value : this.id,
-      key: data.key.present ? data.key.value : this.key,
-      title: data.title.present ? data.title.value : this.title,
-      description: data.description.present
-          ? data.description.value
-          : this.description,
-    );
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('Achievement(')
-          ..write('id: $id, ')
-          ..write('key: $key, ')
-          ..write('title: $title, ')
-          ..write('description: $description')
-          ..write(')'))
-        .toString();
-  }
-
-  @override
-  int get hashCode => Object.hash(id, key, title, description);
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      (other is Achievement &&
-          other.id == this.id &&
-          other.key == this.key &&
-          other.title == this.title &&
-          other.description == this.description);
-}
-
-class AchievementsCompanion extends UpdateCompanion<Achievement> {
-  final Value<int> id;
-  final Value<String> key;
-  final Value<String> title;
-  final Value<String> description;
-  const AchievementsCompanion({
-    this.id = const Value.absent(),
-    this.key = const Value.absent(),
-    this.title = const Value.absent(),
-    this.description = const Value.absent(),
-  });
-  AchievementsCompanion.insert({
-    this.id = const Value.absent(),
-    required String key,
-    required String title,
-    required String description,
-  }) : key = Value(key),
-       title = Value(title),
-       description = Value(description);
-  static Insertable<Achievement> custom({
-    Expression<int>? id,
-    Expression<String>? key,
-    Expression<String>? title,
-    Expression<String>? description,
-  }) {
-    return RawValuesInsertable({
-      if (id != null) 'id': id,
-      if (key != null) 'key': key,
-      if (title != null) 'title': title,
-      if (description != null) 'description': description,
-    });
-  }
-
-  AchievementsCompanion copyWith({
-    Value<int>? id,
-    Value<String>? key,
-    Value<String>? title,
-    Value<String>? description,
-  }) {
-    return AchievementsCompanion(
-      id: id ?? this.id,
-      key: key ?? this.key,
-      title: title ?? this.title,
-      description: description ?? this.description,
-    );
-  }
-
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    if (id.present) {
-      map['id'] = Variable<int>(id.value);
-    }
-    if (key.present) {
-      map['key'] = Variable<String>(key.value);
-    }
-    if (title.present) {
-      map['title'] = Variable<String>(title.value);
-    }
-    if (description.present) {
-      map['description'] = Variable<String>(description.value);
-    }
-    return map;
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('AchievementsCompanion(')
-          ..write('id: $id, ')
-          ..write('key: $key, ')
-          ..write('title: $title, ')
-          ..write('description: $description')
-          ..write(')'))
-        .toString();
-  }
-}
-
-class $UserAchievementsTable extends UserAchievements
-    with TableInfo<$UserAchievementsTable, UserAchievement> {
-  @override
-  final GeneratedDatabase attachedDatabase;
-  final String? _alias;
-  $UserAchievementsTable(this.attachedDatabase, [this._alias]);
-  static const VerificationMeta _idMeta = const VerificationMeta('id');
-  @override
-  late final GeneratedColumn<int> id = GeneratedColumn<int>(
-    'id',
-    aliasedName,
-    false,
-    hasAutoIncrement: true,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'PRIMARY KEY AUTOINCREMENT',
-    ),
-  );
-  static const VerificationMeta _achievementIdMeta = const VerificationMeta(
-    'achievementId',
-  );
-  @override
-  late final GeneratedColumn<int> achievementId = GeneratedColumn<int>(
-    'achievement_id',
-    aliasedName,
-    false,
-    type: DriftSqlType.int,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _unlockedMeta = const VerificationMeta(
-    'unlocked',
-  );
-  @override
-  late final GeneratedColumn<bool> unlocked = GeneratedColumn<bool>(
-    'unlocked',
-    aliasedName,
-    false,
-    type: DriftSqlType.bool,
-    requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'CHECK ("unlocked" IN (0, 1))',
-    ),
-    defaultValue: const Constant(false),
-  );
-  static const VerificationMeta _unlockedAtMeta = const VerificationMeta(
-    'unlockedAt',
-  );
-  @override
-  late final GeneratedColumn<DateTime> unlockedAt = GeneratedColumn<DateTime>(
-    'unlocked_at',
-    aliasedName,
-    true,
-    type: DriftSqlType.dateTime,
-    requiredDuringInsert: false,
-  );
-  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
-    'updatedAt',
-  );
-  @override
-  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
-    'updated_at',
-    aliasedName,
-    false,
-    type: DriftSqlType.dateTime,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _isSyncedMeta = const VerificationMeta(
-    'isSynced',
-  );
-  @override
-  late final GeneratedColumn<bool> isSynced = GeneratedColumn<bool>(
-    'is_synced',
-    aliasedName,
-    false,
-    type: DriftSqlType.bool,
-    requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'CHECK ("is_synced" IN (0, 1))',
-    ),
-    defaultValue: const Constant(false),
-  );
-  @override
-  List<GeneratedColumn> get $columns => [
-    id,
-    achievementId,
-    unlocked,
-    unlockedAt,
-    updatedAt,
-    isSynced,
-  ];
-  @override
-  String get aliasedName => _alias ?? actualTableName;
-  @override
-  String get actualTableName => $name;
-  static const String $name = 'user_achievements';
-  @override
-  VerificationContext validateIntegrity(
-    Insertable<UserAchievement> instance, {
-    bool isInserting = false,
-  }) {
-    final context = VerificationContext();
-    final data = instance.toColumns(true);
-    if (data.containsKey('id')) {
-      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
-    }
-    if (data.containsKey('achievement_id')) {
-      context.handle(
-        _achievementIdMeta,
-        achievementId.isAcceptableOrUnknown(
-          data['achievement_id']!,
-          _achievementIdMeta,
-        ),
-      );
-    } else if (isInserting) {
-      context.missing(_achievementIdMeta);
-    }
-    if (data.containsKey('unlocked')) {
-      context.handle(
-        _unlockedMeta,
-        unlocked.isAcceptableOrUnknown(data['unlocked']!, _unlockedMeta),
-      );
-    }
-    if (data.containsKey('unlocked_at')) {
-      context.handle(
-        _unlockedAtMeta,
-        unlockedAt.isAcceptableOrUnknown(data['unlocked_at']!, _unlockedAtMeta),
-      );
-    }
-    if (data.containsKey('updated_at')) {
-      context.handle(
-        _updatedAtMeta,
-        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_updatedAtMeta);
-    }
-    if (data.containsKey('is_synced')) {
-      context.handle(
-        _isSyncedMeta,
-        isSynced.isAcceptableOrUnknown(data['is_synced']!, _isSyncedMeta),
-      );
-    }
-    return context;
-  }
-
-  @override
-  Set<GeneratedColumn> get $primaryKey => {id};
-  @override
-  UserAchievement map(Map<String, dynamic> data, {String? tablePrefix}) {
-    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return UserAchievement(
-      id: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}id'],
-      )!,
-      achievementId: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}achievement_id'],
-      )!,
-      unlocked: attachedDatabase.typeMapping.read(
-        DriftSqlType.bool,
-        data['${effectivePrefix}unlocked'],
-      )!,
-      unlockedAt: attachedDatabase.typeMapping.read(
-        DriftSqlType.dateTime,
-        data['${effectivePrefix}unlocked_at'],
-      ),
-      updatedAt: attachedDatabase.typeMapping.read(
-        DriftSqlType.dateTime,
-        data['${effectivePrefix}updated_at'],
-      )!,
-      isSynced: attachedDatabase.typeMapping.read(
-        DriftSqlType.bool,
-        data['${effectivePrefix}is_synced'],
-      )!,
-    );
-  }
-
-  @override
-  $UserAchievementsTable createAlias(String alias) {
-    return $UserAchievementsTable(attachedDatabase, alias);
-  }
-}
-
-class UserAchievement extends DataClass implements Insertable<UserAchievement> {
-  final int id;
-  final int achievementId;
-  final bool unlocked;
-  final DateTime? unlockedAt;
-  final DateTime updatedAt;
-  final bool isSynced;
-  const UserAchievement({
-    required this.id,
-    required this.achievementId,
-    required this.unlocked,
-    this.unlockedAt,
-    required this.updatedAt,
-    required this.isSynced,
-  });
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    map['id'] = Variable<int>(id);
-    map['achievement_id'] = Variable<int>(achievementId);
-    map['unlocked'] = Variable<bool>(unlocked);
-    if (!nullToAbsent || unlockedAt != null) {
-      map['unlocked_at'] = Variable<DateTime>(unlockedAt);
-    }
-    map['updated_at'] = Variable<DateTime>(updatedAt);
-    map['is_synced'] = Variable<bool>(isSynced);
-    return map;
-  }
-
-  UserAchievementsCompanion toCompanion(bool nullToAbsent) {
-    return UserAchievementsCompanion(
-      id: Value(id),
-      achievementId: Value(achievementId),
-      unlocked: Value(unlocked),
-      unlockedAt: unlockedAt == null && nullToAbsent
-          ? const Value.absent()
-          : Value(unlockedAt),
-      updatedAt: Value(updatedAt),
-      isSynced: Value(isSynced),
-    );
-  }
-
-  factory UserAchievement.fromJson(
-    Map<String, dynamic> json, {
-    ValueSerializer? serializer,
-  }) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return UserAchievement(
-      id: serializer.fromJson<int>(json['id']),
-      achievementId: serializer.fromJson<int>(json['achievementId']),
-      unlocked: serializer.fromJson<bool>(json['unlocked']),
-      unlockedAt: serializer.fromJson<DateTime?>(json['unlockedAt']),
-      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
-      isSynced: serializer.fromJson<bool>(json['isSynced']),
-    );
-  }
-  @override
-  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return <String, dynamic>{
-      'id': serializer.toJson<int>(id),
-      'achievementId': serializer.toJson<int>(achievementId),
-      'unlocked': serializer.toJson<bool>(unlocked),
-      'unlockedAt': serializer.toJson<DateTime?>(unlockedAt),
-      'updatedAt': serializer.toJson<DateTime>(updatedAt),
-      'isSynced': serializer.toJson<bool>(isSynced),
-    };
-  }
-
-  UserAchievement copyWith({
-    int? id,
-    int? achievementId,
-    bool? unlocked,
-    Value<DateTime?> unlockedAt = const Value.absent(),
-    DateTime? updatedAt,
-    bool? isSynced,
-  }) => UserAchievement(
-    id: id ?? this.id,
-    achievementId: achievementId ?? this.achievementId,
-    unlocked: unlocked ?? this.unlocked,
-    unlockedAt: unlockedAt.present ? unlockedAt.value : this.unlockedAt,
-    updatedAt: updatedAt ?? this.updatedAt,
-    isSynced: isSynced ?? this.isSynced,
-  );
-  UserAchievement copyWithCompanion(UserAchievementsCompanion data) {
-    return UserAchievement(
-      id: data.id.present ? data.id.value : this.id,
-      achievementId: data.achievementId.present
-          ? data.achievementId.value
-          : this.achievementId,
-      unlocked: data.unlocked.present ? data.unlocked.value : this.unlocked,
-      unlockedAt: data.unlockedAt.present
-          ? data.unlockedAt.value
-          : this.unlockedAt,
-      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
-      isSynced: data.isSynced.present ? data.isSynced.value : this.isSynced,
-    );
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('UserAchievement(')
-          ..write('id: $id, ')
-          ..write('achievementId: $achievementId, ')
-          ..write('unlocked: $unlocked, ')
-          ..write('unlockedAt: $unlockedAt, ')
-          ..write('updatedAt: $updatedAt, ')
-          ..write('isSynced: $isSynced')
-          ..write(')'))
-        .toString();
-  }
-
-  @override
-  int get hashCode =>
-      Object.hash(id, achievementId, unlocked, unlockedAt, updatedAt, isSynced);
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      (other is UserAchievement &&
-          other.id == this.id &&
-          other.achievementId == this.achievementId &&
-          other.unlocked == this.unlocked &&
-          other.unlockedAt == this.unlockedAt &&
-          other.updatedAt == this.updatedAt &&
-          other.isSynced == this.isSynced);
-}
-
-class UserAchievementsCompanion extends UpdateCompanion<UserAchievement> {
-  final Value<int> id;
-  final Value<int> achievementId;
-  final Value<bool> unlocked;
-  final Value<DateTime?> unlockedAt;
-  final Value<DateTime> updatedAt;
-  final Value<bool> isSynced;
-  const UserAchievementsCompanion({
-    this.id = const Value.absent(),
-    this.achievementId = const Value.absent(),
-    this.unlocked = const Value.absent(),
-    this.unlockedAt = const Value.absent(),
-    this.updatedAt = const Value.absent(),
-    this.isSynced = const Value.absent(),
-  });
-  UserAchievementsCompanion.insert({
-    this.id = const Value.absent(),
-    required int achievementId,
-    this.unlocked = const Value.absent(),
-    this.unlockedAt = const Value.absent(),
-    required DateTime updatedAt,
-    this.isSynced = const Value.absent(),
-  }) : achievementId = Value(achievementId),
-       updatedAt = Value(updatedAt);
-  static Insertable<UserAchievement> custom({
-    Expression<int>? id,
-    Expression<int>? achievementId,
-    Expression<bool>? unlocked,
-    Expression<DateTime>? unlockedAt,
-    Expression<DateTime>? updatedAt,
-    Expression<bool>? isSynced,
-  }) {
-    return RawValuesInsertable({
-      if (id != null) 'id': id,
-      if (achievementId != null) 'achievement_id': achievementId,
-      if (unlocked != null) 'unlocked': unlocked,
-      if (unlockedAt != null) 'unlocked_at': unlockedAt,
-      if (updatedAt != null) 'updated_at': updatedAt,
-      if (isSynced != null) 'is_synced': isSynced,
-    });
-  }
-
-  UserAchievementsCompanion copyWith({
-    Value<int>? id,
-    Value<int>? achievementId,
-    Value<bool>? unlocked,
-    Value<DateTime?>? unlockedAt,
-    Value<DateTime>? updatedAt,
-    Value<bool>? isSynced,
-  }) {
-    return UserAchievementsCompanion(
-      id: id ?? this.id,
-      achievementId: achievementId ?? this.achievementId,
-      unlocked: unlocked ?? this.unlocked,
-      unlockedAt: unlockedAt ?? this.unlockedAt,
-      updatedAt: updatedAt ?? this.updatedAt,
-      isSynced: isSynced ?? this.isSynced,
-    );
-  }
-
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    if (id.present) {
-      map['id'] = Variable<int>(id.value);
-    }
-    if (achievementId.present) {
-      map['achievement_id'] = Variable<int>(achievementId.value);
-    }
-    if (unlocked.present) {
-      map['unlocked'] = Variable<bool>(unlocked.value);
-    }
-    if (unlockedAt.present) {
-      map['unlocked_at'] = Variable<DateTime>(unlockedAt.value);
-    }
-    if (updatedAt.present) {
-      map['updated_at'] = Variable<DateTime>(updatedAt.value);
-    }
-    if (isSynced.present) {
-      map['is_synced'] = Variable<bool>(isSynced.value);
-    }
-    return map;
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('UserAchievementsCompanion(')
-          ..write('id: $id, ')
-          ..write('achievementId: $achievementId, ')
-          ..write('unlocked: $unlocked, ')
-          ..write('unlockedAt: $unlockedAt, ')
-          ..write('updatedAt: $updatedAt, ')
-          ..write('isSynced: $isSynced')
           ..write(')'))
         .toString();
   }
@@ -3561,10 +2904,6 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
   late final $UserProgressTable userProgress = $UserProgressTable(this);
   late final $UserRewardsTable userRewards = $UserRewardsTable(this);
-  late final $AchievementsTable achievements = $AchievementsTable(this);
-  late final $UserAchievementsTable userAchievements = $UserAchievementsTable(
-    this,
-  );
   late final $GameSessionsTable gameSessions = $GameSessionsTable(this);
   late final $UserPreferencesTable userPreferences = $UserPreferencesTable(
     this,
@@ -3576,8 +2915,6 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   List<DatabaseSchemaEntity> get allSchemaEntities => [
     userProgress,
     userRewards,
-    achievements,
-    userAchievements,
     gameSessions,
     userPreferences,
   ];
@@ -3598,6 +2935,7 @@ typedef $$UserProgressTableCreateCompanionBuilder =
       Value<int> sortingGamesCompleted,
       Value<int> emotionsRecognized,
       Value<int> chatMessagesSent,
+      Value<int> colorsSortedCorrectly,
       Value<int> sortGameUnlockedLevel,
       Value<int> gamesInCurrentSession,
     });
@@ -3616,6 +2954,7 @@ typedef $$UserProgressTableUpdateCompanionBuilder =
       Value<int> sortingGamesCompleted,
       Value<int> emotionsRecognized,
       Value<int> chatMessagesSent,
+      Value<int> colorsSortedCorrectly,
       Value<int> sortGameUnlockedLevel,
       Value<int> gamesInCurrentSession,
     });
@@ -3691,6 +3030,11 @@ class $$UserProgressTableFilterComposer
 
   ColumnFilters<int> get chatMessagesSent => $composableBuilder(
     column: $table.chatMessagesSent,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get colorsSortedCorrectly => $composableBuilder(
+    column: $table.colorsSortedCorrectly,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3779,6 +3123,11 @@ class $$UserProgressTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get colorsSortedCorrectly => $composableBuilder(
+    column: $table.colorsSortedCorrectly,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get sortGameUnlockedLevel => $composableBuilder(
     column: $table.sortGameUnlockedLevel,
     builder: (column) => ColumnOrderings(column),
@@ -3856,6 +3205,11 @@ class $$UserProgressTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<int> get colorsSortedCorrectly => $composableBuilder(
+    column: $table.colorsSortedCorrectly,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<int> get sortGameUnlockedLevel => $composableBuilder(
     column: $table.sortGameUnlockedLevel,
     builder: (column) => column,
@@ -3911,6 +3265,7 @@ class $$UserProgressTableTableManager
                 Value<int> sortingGamesCompleted = const Value.absent(),
                 Value<int> emotionsRecognized = const Value.absent(),
                 Value<int> chatMessagesSent = const Value.absent(),
+                Value<int> colorsSortedCorrectly = const Value.absent(),
                 Value<int> sortGameUnlockedLevel = const Value.absent(),
                 Value<int> gamesInCurrentSession = const Value.absent(),
               }) => UserProgressCompanion(
@@ -3927,6 +3282,7 @@ class $$UserProgressTableTableManager
                 sortingGamesCompleted: sortingGamesCompleted,
                 emotionsRecognized: emotionsRecognized,
                 chatMessagesSent: chatMessagesSent,
+                colorsSortedCorrectly: colorsSortedCorrectly,
                 sortGameUnlockedLevel: sortGameUnlockedLevel,
                 gamesInCurrentSession: gamesInCurrentSession,
               ),
@@ -3945,6 +3301,7 @@ class $$UserProgressTableTableManager
                 Value<int> sortingGamesCompleted = const Value.absent(),
                 Value<int> emotionsRecognized = const Value.absent(),
                 Value<int> chatMessagesSent = const Value.absent(),
+                Value<int> colorsSortedCorrectly = const Value.absent(),
                 Value<int> sortGameUnlockedLevel = const Value.absent(),
                 Value<int> gamesInCurrentSession = const Value.absent(),
               }) => UserProgressCompanion.insert(
@@ -3961,6 +3318,7 @@ class $$UserProgressTableTableManager
                 sortingGamesCompleted: sortingGamesCompleted,
                 emotionsRecognized: emotionsRecognized,
                 chatMessagesSent: chatMessagesSent,
+                colorsSortedCorrectly: colorsSortedCorrectly,
                 sortGameUnlockedLevel: sortGameUnlockedLevel,
                 gamesInCurrentSession: gamesInCurrentSession,
               ),
@@ -4265,406 +3623,6 @@ typedef $$UserRewardsTableProcessedTableManager =
         BaseReferences<_$AppDatabase, $UserRewardsTable, UserReward>,
       ),
       UserReward,
-      PrefetchHooks Function()
-    >;
-typedef $$AchievementsTableCreateCompanionBuilder =
-    AchievementsCompanion Function({
-      Value<int> id,
-      required String key,
-      required String title,
-      required String description,
-    });
-typedef $$AchievementsTableUpdateCompanionBuilder =
-    AchievementsCompanion Function({
-      Value<int> id,
-      Value<String> key,
-      Value<String> title,
-      Value<String> description,
-    });
-
-class $$AchievementsTableFilterComposer
-    extends Composer<_$AppDatabase, $AchievementsTable> {
-  $$AchievementsTableFilterComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnFilters<int> get id => $composableBuilder(
-    column: $table.id,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get key => $composableBuilder(
-    column: $table.key,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get title => $composableBuilder(
-    column: $table.title,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get description => $composableBuilder(
-    column: $table.description,
-    builder: (column) => ColumnFilters(column),
-  );
-}
-
-class $$AchievementsTableOrderingComposer
-    extends Composer<_$AppDatabase, $AchievementsTable> {
-  $$AchievementsTableOrderingComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnOrderings<int> get id => $composableBuilder(
-    column: $table.id,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get key => $composableBuilder(
-    column: $table.key,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get title => $composableBuilder(
-    column: $table.title,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get description => $composableBuilder(
-    column: $table.description,
-    builder: (column) => ColumnOrderings(column),
-  );
-}
-
-class $$AchievementsTableAnnotationComposer
-    extends Composer<_$AppDatabase, $AchievementsTable> {
-  $$AchievementsTableAnnotationComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  GeneratedColumn<int> get id =>
-      $composableBuilder(column: $table.id, builder: (column) => column);
-
-  GeneratedColumn<String> get key =>
-      $composableBuilder(column: $table.key, builder: (column) => column);
-
-  GeneratedColumn<String> get title =>
-      $composableBuilder(column: $table.title, builder: (column) => column);
-
-  GeneratedColumn<String> get description => $composableBuilder(
-    column: $table.description,
-    builder: (column) => column,
-  );
-}
-
-class $$AchievementsTableTableManager
-    extends
-        RootTableManager<
-          _$AppDatabase,
-          $AchievementsTable,
-          Achievement,
-          $$AchievementsTableFilterComposer,
-          $$AchievementsTableOrderingComposer,
-          $$AchievementsTableAnnotationComposer,
-          $$AchievementsTableCreateCompanionBuilder,
-          $$AchievementsTableUpdateCompanionBuilder,
-          (
-            Achievement,
-            BaseReferences<_$AppDatabase, $AchievementsTable, Achievement>,
-          ),
-          Achievement,
-          PrefetchHooks Function()
-        > {
-  $$AchievementsTableTableManager(_$AppDatabase db, $AchievementsTable table)
-    : super(
-        TableManagerState(
-          db: db,
-          table: table,
-          createFilteringComposer: () =>
-              $$AchievementsTableFilterComposer($db: db, $table: table),
-          createOrderingComposer: () =>
-              $$AchievementsTableOrderingComposer($db: db, $table: table),
-          createComputedFieldComposer: () =>
-              $$AchievementsTableAnnotationComposer($db: db, $table: table),
-          updateCompanionCallback:
-              ({
-                Value<int> id = const Value.absent(),
-                Value<String> key = const Value.absent(),
-                Value<String> title = const Value.absent(),
-                Value<String> description = const Value.absent(),
-              }) => AchievementsCompanion(
-                id: id,
-                key: key,
-                title: title,
-                description: description,
-              ),
-          createCompanionCallback:
-              ({
-                Value<int> id = const Value.absent(),
-                required String key,
-                required String title,
-                required String description,
-              }) => AchievementsCompanion.insert(
-                id: id,
-                key: key,
-                title: title,
-                description: description,
-              ),
-          withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
-              .toList(),
-          prefetchHooksCallback: null,
-        ),
-      );
-}
-
-typedef $$AchievementsTableProcessedTableManager =
-    ProcessedTableManager<
-      _$AppDatabase,
-      $AchievementsTable,
-      Achievement,
-      $$AchievementsTableFilterComposer,
-      $$AchievementsTableOrderingComposer,
-      $$AchievementsTableAnnotationComposer,
-      $$AchievementsTableCreateCompanionBuilder,
-      $$AchievementsTableUpdateCompanionBuilder,
-      (
-        Achievement,
-        BaseReferences<_$AppDatabase, $AchievementsTable, Achievement>,
-      ),
-      Achievement,
-      PrefetchHooks Function()
-    >;
-typedef $$UserAchievementsTableCreateCompanionBuilder =
-    UserAchievementsCompanion Function({
-      Value<int> id,
-      required int achievementId,
-      Value<bool> unlocked,
-      Value<DateTime?> unlockedAt,
-      required DateTime updatedAt,
-      Value<bool> isSynced,
-    });
-typedef $$UserAchievementsTableUpdateCompanionBuilder =
-    UserAchievementsCompanion Function({
-      Value<int> id,
-      Value<int> achievementId,
-      Value<bool> unlocked,
-      Value<DateTime?> unlockedAt,
-      Value<DateTime> updatedAt,
-      Value<bool> isSynced,
-    });
-
-class $$UserAchievementsTableFilterComposer
-    extends Composer<_$AppDatabase, $UserAchievementsTable> {
-  $$UserAchievementsTableFilterComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnFilters<int> get id => $composableBuilder(
-    column: $table.id,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<int> get achievementId => $composableBuilder(
-    column: $table.achievementId,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<bool> get unlocked => $composableBuilder(
-    column: $table.unlocked,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<DateTime> get unlockedAt => $composableBuilder(
-    column: $table.unlockedAt,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
-    column: $table.updatedAt,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<bool> get isSynced => $composableBuilder(
-    column: $table.isSynced,
-    builder: (column) => ColumnFilters(column),
-  );
-}
-
-class $$UserAchievementsTableOrderingComposer
-    extends Composer<_$AppDatabase, $UserAchievementsTable> {
-  $$UserAchievementsTableOrderingComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnOrderings<int> get id => $composableBuilder(
-    column: $table.id,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<int> get achievementId => $composableBuilder(
-    column: $table.achievementId,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<bool> get unlocked => $composableBuilder(
-    column: $table.unlocked,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<DateTime> get unlockedAt => $composableBuilder(
-    column: $table.unlockedAt,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
-    column: $table.updatedAt,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<bool> get isSynced => $composableBuilder(
-    column: $table.isSynced,
-    builder: (column) => ColumnOrderings(column),
-  );
-}
-
-class $$UserAchievementsTableAnnotationComposer
-    extends Composer<_$AppDatabase, $UserAchievementsTable> {
-  $$UserAchievementsTableAnnotationComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  GeneratedColumn<int> get id =>
-      $composableBuilder(column: $table.id, builder: (column) => column);
-
-  GeneratedColumn<int> get achievementId => $composableBuilder(
-    column: $table.achievementId,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<bool> get unlocked =>
-      $composableBuilder(column: $table.unlocked, builder: (column) => column);
-
-  GeneratedColumn<DateTime> get unlockedAt => $composableBuilder(
-    column: $table.unlockedAt,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<DateTime> get updatedAt =>
-      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
-
-  GeneratedColumn<bool> get isSynced =>
-      $composableBuilder(column: $table.isSynced, builder: (column) => column);
-}
-
-class $$UserAchievementsTableTableManager
-    extends
-        RootTableManager<
-          _$AppDatabase,
-          $UserAchievementsTable,
-          UserAchievement,
-          $$UserAchievementsTableFilterComposer,
-          $$UserAchievementsTableOrderingComposer,
-          $$UserAchievementsTableAnnotationComposer,
-          $$UserAchievementsTableCreateCompanionBuilder,
-          $$UserAchievementsTableUpdateCompanionBuilder,
-          (
-            UserAchievement,
-            BaseReferences<
-              _$AppDatabase,
-              $UserAchievementsTable,
-              UserAchievement
-            >,
-          ),
-          UserAchievement,
-          PrefetchHooks Function()
-        > {
-  $$UserAchievementsTableTableManager(
-    _$AppDatabase db,
-    $UserAchievementsTable table,
-  ) : super(
-        TableManagerState(
-          db: db,
-          table: table,
-          createFilteringComposer: () =>
-              $$UserAchievementsTableFilterComposer($db: db, $table: table),
-          createOrderingComposer: () =>
-              $$UserAchievementsTableOrderingComposer($db: db, $table: table),
-          createComputedFieldComposer: () =>
-              $$UserAchievementsTableAnnotationComposer($db: db, $table: table),
-          updateCompanionCallback:
-              ({
-                Value<int> id = const Value.absent(),
-                Value<int> achievementId = const Value.absent(),
-                Value<bool> unlocked = const Value.absent(),
-                Value<DateTime?> unlockedAt = const Value.absent(),
-                Value<DateTime> updatedAt = const Value.absent(),
-                Value<bool> isSynced = const Value.absent(),
-              }) => UserAchievementsCompanion(
-                id: id,
-                achievementId: achievementId,
-                unlocked: unlocked,
-                unlockedAt: unlockedAt,
-                updatedAt: updatedAt,
-                isSynced: isSynced,
-              ),
-          createCompanionCallback:
-              ({
-                Value<int> id = const Value.absent(),
-                required int achievementId,
-                Value<bool> unlocked = const Value.absent(),
-                Value<DateTime?> unlockedAt = const Value.absent(),
-                required DateTime updatedAt,
-                Value<bool> isSynced = const Value.absent(),
-              }) => UserAchievementsCompanion.insert(
-                id: id,
-                achievementId: achievementId,
-                unlocked: unlocked,
-                unlockedAt: unlockedAt,
-                updatedAt: updatedAt,
-                isSynced: isSynced,
-              ),
-          withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
-              .toList(),
-          prefetchHooksCallback: null,
-        ),
-      );
-}
-
-typedef $$UserAchievementsTableProcessedTableManager =
-    ProcessedTableManager<
-      _$AppDatabase,
-      $UserAchievementsTable,
-      UserAchievement,
-      $$UserAchievementsTableFilterComposer,
-      $$UserAchievementsTableOrderingComposer,
-      $$UserAchievementsTableAnnotationComposer,
-      $$UserAchievementsTableCreateCompanionBuilder,
-      $$UserAchievementsTableUpdateCompanionBuilder,
-      (
-        UserAchievement,
-        BaseReferences<_$AppDatabase, $UserAchievementsTable, UserAchievement>,
-      ),
-      UserAchievement,
       PrefetchHooks Function()
     >;
 typedef $$GameSessionsTableCreateCompanionBuilder =
@@ -5325,10 +4283,6 @@ class $AppDatabaseManager {
       $$UserProgressTableTableManager(_db, _db.userProgress);
   $$UserRewardsTableTableManager get userRewards =>
       $$UserRewardsTableTableManager(_db, _db.userRewards);
-  $$AchievementsTableTableManager get achievements =>
-      $$AchievementsTableTableManager(_db, _db.achievements);
-  $$UserAchievementsTableTableManager get userAchievements =>
-      $$UserAchievementsTableTableManager(_db, _db.userAchievements);
   $$GameSessionsTableTableManager get gameSessions =>
       $$GameSessionsTableTableManager(_db, _db.gameSessions);
   $$UserPreferencesTableTableManager get userPreferences =>

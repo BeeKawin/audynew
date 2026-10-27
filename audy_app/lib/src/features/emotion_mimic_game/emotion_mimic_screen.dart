@@ -9,7 +9,6 @@ import '../../services/bluetooth_service.dart';
 import '../../services/realtime_control_service.dart';
 import '../../services/sound_service.dart';
 import '../../state/audy_controller.dart';
-import '../../widgets/game_guide_box.dart';
 import '../../widgets/robot_panel_layout.dart';
 import '../../widgets/virtual_robot_panel.dart';
 import 'mimic_complete_screen.dart';
@@ -28,7 +27,6 @@ class EmotionMimicScreen extends StatefulWidget {
 class _EmotionMimicScreenState extends State<EmotionMimicScreen> {
   final DateTime _sessionStartedAt = DateTime.now();
   StreamSubscription<RealtimeControlEvent>? _controlSubscription;
-  bool _showGuide = true;
   String? _remoteEmotion;
 
   @override
@@ -78,11 +76,6 @@ class _EmotionMimicScreenState extends State<EmotionMimicScreen> {
     return AudyResponsivePage(
       scrollable: false,
       builder: (context, adaptive) {
-        final headerGap = adaptive.space(10);
-        final guideMaxWidth = adaptive.isPhone
-            ? adaptive.space(300)
-            : adaptive.space(420);
-
         return ValueListenableBuilder<bool>(
           valueListenable: AudyBluetoothService.instance.connectionNotifier,
           builder: (context, isConnected, _) {
@@ -138,24 +131,6 @@ class _EmotionMimicScreenState extends State<EmotionMimicScreen> {
                           color: AudyColors.mintGreen,
                         ),
                       ),
-                      if (_showGuide) ...[
-                        SizedBox(width: headerGap),
-                        Flexible(
-                          child: Align(
-                            alignment: Alignment.centerLeft,
-                            child: ConstrainedBox(
-                              constraints: BoxConstraints(
-                                maxWidth: guideMaxWidth,
-                              ),
-                              child: GameGuideBox(
-                                message: controller.tr('guide_emotion_mimic'),
-                                onDismissed: () =>
-                                    setState(() => _showGuide = false),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
                     ],
                   ),
                   const SizedBox(height: AudySpacing.sectionGap),

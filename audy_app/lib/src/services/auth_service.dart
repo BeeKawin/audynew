@@ -1,7 +1,11 @@
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'web_stats_sync.dart';
 
 import '../data/models/game_session_model.dart';
+import '../data/models/parent_portal_model.dart';
+
+enum AppMode { child, caretaker, unknown }
 
 /// User profile model stored in Supabase profiles table
 class UserProfile {
@@ -24,6 +28,12 @@ class UserProfile {
   final String? email;
   final String? parentId;
   final String? teacherId;
+
+  AppMode get mode => switch (role) {
+    'child' => AppMode.child,
+    'parent' || 'teacher' || 'caretaker' => AppMode.caretaker,
+    _ => AppMode.unknown,
+  };
 
   factory UserProfile.fromJson(Map<String, dynamic> json) {
     return UserProfile(
@@ -51,7 +61,6 @@ class UserProfile {
     };
   }
 }
-
 
 /// Auth service wrapping Supabase auth operations
 /// Provides sign in, sign up, sign out, and profile management
@@ -195,7 +204,10 @@ class AuthService {
   ///
   /// Uses the `link_student_by_email` SECURITY DEFINER RPC for the same RLS
   /// reason as [linkChildToParent].
-  Future<void> linkStudentToTeacher(String teacherId, String studentEmail) async {
+  Future<void> linkStudentToTeacher(
+    String teacherId,
+    String studentEmail,
+  ) async {
     try {
       await _client.rpc(
         'link_student_by_email',
@@ -216,7 +228,8 @@ class AuthService {
       final response = await _client
           .from('profiles')
           .select()
-          .eq('parent_id', parentId);
+          .eq('parent_id', parentId)
+          .order('created_at', ascending: true);
 
       return (response as List)
           .map((json) => UserProfile.fromJson(json))
@@ -233,7 +246,8 @@ class AuthService {
       final response = await _client
           .from('profiles')
           .select()
-          .eq('teacher_id', teacherId);
+          .eq('teacher_id', teacherId)
+          .order('created_at', ascending: true);
 
       return (response as List)
           .map((json) => UserProfile.fromJson(json))
@@ -267,6 +281,15 @@ class AuthService {
     required int dayStreak,
   }) async {
     try {
+      if (kIsWeb) {
+        await WebStatsSync(_client).save(
+          studentId,
+          learningPoints: learningPoints,
+          gamesPlayed: gamesPlayed,
+          dayStreak: dayStreak,
+        );
+        return;
+      }
       await _client.from('student_stats').upsert({
         'student_id': studentId,
         'learning_points': learningPoints,
@@ -283,7 +306,10 @@ class AuthService {
   ///
   /// Best-effort: swallows errors like [syncStudentStats] so gameplay is never
   /// blocked by a failed sync.
-  Future<void> syncGameSession(String studentId, GameSessionData session) async {
+  Future<void> syncGameSession(
+    String studentId,
+    GameSessionData session,
+  ) async {
     try {
       await _client.from('game_sessions').insert({
         'student_id': studentId,
@@ -357,6 +383,103 @@ class AuthService {
     }
   }
 
+  /// Fetch rewards assigned to one child, oldest first.
+  Future<List<ChildRewardData>> fetchChildRewards(String childId) async {
+    try {
+      final response = await _client
+          .from('child_rewards')
+          .select()
+          .eq('child_id', childId)
+          .order('created_at', ascending: true);
+      return (response as List)
+          .map(
+            (json) => ChildRewardData.fromJson(
+              Map<String, dynamic>.from(json as Map),
+            ),
+          )
+          .toList();
+    } catch (e) {
+      debugPrint('fetchChildRewards error: $e');
+      return [];
+    }
+  }
+
+  /// Create a reward for a linked child.
+  Future<ChildRewardData> createChildReward({
+    required String childId,
+    required String prize,
+    required String conditionType,
+    required int targetCount,
+  }) async {
+    try {
+      final response = await _client
+          .from('child_rewards')
+          .insert({
+            'child_id': childId,
+            'prize': prize.trim(),
+            'condition_type': conditionType,
+            'target_count': targetCount,
+          })
+          .select()
+          .single();
+      return ChildRewardData.fromJson(response);
+    } on PostgrestException catch (e) {
+      debugPrint('createChildReward error: ${e.message}');
+      throw Exception('The reward could not be saved. Please try again.');
+    } catch (e) {
+      debugPrint('createChildReward error: $e');
+      throw Exception('The reward could not be saved. Please try again.');
+    }
+  }
+
+  /// Persist progress made by the child toward a parent-created reward.
+  Future<void> updateChildRewardProgress({
+    required String rewardId,
+    required int currentProgress,
+    required bool isCompleted,
+  }) async {
+    try {
+      await _client
+          .from('child_rewards')
+          .update({
+            'current_progress': currentProgress,
+            'is_completed': isCompleted,
+            'updated_at': DateTime.now().toIso8601String(),
+          })
+          .eq('id', rewardId);
+    } catch (e) {
+      debugPrint('updateChildRewardProgress error: $e');
+    }
+  }
+
+  /// Mark a completed reward as claimed by the child.
+  Future<void> claimChildReward(String rewardId) async {
+    try {
+      await _client
+          .from('child_rewards')
+          .update({
+            'is_claimed': true,
+            'updated_at': DateTime.now().toIso8601String(),
+          })
+          .eq('id', rewardId);
+    } catch (e) {
+      debugPrint('claimChildReward error: $e');
+    }
+  }
+
+  /// Remove a reward from a linked child's list.
+  Future<void> deleteChildReward(String rewardId) async {
+    try {
+      await _client.from('child_rewards').delete().eq('id', rewardId);
+    } on PostgrestException catch (e) {
+      debugPrint('deleteChildReward error: ${e.message}');
+      throw Exception('The reward could not be removed. Please try again.');
+    } catch (e) {
+      debugPrint('deleteChildReward error: $e');
+      throw Exception('The reward could not be removed. Please try again.');
+    }
+  }
+
   /// Update assignment progress
   Future<void> updateAssignmentProgress(
     String assignmentId,
@@ -364,17 +487,22 @@ class AuthService {
     bool isCompleted,
   ) async {
     try {
-      await _client.from('assignments').update({
-        'current_count': progress,
-        'is_completed': isCompleted,
-      }).eq('id', assignmentId);
+      await _client
+          .from('assignments')
+          .update({'current_count': progress, 'is_completed': isCompleted})
+          .eq('id', assignmentId);
     } catch (e) {
       debugPrint('updateAssignmentProgress error: $e');
     }
   }
 
   /// Add custom classmate name/noun to class word bank
-  Future<void> addClassWord(String teacherId, String word, {String? category, String? imageUrl}) async {
+  Future<void> addClassWord(
+    String teacherId,
+    String word, {
+    String? category,
+    String? imageUrl,
+  }) async {
     try {
       await _client.from('class_words').insert({
         'teacher_id': teacherId,
@@ -395,13 +523,14 @@ class AuthService {
           .from('class_words')
           .select('*')
           .eq('teacher_id', teacherId);
-      return (response as List).map((json) => ClassWord.fromJson(json as Map<String, dynamic>)).toList();
+      return (response as List)
+          .map((json) => ClassWord.fromJson(json as Map<String, dynamic>))
+          .toList();
     } catch (e) {
       debugPrint('fetchClassWords error: $e');
       return [];
     }
   }
-
 
   /// Convert Supabase error messages to user-friendly messages
   String _getFriendlyErrorMessage(String error) {

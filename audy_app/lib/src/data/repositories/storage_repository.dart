@@ -57,14 +57,6 @@ class StorageRepository {
 
   Future<void> deleteReward(int rewardId) => local.deleteReward(rewardId);
 
-  // ==================== ACHIEVEMENTS ====================
-
-  Future<List<AchievementData>> getAllAchievements() =>
-      local.getAllAchievements();
-
-  Future<void> unlockAchievement(int achievementId) =>
-      local.unlockAchievement(achievementId);
-
   // ==================== SEED ====================
 
   Future<void> seedInitialData() => local.seedInitialData();

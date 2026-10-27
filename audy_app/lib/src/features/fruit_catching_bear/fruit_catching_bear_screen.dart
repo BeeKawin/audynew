@@ -11,13 +11,8 @@ import '../../services/bluetooth_service.dart';
 import '../../services/interactive_input_service.dart';
 import '../../services/sound_service.dart';
 import '../../state/audy_controller.dart';
-import '../../widgets/game_guide_box.dart';
 import '../../widgets/robot_panel_layout.dart';
 import '../../widgets/virtual_robot_panel.dart';
-
-String _tr(BuildContext context, String key, {Map<String, String>? params}) {
-  return AudyScope.of(context).tr(key, params: params);
-}
 
 class FruitCatchingBearScreen extends StatefulWidget {
   const FruitCatchingBearScreen({super.key});
@@ -55,7 +50,6 @@ class _FruitCatchingBearScreenState extends State<FruitCatchingBearScreen> {
   int _score = 0;
   int _highScore = 0;
   bool _isGameOver = false;
-  bool _showGuide = true;
   DateTime _startedAt = DateTime.now();
   Duration _elapsedTime = Duration.zero;
   _StageMetrics? _stageMetrics;
@@ -321,13 +315,6 @@ class _FruitCatchingBearScreenState extends State<FruitCatchingBearScreen> {
                   _TopBar(
                     score: _score,
                     highScore: _highScore,
-                    guide: _showGuide
-                        ? GameGuideBox(
-                            message: _tr(context, 'guide_fruit_catching_bear'),
-                            onDismissed: () =>
-                                setState(() => _showGuide = false),
-                          )
-                        : null,
                     onBack: () {
                       SoundService.instance.playTap();
                       Navigator.pop(context);
@@ -366,13 +353,11 @@ class _TopBar extends StatelessWidget {
   const _TopBar({
     required this.score,
     required this.highScore,
-    required this.guide,
     required this.onBack,
   });
 
   final int score;
   final int highScore;
-  final Widget? guide;
   final VoidCallback onBack;
 
   @override
@@ -388,12 +373,7 @@ class _TopBar extends StatelessWidget {
             color: AudyColors.textPrimary,
           ),
         ),
-        if (guide != null) ...[
-          const SizedBox(width: 12),
-          Expanded(child: guide!),
-          const SizedBox(width: 12),
-        ] else
-          const Spacer(),
+        const Spacer(),
         _HudPill(icon: Icons.star_rounded, label: '$score'),
         const SizedBox(width: 12),
         _HudPill(icon: Icons.emoji_events_rounded, label: '$highScore'),

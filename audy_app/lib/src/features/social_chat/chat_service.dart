@@ -1,5 +1,7 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import '../../core/build_config.dart';
 import 'chat_models.dart';
 
 /// Backend API configuration
@@ -20,8 +22,11 @@ class ApiConfig {
   /// Get the appropriate base URL
   /// Set USE_LOCAL=true for local development
   static String get baseUrl {
+    if (BuildConfig.apiBaseUrl.isNotEmpty) {
+      return BuildConfig.apiBaseUrl.replaceFirst(RegExp(r'/+$'), '');
+    }
     const useLocal = bool.fromEnvironment('USE_LOCAL', defaultValue: false);
-    return useLocal ? localUrl : railwayUrl;
+    return useLocal ? (kIsWeb ? localUrlIOS : localUrl) : railwayUrl;
   }
 }
 

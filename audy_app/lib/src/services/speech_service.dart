@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 
@@ -22,7 +23,13 @@ class SpeechService {
 
   /// Initialize speech services
   Future<void> init() async {
-    _sttAvailable = await _stt.initialize();
+    if (!kIsWeb) {
+      try {
+        _sttAvailable = await _stt.initialize();
+      } catch (_) {
+        _sttAvailable = false;
+      }
+    }
 
     _tts.setCompletionHandler(() {
       _isSpeaking = false;
@@ -48,6 +55,13 @@ class SpeechService {
 
   /// Listen for Thai speech and return transcribed text using STT
   Future<String?> listenThai() async {
+    if (kIsWeb && !_sttAvailable) {
+      try {
+        _sttAvailable = await _stt.initialize();
+      } catch (_) {
+        return null;
+      }
+    }
     if (!_sttAvailable || _isListening) return null;
 
     final available = await _stt.hasPermission;

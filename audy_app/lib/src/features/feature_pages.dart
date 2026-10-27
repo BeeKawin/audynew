@@ -5,22 +5,32 @@ import '../core/audy_ui.dart';
 import '../services/sound_service.dart';
 import '../state/audy_controller.dart';
 
-class GamesHubPage extends StatelessWidget {
+class GamesHubPage extends StatefulWidget {
   const GamesHubPage({super.key});
 
-  void _navigateToGame(BuildContext context, String route) {
+  @override
+  State<GamesHubPage> createState() => _GamesHubPageState();
+}
+
+class _GamesHubPageState extends State<GamesHubPage> {
+  bool _opening = false;
+
+  Future<void> _navigateToGame(BuildContext context, String route) async {
+    if (_opening) return;
     final controller = AudyScope.of(context);
-
-    SoundService.instance.playTap();
-
-    // Check if meltdown protection should trigger before starting a game
-    if (controller.shouldTriggerMeltdown) {
-      // Navigate to meltdown screen with calm transition
-      Navigator.of(context).pushNamed(AppRoutes.meltdown);
-      return;
+    setState(() => _opening = true);
+    try {
+      SoundService.instance.playTap();
+      final accountId = controller.currentUser?.id;
+      await controller.refreshBreakSettings();
+      if (!context.mounted || controller.currentUser?.id != accountId) return;
+      Navigator.pushNamed(
+        context,
+        controller.shouldTriggerMeltdown ? AppRoutes.meltdown : route,
+      );
+    } finally {
+      if (mounted) setState(() => _opening = false);
     }
-
-    Navigator.pushNamed(context, route);
   }
 
   @override
@@ -42,13 +52,6 @@ class GamesHubPage extends StatelessWidget {
         const Color(0xFFBDD8F2),
         AppRoutes.miniPuzzle,
       ),
-      // _RouteCard(
-      //   controller.tr('sorting_game'),
-      //   null,
-      //   Icons.sort_rounded,
-      //   const Color(0xFFFFF3A6),
-      //   AppRoutes.sortingGame,
-      // ),
       _RouteCard(
         controller.tr('flashcard_game'),
         null,
@@ -70,13 +73,6 @@ class GamesHubPage extends StatelessWidget {
         const Color(0xFFC9E8C1),
         AppRoutes.fruitCatchingBear,
       ),
-      // _RouteCard(
-      //   controller.tr('reaction_time'),
-      //   null,
-      //   Icons.bolt_rounded,
-      //   const Color(0xFFFFDAC7),
-      //   AppRoutes.reactionTime,
-      // ),
     ];
 
     return AudyFeaturePage(
@@ -85,23 +81,28 @@ class GamesHubPage extends StatelessWidget {
       leadingLabel: controller.tr('back_home'),
       mascot: const AudyMascot(size: 132),
       childBuilder: (context, adaptive) {
-        return AudyAdaptiveGrid(
-          adaptive: adaptive,
-          phoneColumns: 1,
-          tabletColumns: 2,
-          desktopColumns: 2,
-          items: cards
-              .map(
-                (card) => AudyActionCard(
-                  title: card.title,
-                  subtitle: card.subtitle,
-                  icon: card.icon,
-                  color: card.color,
-                  adaptive: adaptive,
-                  onTap: () => _navigateToGame(context, card.route),
-                ),
-              )
-              .toList(),
+        return Column(
+          children: [
+            if (_opening) const LinearProgressIndicator(),
+            AudyAdaptiveGrid(
+              adaptive: adaptive,
+              phoneColumns: 1,
+              tabletColumns: 2,
+              desktopColumns: 2,
+              items: cards
+                  .map(
+                    (card) => AudyActionCard(
+                      title: card.title,
+                      subtitle: card.subtitle,
+                      icon: card.icon,
+                      color: card.color,
+                      adaptive: adaptive,
+                      onTap: () => _navigateToGame(context, card.route),
+                    ),
+                  )
+                  .toList(),
+            ),
+          ],
         );
       },
     );

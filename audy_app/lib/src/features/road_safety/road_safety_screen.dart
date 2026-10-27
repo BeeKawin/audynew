@@ -9,7 +9,6 @@ import '../../core/audy_ui.dart';
 import '../../data/models/game_session_model.dart';
 import '../../services/sound_service.dart';
 import '../../state/audy_controller.dart';
-import '../../widgets/game_guide_box.dart';
 import 'road_safety_controller.dart';
 import 'road_safety_models.dart';
 import 'road_safety_widgets.dart';
@@ -25,7 +24,6 @@ class _RoadSafetyScreenState extends State<RoadSafetyScreen> {
   late final RoadSafetyController _controller;
   final FlutterTts _tts = FlutterTts();
   Timer? _crossingTimer;
-  bool _showGuide = true;
   bool _hasRecordedCompletion = false;
 
   @override
@@ -132,8 +130,6 @@ class _RoadSafetyScreenState extends State<RoadSafetyScreen> {
           children: [
             _Header(
               adaptive: adaptive,
-              showGuide: _showGuide,
-              onDismissGuide: () => setState(() => _showGuide = false),
               onBack: () {
                 SoundService.instance.playTap();
                 Navigator.pop(context);
@@ -181,16 +177,9 @@ class _RoadSafetyScreenState extends State<RoadSafetyScreen> {
 }
 
 class _Header extends StatelessWidget {
-  const _Header({
-    required this.adaptive,
-    required this.showGuide,
-    required this.onDismissGuide,
-    required this.onBack,
-  });
+  const _Header({required this.adaptive, required this.onBack});
 
   final AudyAdaptive adaptive;
-  final bool showGuide;
-  final VoidCallback onDismissGuide;
   final VoidCallback onBack;
 
   @override
@@ -215,14 +204,6 @@ class _Header extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
           ),
         ),
-        if (showGuide)
-          SizedBox(
-            width: adaptive.isPhone ? adaptive.space(184) : adaptive.space(280),
-            child: GameGuideBox(
-              message: AudyScope.of(context).tr('guide_road_safety'),
-              onDismissed: onDismissGuide,
-            ),
-          ),
       ],
     );
   }

@@ -88,7 +88,6 @@ class _DashboardPageState extends State<DashboardPage> {
 
     return AudyResponsivePage(
       builder: (context, adaptive) {
-
         final activities = [
           _ActivityData(
             title: controller.tr('games'),
@@ -127,8 +126,7 @@ class _DashboardPageState extends State<DashboardPage> {
             _LanguageToggle(controller: controller),
             const SizedBox(height: AudySpacing.elementGap),
             ValueListenableBuilder<bool>(
-              valueListenable:
-                  AudyBluetoothService.instance.connectionNotifier,
+              valueListenable: AudyBluetoothService.instance.connectionNotifier,
               builder: (context, isDeviceConnected, _) {
                 return AudyGreetingHeader(
                   greeting: controller.tr('dashboard_greeting'),
@@ -207,10 +205,11 @@ class _GamesPlayedCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const int meltdownThreshold = 5;
+    final int meltdownThreshold = controller.meltdownThreshold;
     final int gamesPlayed = controller.gamesInCurrentSession;
     final double progress = gamesPlayed / meltdownThreshold;
-    final bool isNearThreshold = gamesPlayed >= 3;
+    final bool isNearThreshold =
+        gamesPlayed >= (meltdownThreshold * 0.6).ceil();
 
     return Container(
       width: double.infinity,
@@ -293,7 +292,7 @@ class _GamesPlayedCard extends StatelessWidget {
           if (isNearThreshold) ...[
             SizedBox(height: adaptive.space(8)),
             Text(
-              gamesPlayed >= 5
+              gamesPlayed >= meltdownThreshold
                   ? controller.tr('break_time_now')
                   : controller.tr('break_time_soon'),
               style: TextStyle(

@@ -191,7 +191,8 @@ class AudyBluetoothService {
 
     final adapterState = await FlutterBluePlus.adapterState.first;
 
-    if (adapterState == BluetoothAdapterState.off &&
+    if (!kIsWeb &&
+        adapterState == BluetoothAdapterState.off &&
         defaultTargetPlatform == TargetPlatform.android) {
       try {
         await FlutterBluePlus.turnOn();
@@ -209,6 +210,11 @@ class AudyBluetoothService {
   Future<BluetoothDevice?> scanForDevice({
     Duration timeout = const Duration(seconds: 10),
   }) async {
+    if (!await FlutterBluePlus.isSupported) {
+      throw StateError(
+        'Bluetooth is unavailable in this browser. Use Chrome or Edge on a supported device. You can still use the on-screen controls.',
+      );
+    }
     debugPrint(
       'AudyBluetoothService: Scanning for ${BluetoothUuids.deviceName}...',
     );
@@ -236,6 +242,8 @@ class AudyBluetoothService {
       await FlutterBluePlus.startScan(
         timeout: timeout,
         androidUsesFineLocation: false,
+        withNames: kIsWeb ? [BluetoothUuids.deviceName] : const [],
+        webOptionalServices: kIsWeb ? [BluetoothUuids.audyService] : const [],
       );
 
       timeoutTimer = Timer(timeout + const Duration(milliseconds: 500), () {

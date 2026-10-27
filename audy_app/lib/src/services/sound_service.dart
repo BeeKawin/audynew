@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter_soloud/flutter_soloud.dart';
 import 'package:flutter/foundation.dart';
 
@@ -14,9 +15,19 @@ class SoundService {
   static final SoundService _instance = SoundService._internal();
   static SoundService get instance => _instance;
 
-  final SoLoud _soloud = SoLoud.instance;
+  // Device settings must remain usable when the native audio engine is unavailable.
+  SoLoud get _soloud => SoLoud.instance;
   bool _enabled = true;
   bool _initialized = false;
+  late final AudioPlayer _webEffects = AudioPlayer();
+  late final AudioPlayer _webMusic = AudioPlayer();
+
+  /// Browser audio is loaded on demand after a pointer gesture.
+  void unlockBrowserAudio() {
+    if (kIsWeb) _initialized = true;
+  }
+
+  String _assetKey(String path) => path.replaceFirst(RegExp(r'^assets/'), '');
   static const double _bgmVolume = 0.3;
   static const double _sfxVolume = 1.0;
   static const Duration _bearCompletionDelay = Duration(milliseconds: 900);
@@ -34,6 +45,7 @@ class SoundService {
 
   /// Initialize SoLoud engine and preload all SFX assets
   Future<void> initialize() async {
+    if (kIsWeb) return;
     if (_initialized) {
       debugPrint('SoundService: Already initialized');
       return;
@@ -93,6 +105,15 @@ class SoundService {
   /// Play a sound by its path
   /// Returns true if played successfully, false otherwise
   bool play(String soundPath) {
+    if (kIsWeb) {
+      if (!_enabled || !_initialized) return false;
+      unawaited(
+        _webEffects
+            .play(AssetSource(_assetKey(soundPath)))
+            .catchError((Object _) {}),
+      );
+      return true;
+    }
     if (!_enabled) {
       debugPrint('SoundService: Sound disabled, not playing $soundPath');
       return false;
@@ -160,17 +181,8 @@ class SoundService {
   /// Play points earned sound
   void playPoints() => play(AppSounds.points);
 
-  /// Play achievement unlocked sound
-  void playAchievement() => play(AppSounds.achievement);
-
   /// Play level up sound
   void playLevelUp() => play(AppSounds.levelUp);
-
-  /// Play go signal (for reaction game)
-  void playGo() => play(AppSounds.go);
-
-  /// Play error sound
-  void playError() => play(AppSounds.error);
 
   /// Play try again sound
   void playTryAgain() => play(AppSounds.tryAgain);
@@ -193,14 +205,6 @@ class SoundService {
   /// Play emotion mimic instruction sound
   void playInstructionEmotionMimic() =>
       _playInstruction(AppSounds.instructionEmotionMimic);
-
-  /// Play reaction time instruction sound
-  void playInstructionReactionTime() =>
-      _playInstruction(AppSounds.instructionReactionTime);
-
-  /// Play sorting game instruction sound
-  void playInstructionSortingGame() =>
-      _playInstruction(AppSounds.instructionSortingGame);
 
   /// Play MiniPuzzle pattern instruction sound
   void playInstructionMiniPuzzlePattern() =>
@@ -230,6 +234,19 @@ class SoundService {
 
   /// Play background music (soundtrack) on loop at low volume
   void playBGM() {
+    if (kIsWeb) {
+      if (!_enabled || !_initialized) return;
+      unawaited(() async {
+        try {
+          await _webMusic.setReleaseMode(ReleaseMode.loop);
+          await _webMusic.play(
+            AssetSource(_assetKey(AppSounds.soundtrack)),
+            volume: _bgmVolume,
+          );
+        } catch (_) {}
+      }());
+      return;
+    }
     if (!_initialized) {
       debugPrint('SoundService: Not initialized, cannot play BGM');
       return;
@@ -252,6 +269,10 @@ class SoundService {
 
   /// Pause background music
   void pauseBGM() {
+    if (kIsWeb) {
+      unawaited(_webMusic.pause().catchError((Object _) {}));
+      return;
+    }
     final handle = _bgmHandle;
     if (handle == null) return;
     try {
@@ -263,6 +284,10 @@ class SoundService {
 
   /// Resume background music
   void resumeBGM() {
+    if (kIsWeb) {
+      unawaited(_webMusic.resume().catchError((Object _) {}));
+      return;
+    }
     final handle = _bgmHandle;
     if (handle == null) return;
     try {
@@ -274,6 +299,10 @@ class SoundService {
 
   /// Stop background music
   void stopBGM() {
+    if (kIsWeb) {
+      unawaited(_webMusic.stop().catchError((Object _) {}));
+      return;
+    }
     final handle = _bgmHandle;
     if (handle == null) return;
     try {
@@ -295,6 +324,13 @@ class SoundService {
 
   /// Dispose BGM player
   Future<void> dispose() async {
+    if (kIsWeb) {
+      await _webEffects.dispose();
+      await _webMusic.dispose();
+      _initialized = false;
+      return;
+    }
+    if (!_initialized) return;
     stopBGM();
     for (final source in _sources.values) {
       try {

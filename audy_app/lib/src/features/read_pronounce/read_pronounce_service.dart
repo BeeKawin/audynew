@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:speech_to_text/speech_to_text.dart';
@@ -36,7 +37,7 @@ class ReadPronounceService {
       _isSpeaking = false;
     });
 
-    _sttAvailable = await _initializeStt();
+    if (!kIsWeb) _sttAvailable = await _initializeStt();
   }
 
   Future<bool> ensureSTTAvailable() async {
@@ -45,22 +46,26 @@ class ReadPronounceService {
     return _sttAvailable;
   }
 
-  Future<bool> _initializeStt() {
-    return _stt.initialize(
-      onStatus: (status) {
-        _statusListener?.call(status);
-        if (!_isListening) return;
-        if (status == 'done' || status == 'notListening') {
-          _completeListeningWithLastWords();
-        }
-      },
-      onError: (error) {
-        _statusListener?.call('error: ${error.errorMsg}');
-        if (_isListening) {
-          _completeListeningWithLastWords();
-        }
-      },
-    );
+  Future<bool> _initializeStt() async {
+    try {
+      return await _stt.initialize(
+        onStatus: (status) {
+          _statusListener?.call(status);
+          if (!_isListening) return;
+          if (status == 'done' || status == 'notListening') {
+            _completeListeningWithLastWords();
+          }
+        },
+        onError: (error) {
+          _statusListener?.call('error: ${error.errorMsg}');
+          if (_isListening) {
+            _completeListeningWithLastWords();
+          }
+        },
+      );
+    } catch (_) {
+      return false;
+    }
   }
 
   Future<void> speak(String text, {String language = 'en-US'}) async {

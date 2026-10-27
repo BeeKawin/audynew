@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/build_config.dart';
 import '../../core/app_routes.dart';
 import '../../core/audy_theme.dart';
 import '../../core/audy_ui.dart';
@@ -7,14 +8,15 @@ import '../../services/sound_service.dart';
 import '../../state/audy_controller.dart';
 
 class LoginPage extends StatefulWidget {
-  const LoginPage({super.key});
+  const LoginPage({super.key, this.authService});
+  final AuthService? authService;
 
   @override
   State<LoginPage> createState() => _LoginPageState();
 }
 
 class _LoginPageState extends State<LoginPage> {
-  final _authService = AuthService();
+  late final _authService = widget.authService ?? AuthService();
 
   // Mode toggle
   bool _isSignUp = false;
@@ -30,6 +32,7 @@ class _LoginPageState extends State<LoginPage> {
 
   // Loading and error states
   bool _isLoading = false;
+  bool get _busy => _isLoading || AudyScope.of(context).isLoggingOut;
   String? _errorMessage;
   String? _successMessage;
 
@@ -98,7 +101,7 @@ class _LoginPageState extends State<LoginPage> {
 
             // Submit button
             _buildSubmitButton(adaptive),
-            _buildDebugMenu(adaptive),
+            if (BuildConfig.enableDebugAccounts) _buildDebugMenu(adaptive),
           ],
         );
       },
@@ -234,8 +237,13 @@ class _LoginPageState extends State<LoginPage> {
   Widget _buildRoleSelector(AudyAdaptive adaptive) {
     final roles = [
       {'key': 'child', 'label': 'Child', 'icon': Icons.child_care_rounded},
-      {'key': 'parent', 'label': 'Parent', 'icon': Icons.supervisor_account_rounded},
-      {'key': 'teacher', 'label': 'Teacher', 'icon': Icons.school_rounded},
+      {
+        'key': 'caretaker',
+        'label': AudyScope.of(context).currentLanguage == 'th'
+            ? 'ผู้ดูแล'
+            : 'Caretaker',
+        'icon': Icons.supervisor_account_rounded,
+      },
     ];
 
     return Column(
@@ -268,9 +276,13 @@ class _LoginPageState extends State<LoginPage> {
                     color: isSelected
                         ? AudyColors.skyBlue
                         : AudyColors.backgroundCard,
-                    borderRadius: BorderRadius.circular(AudySpacing.radiusMedium),
+                    borderRadius: BorderRadius.circular(
+                      AudySpacing.radiusMedium,
+                    ),
                     border: Border.all(
-                      color: isSelected ? AudyColors.skyBlue : AudyColors.borderLight,
+                      color: isSelected
+                          ? AudyColors.skyBlue
+                          : AudyColors.borderLight,
                       width: 2,
                     ),
                   ),
@@ -279,7 +291,9 @@ class _LoginPageState extends State<LoginPage> {
                     children: [
                       Icon(
                         role['icon'] as IconData,
-                        color: isSelected ? AudyColors.textOnColor : AudyColors.textLight,
+                        color: isSelected
+                            ? AudyColors.textOnColor
+                            : AudyColors.textLight,
                         size: 20,
                       ),
                       const SizedBox(height: 2),
@@ -288,7 +302,9 @@ class _LoginPageState extends State<LoginPage> {
                         style: TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.w700,
-                          color: isSelected ? AudyColors.textOnColor : AudyColors.textLight,
+                          color: isSelected
+                              ? AudyColors.textOnColor
+                              : AudyColors.textLight,
                         ),
                       ),
                     ],
@@ -477,8 +493,8 @@ class _LoginPageState extends State<LoginPage> {
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton.icon(
-        onPressed: _isLoading ? null : _handleSubmit,
-        icon: _isLoading
+        onPressed: _busy ? null : _handleSubmit,
+        icon: _busy
             ? SizedBox(
                 width: 24,
                 height: 24,
@@ -489,7 +505,11 @@ class _LoginPageState extends State<LoginPage> {
               )
             : Icon(_isSignUp ? Icons.person_add : Icons.login, size: 24),
         label: Text(
-          _isLoading
+          AudyScope.of(context).isLoggingOut
+              ? (AudyScope.of(context).currentLanguage == 'th'
+                    ? 'กำลังออกจากระบบ…'
+                    : 'Signing out…')
+              : _busy
               ? (_isSignUp ? _tr('creating_account') : _tr('signing_in'))
               : (_isSignUp ? _tr('create_account') : _tr('sign_in')),
           style: TextStyle(
@@ -533,14 +553,20 @@ class _LoginPageState extends State<LoginPage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.bug_report_rounded, color: AudyColors.skyBlue, size: 20),
+              Icon(
+                Icons.bug_report_rounded,
+                color: AudyColors.skyBlue,
+                size: 20,
+              ),
               const SizedBox(width: 8),
-              const Text(
-                'Developer Debug Menu',
-                style: TextStyle(
-                  fontWeight: FontWeight.w800,
-                  fontSize: 14,
-                  color: AudyColors.textSecondary,
+              const Flexible(
+                child: Text(
+                  'Developer Debug Menu',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 14,
+                    color: AudyColors.textSecondary,
+                  ),
                 ),
               ),
             ],
@@ -553,25 +579,24 @@ class _LoginPageState extends State<LoginPage> {
                   label: 'Student',
                   icon: Icons.child_care_rounded,
                   color: AudyColors.skyBlue,
-                  onTap: () => _handleDebugLogin('f7385453-50e3-4da6-817a-559b9c7bd126', 'child'),
+                  onTap: () => _handleDebugLogin(
+                    email: 'test@audy.com',
+                    password: 'password123',
+                    mode: AppMode.child,
+                  ),
                 ),
               ),
               const SizedBox(width: 8),
               Expanded(
                 child: _buildDebugButton(
-                  label: 'Parent',
+                  label: 'Caretaker',
                   icon: Icons.supervisor_account_rounded,
                   color: AudyColors.mintGreen,
-                  onTap: () => _handleDebugLogin('5855aaab-3a0e-4337-b168-17f35c219cf5', 'parent'),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _buildDebugButton(
-                  label: 'Teacher',
-                  icon: Icons.school_rounded,
-                  color: AudyColors.activityRewards,
-                  onTap: () => _handleDebugLogin('3588e312-0972-409f-994b-5b4a239b18b3', 'teacher'),
+                  onTap: () => _handleDebugLogin(
+                    email: 'caretaker@gmail.com',
+                    password: 'audy123',
+                    mode: AppMode.caretaker,
+                  ),
                 ),
               ),
             ],
@@ -588,7 +613,7 @@ class _LoginPageState extends State<LoginPage> {
     required VoidCallback onTap,
   }) {
     return GestureDetector(
-      onTap: _isLoading ? null : onTap,
+      onTap: _busy ? null : onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
@@ -615,81 +640,45 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  Future<void> _handleDebugLogin(String userId, String role) async {
+  Future<void> _handleDebugLogin({
+    required String email,
+    required String password,
+    required AppMode mode,
+  }) async {
+    if (_busy) return;
     SoundService.instance.playTap();
     setState(() {
       _isLoading = true;
       _errorMessage = null;
       _successMessage = null;
     });
-
     try {
-      String? email;
-      if (userId == 'f7385453-50e3-4da6-817a-559b9c7bd126') {
-        email = 'test@audy.com';
-      } else if (userId == '5855aaab-3a0e-4337-b168-17f35c219cf5') {
-        email = 'parent@audy.com';
-      } else if (userId == '3588e312-0972-409f-994b-5b4a239b18b3') {
-        email = 'pummiphach@hotmail.com';
+      await _authService.signIn(email: email, password: password);
+      final profile = await _authService.getCurrentProfile();
+      if (profile == null || profile.mode != mode) {
+        await _authService.signOut();
+        throw StateError('The debug account has an unexpected role.');
       }
-
-      UserProfile? profile;
-      if (email != null) {
-        try {
-          await _authService.signIn(email: email, password: 'password123');
-          profile = await _authService.getCurrentProfile();
-        } catch (authError) {
-          debugPrint('Debug Auth programmatic sign-in failed, using fallback: $authError');
-        }
-      }
-
-      if (profile == null) {
-        final now = DateTime.now();
-        if (role == 'teacher') {
-          profile = UserProfile(
-            id: userId,
-            name: 'Debug Teacher',
-            age: 35,
-            createdAt: now,
-            role: 'teacher',
-            email: email ?? 'teacher@debug.com',
-          );
-        } else if (role == 'parent') {
-          profile = UserProfile(
-            id: userId,
-            name: 'Debug Parent',
-            age: 38,
-            createdAt: now,
-            role: 'parent',
-            email: email ?? 'parent@debug.com',
-          );
-        } else {
-          profile = UserProfile(
-            id: userId,
-            name: 'Debug Student',
-            age: 8,
-            createdAt: now,
-            role: 'child',
-            email: email ?? 'student@debug.com',
-          );
-        }
-      }
-
-      if (mounted) {
-        AudyScope.of(context).setUser(profile);
-        Navigator.pushReplacementNamed(context, AppRoutes.dashboard);
-      }
-    } catch (e) {
+      if (!mounted) return;
+      await AudyScope.of(context).setUser(profile);
+      if (!mounted) return;
+      Navigator.pushNamedAndRemoveUntil(
+        context,
+        AppRoutes.dashboard,
+        (_) => false,
+      );
+    } catch (_) {
       if (mounted) {
         setState(() {
-          _errorMessage =
-              'Debug Login Failed: ${e.toString().replaceAll('Exception: ', '')}';
+          _emailController.text = email;
+          _isSignUp = false;
+          _errorMessage = AudyScope.of(context).currentLanguage == 'th'
+              ? '\u0e40\u0e02\u0e49\u0e32\u0e2a\u0e39\u0e48\u0e23\u0e30\u0e1a\u0e1a\u0e44\u0e21\u0e48\u0e2a\u0e33\u0e40\u0e23\u0e47\u0e08 \u0e01\u0e23\u0e38\u0e13\u0e32\u0e25\u0e2d\u0e07\u0e2d\u0e35\u0e01\u0e04\u0e23\u0e31\u0e49\u0e07'
+              : 'Could not sign in to $email. Please try again or sign in manually.';
         });
       }
     } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -738,7 +727,8 @@ class _LoginPageState extends State<LoginPage> {
         // Get profile and set in controller
         final profile = await _authService.getCurrentProfile();
         if (profile != null && mounted) {
-          AudyScope.of(context).setUser(profile);
+          await AudyScope.of(context).setUser(profile);
+          if (!mounted) return;
           if (profile.role == 'child') {
             Navigator.pushReplacementNamed(context, AppRoutes.preferences);
           } else {
@@ -753,7 +743,8 @@ class _LoginPageState extends State<LoginPage> {
         // Get user profile and set in controller
         final profile = await _authService.getCurrentProfile();
         if (profile != null && mounted) {
-          AudyScope.of(context).setUser(profile);
+          await AudyScope.of(context).setUser(profile);
+          if (!mounted) return;
         }
 
         // Navigate to dashboard

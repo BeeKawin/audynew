@@ -133,12 +133,40 @@ class _SelfieCaptureScreenState extends State<SelfieCaptureScreen> {
     setState(() {
       _isProcessing = true;
       _captureHintMessage = null;
+      _errorMessage = null;
     });
 
     try {
       await _stopFaceGuidanceStream();
 
       final image = await _cameraController!.takePicture();
+      if (kIsWeb) {
+        final bytes = await image.readAsBytes();
+        // Conditional export accepts bytes on web and File on native.
+        final result = await EmotionService.detectEmotion(bytes as dynamic);
+        if (!mounted) return;
+        if (result.detectedEmotion.toLowerCase() ==
+            widget.targetEmotion.toLowerCase()) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (_) => MimicResultScreen(
+                capturedImage: MemoryImage(bytes),
+                expectedEmotion: widget.targetEmotion,
+                detectedEmotion: result.detectedEmotion,
+                confidence: result.confidence,
+              ),
+            ),
+          );
+        } else {
+          setState(() {
+            _isProcessing = false;
+            _captureHintMessage =
+                'Detected ${result.detectedEmotion}. Try again when ready.';
+          });
+        }
+        return;
+      }
       final rawFile = File(image.path);
 
       final preparedFile = await _prepareImageForDetection(rawFile);
@@ -163,7 +191,7 @@ class _SelfieCaptureScreenState extends State<SelfieCaptureScreen> {
               context,
               MaterialPageRoute(
                 builder: (_) => MimicResultScreen(
-                  capturedImage: preparedFile,
+                  capturedImage: FileImage(preparedFile),
                   expectedEmotion: widget.targetEmotion,
                   detectedEmotion: result.detectedEmotion,
                   confidence: result.confidence,
@@ -388,6 +416,16 @@ class _SelfieCaptureScreenState extends State<SelfieCaptureScreen> {
                     size: 120,
                   ),
                   const SizedBox(height: AudySpacing.sectionGap),
+                  if (kIsWeb)
+                    ElevatedButton.icon(
+                      onPressed: _isCameraReady && !_isProcessing
+                          ? _takePhoto
+                          : null,
+                      icon: const Icon(Icons.camera_alt_rounded),
+                      label: Text(
+                        _isProcessing ? 'Analyzing...' : 'Take photo',
+                      ),
+                    ),
                   Expanded(
                     child: Container(
                       decoration: BoxDecoration(
@@ -467,7 +505,9 @@ class _SelfieCaptureScreenState extends State<SelfieCaptureScreen> {
                             ),
                             const SizedBox(width: 12),
                             Text(
-                              'Auto face detection active',
+                              kIsWeb
+                                  ? 'Take a photo when ready'
+                                  : 'Auto face detection active',
                               style: AudyTypography.bodyLarge.copyWith(
                                 color: AudyColors.textPrimary,
                                 fontWeight: FontWeight.w600,

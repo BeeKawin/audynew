@@ -19,10 +19,6 @@ class AppSounds {
   static const String bearCongrats = 'assets/sounds/bear_congrats.mp3';
   static const String bearTryAgain = 'assets/sounds/bear_tryagain.mp3';
 
-  // Reaction game sounds
-  static const String go = 'assets/sounds/go.mp3';
-  static const String error = 'assets/sounds/error.mp3';
-
   // Reading/pronunciation sounds
   static const String tryAgain = 'assets/sounds/try_again.mp3';
 
@@ -31,10 +27,6 @@ class AppSounds {
       'assets/sounds/instruction_emotion_classify.mp3';
   static const String instructionEmotionMimic =
       'assets/sounds/instruction_emotion_mimic.mp3';
-  static const String instructionReactionTime =
-      'assets/sounds/instruction_reaction_time.mp3';
-  static const String instructionSortingGame =
-      'assets/sounds/instruction_sorting_game.mp3';
   static const String instructionMiniPuzzlePattern =
       'assets/sounds/instruction_minipuzzle_pattern.mp3';
   static const String instructionMiniPuzzleOddOneOut =
@@ -49,8 +41,6 @@ class AppSounds {
       'assets/sounds/flashcard_transition.mp3';
   static const String fruitCatchIntro = 'assets/sounds/fruitcatch_intro.mp3';
 
-  // Achievement sounds
-  static const String achievement = 'assets/sounds/achievement.mp3';
   static const String levelUp = 'assets/sounds/level_up.mp3';
 
   // Meltdown screen sound uses audioplayers.AssetSource, which is relative
@@ -68,13 +58,9 @@ class AppSounds {
     bearCongrats,
     bearTryAgain,
     points,
-    go,
-    error,
     tryAgain,
     instructionEmotionClassify,
     instructionEmotionMimic,
-    instructionReactionTime,
-    instructionSortingGame,
     instructionMiniPuzzlePattern,
     instructionMiniPuzzleOddOneOut,
     instructionMiniPuzzlePuzzle,
@@ -82,7 +68,6 @@ class AppSounds {
     flashcardInstruction,
     flashcardTransition,
     fruitCatchIntro,
-    achievement,
     levelUp,
     soundtrack,
   ];

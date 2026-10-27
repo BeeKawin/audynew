@@ -11,7 +11,8 @@ import '../state/audy_controller.dart';
 /// Full-page assignments hub, opened from the circular assignment button
 /// in the dashboard header (next to the device/Bluetooth button).
 class AssignmentsPage extends StatefulWidget {
-  const AssignmentsPage({super.key});
+  const AssignmentsPage({super.key, this.authService});
+  final AuthService? authService;
 
   @override
   State<AssignmentsPage> createState() => _AssignmentsPageState();
@@ -37,22 +38,31 @@ class _AssignmentsPageState extends State<AssignmentsPage> {
     if (user != null && user.role == 'child') {
       final options = _assignmentOptions(context);
       try {
-        final assignmentsData = await AuthService().fetchAssignments(user.id);
-        final loaded = assignmentsData.map((data) {
-          final gameType = data['game_type'] as String;
-          final option = options.firstWhere(
-            (o) => o.gameType == gameType,
-            orElse: () => options.first,
-          );
-          return _DashboardAssignment(
-            id: data['id'].hashCode,
-            supabaseId: data['id'] as String?,
-            option: option,
-            difficulty: 'Normal',
-            targetCount: data['target_count'] as int,
-            currentProgress: data['current_count'] as int,
-          );
-        }).toList();
+        final assignmentsData = await (widget.authService ?? AuthService())
+            .fetchAssignments(user.id);
+        // Keep retired tasks in history without mapping them to a different game.
+        final loaded = assignmentsData
+            .where(
+              (data) =>
+                  data['game_type'] != 'sorting' &&
+                  data['game_type'] != 'reaction_time',
+            )
+            .map((data) {
+              final gameType = data['game_type'] as String;
+              final option = options.firstWhere(
+                (o) => o.gameType == gameType,
+                orElse: () => options.first,
+              );
+              return _DashboardAssignment(
+                id: data['id'].hashCode,
+                supabaseId: data['id'] as String?,
+                option: option,
+                difficulty: 'Normal',
+                targetCount: data['target_count'] as int,
+                currentProgress: data['current_count'] as int,
+              );
+            })
+            .toList();
 
         if (mounted) {
           setState(() {
@@ -270,20 +280,6 @@ List<_AssignmentOption> _assignmentOptions(BuildContext context) {
       icon: Icons.extension_rounded,
       color: const Color(0xFFBDD8F2),
       route: AppRoutes.miniPuzzle,
-    ),
-    _AssignmentOption(
-      gameType: 'sorting',
-      title: controller.tr('sorting_game'),
-      icon: Icons.category_rounded,
-      color: const Color(0xFFFFF2A8),
-      route: AppRoutes.sortingGame,
-    ),
-    _AssignmentOption(
-      gameType: 'reaction_time',
-      title: controller.tr('reaction_time'),
-      icon: Icons.flash_on_rounded,
-      color: const Color(0xFFFFDAC7),
-      route: AppRoutes.reactionTime,
     ),
     _AssignmentOption(
       gameType: 'flashcard',

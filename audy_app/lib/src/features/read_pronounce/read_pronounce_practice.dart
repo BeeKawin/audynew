@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
 
-
 import 'package:avatar_glow/avatar_glow.dart';
 import 'package:flutter/material.dart';
 
@@ -10,7 +9,6 @@ import '../../services/interactive_input_service.dart';
 import '../../services/sound_service.dart';
 import '../../services/auth_service.dart';
 import '../../state/audy_controller.dart';
-import '../../widgets/game_guide_box.dart';
 import 'read_pronounce_controller.dart';
 import 'read_pronounce_result.dart';
 import 'read_pronounce_service.dart';
@@ -55,27 +53,41 @@ class _ReadPronouncePracticeScreenState
   bool _isManualStopSubmitting = false;
   bool _hasPendingSpeechSubmission = false;
   bool _discardNextListenResult = false;
-  bool _showGuide = true;
+  bool _sessionInitialized = false;
 
   @override
   void initState() {
     super.initState();
     _controller = ReadPronounceController();
     _service = ReadPronounceService();
-    _initPracticeSession();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_sessionInitialized) {
+      _sessionInitialized = true;
+      unawaited(_initPracticeSession());
+    }
   }
 
   Future<void> _initPracticeSession() async {
     final audyController = AudyScope.of(context);
     final user = audyController.currentUser;
-    if (widget.module == ReadPronounceModule.words && user != null && user.teacherId != null) {
+    if (widget.module == ReadPronounceModule.words &&
+        user != null &&
+        user.teacherId != null) {
       try {
-        final customWords = await AuthService().fetchClassWords(user.teacherId!);
+        final customWords = await AuthService().fetchClassWords(
+          user.teacherId!,
+        );
+        if (!mounted) return;
         _controller.addCustomWords(customWords);
       } catch (e) {
         debugPrint('Failed to load custom words: $e');
       }
     }
+    if (!mounted) return;
     _controller.startSession(widget.module);
     _controller.addListener(_onControllerChanged);
 
@@ -198,6 +210,7 @@ class _ReadPronouncePracticeScreenState
 
   Future<void> _startListening() async {
     final sttAvailable = await _service.ensureSTTAvailable();
+    if (!mounted) return;
     if (!sttAvailable) {
       setState(() {
         _sttUnavailableMessage = _tr(context, 'stt_unavailable');
@@ -408,20 +421,6 @@ class _ReadPronouncePracticeScreenState
                     _TopRow(
                       adaptive: adaptive,
                       label: _tr(context, 'back_home'),
-                      guide: _showGuide
-                          ? Padding(
-                              padding: EdgeInsets.only(
-                                right: adaptive.space(8),
-                              ),
-                              child: GameGuideBox(
-                                message: AudyScope.of(
-                                  context,
-                                ).tr('guide_read_pronounce'),
-                                onDismissed: () =>
-                                    setState(() => _showGuide = false),
-                              ),
-                            )
-                          : null,
                       onBack: () {
                         SoundService.instance.playTap();
                         Navigator.pop(context);
@@ -624,31 +623,36 @@ class _PromptCard extends StatelessWidget {
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(adaptive.space(24)),
                   child: imagePath != null
-                      ? (imagePath!.startsWith('data:image') || !imagePath!.startsWith('assets/'))
-                          ? Image.memory(
-                              base64Decode(imagePath!.contains(',') ? imagePath!.split(',')[1] : imagePath!),
-                              width: imageSize,
-                              height: imageSize,
-                              fit: BoxFit.contain,
-                              errorBuilder: (context, error, stackTrace) {
-                                return _ImageFallback(
-                                  adaptive: adaptive,
-                                  size: imageSize,
-                                );
-                              },
-                            )
-                          : Image.asset(
-                              imagePath!,
-                              width: imageSize,
-                              height: imageSize,
-                              fit: BoxFit.contain,
-                              errorBuilder: (context, error, stackTrace) {
-                                return _ImageFallback(
-                                  adaptive: adaptive,
-                                  size: imageSize,
-                                );
-                              },
-                            )
+                      ? (imagePath!.startsWith('data:image') ||
+                                !imagePath!.startsWith('assets/'))
+                            ? Image.memory(
+                                base64Decode(
+                                  imagePath!.contains(',')
+                                      ? imagePath!.split(',')[1]
+                                      : imagePath!,
+                                ),
+                                width: imageSize,
+                                height: imageSize,
+                                fit: BoxFit.contain,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return _ImageFallback(
+                                    adaptive: adaptive,
+                                    size: imageSize,
+                                  );
+                                },
+                              )
+                            : Image.asset(
+                                imagePath!,
+                                width: imageSize,
+                                height: imageSize,
+                                fit: BoxFit.contain,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return _ImageFallback(
+                                    adaptive: adaptive,
+                                    size: imageSize,
+                                  );
+                                },
+                              )
                       : _ImageFallback(adaptive: adaptive, size: imageSize),
                 ),
               ),
@@ -965,13 +969,11 @@ class _TopRow extends StatelessWidget {
     required this.adaptive,
     required this.label,
     required this.onBack,
-    this.guide,
   });
 
   final _AudyAdaptive adaptive;
   final String label;
   final VoidCallback onBack;
-  final Widget? guide;
 
   @override
   Widget build(BuildContext context) {
@@ -1003,10 +1005,6 @@ class _TopRow extends StatelessWidget {
             ),
           ),
         ),
-        if (guide != null) ...[
-          SizedBox(width: adaptive.space(12)),
-          Expanded(child: guide!),
-        ],
       ],
     );
   }

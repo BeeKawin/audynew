@@ -7,11 +7,10 @@ import '../../core/audy_ui.dart';
 import '../../services/bluetooth_service.dart';
 import '../../services/sound_service.dart';
 import '../../state/audy_controller.dart';
-import '../../widgets/game_guide_box.dart';
 import 'minipuzzle_controller.dart';
 import 'minipuzzle_models.dart';
 import 'games/pattern_game_widget.dart';
-import 'games/sorting_game_widget.dart';
+import 'games/odd_one_out_game_widget.dart';
 import 'games/puzzle_game_widget.dart';
 
 // Helper function to get localized string
@@ -39,7 +38,6 @@ class _MiniPuzzleGameScreenState extends State<MiniPuzzleGameScreen> {
   late MiniPuzzleController _controller;
   bool _isNavigating = false;
   int _lastBleCorrectCount = 0;
-  bool _showGuide = true;
   Timer? _autoAdvanceTimer;
   int? _autoAdvanceRound;
 
@@ -123,17 +121,6 @@ class _MiniPuzzleGameScreenState extends State<MiniPuzzleGameScreen> {
     }
   }
 
-  String _guideKey() {
-    switch (widget.gameType) {
-      case MiniPuzzleType.pattern:
-        return 'guide_minipuzzle_pattern';
-      case MiniPuzzleType.oddOneOut:
-        return 'guide_minipuzzle_odd_one_out';
-      case MiniPuzzleType.puzzle:
-        return 'guide_minipuzzle_puzzle';
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final gameColor = _getGameColor();
@@ -161,17 +148,7 @@ class _MiniPuzzleGameScreenState extends State<MiniPuzzleGameScreen> {
                     ),
                   ),
                 ),
-                if (_showGuide) ...[
-                  SizedBox(width: adaptive.space(12)),
-                  Expanded(
-                    child: GameGuideBox(
-                      message: _tr(context, _guideKey()),
-                      onDismissed: () => setState(() => _showGuide = false),
-                    ),
-                  ),
-                  SizedBox(width: adaptive.space(12)),
-                ] else
-                  const Spacer(),
+                const Spacer(),
                 // Round indicator
                 Container(
                   padding: EdgeInsets.symmetric(

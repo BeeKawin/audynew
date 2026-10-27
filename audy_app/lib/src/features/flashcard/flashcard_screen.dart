@@ -12,7 +12,6 @@ import '../../services/bluetooth_service.dart';
 import '../../services/interactive_input_service.dart';
 import '../../services/sound_service.dart';
 import '../../state/audy_controller.dart';
-import '../../widgets/game_guide_box.dart';
 import 'flashcard_card_widget.dart';
 import 'flashcard_controller.dart';
 import 'flashcard_models.dart';
@@ -34,7 +33,6 @@ class _FlashcardScreenState extends State<FlashcardScreen> {
   StreamSubscription<AudyBleMessage>? _bleInputSub;
   late DateTime _sessionStartedAt;
   bool _hasRecordedCompletion = false;
-  bool _showGuide = true;
   bool _isSubmitting = false;
   String? _spokenRoundId;
   String? _robotBindingRoundId;
@@ -302,12 +300,6 @@ class _FlashcardScreenState extends State<FlashcardScreen> {
               totalRounds: FlashcardController.totalRounds,
               lockedCount: _controller.lockedCount,
               totalCards: _controller.totalCards,
-              guide: _showGuide
-                  ? GameGuideBox(
-                      message: AudyScope.of(context).tr('guide_flashcard'),
-                      onDismissed: () => setState(() => _showGuide = false),
-                    )
-                  : null,
               onBack: () {
                 SoundService.instance.playTap();
                 Navigator.pop(context);
@@ -374,7 +366,6 @@ class _Header extends StatelessWidget {
     required this.lockedCount,
     required this.totalCards,
     required this.onBack,
-    this.guide,
   });
 
   final AudyAdaptive adaptive;
@@ -383,7 +374,6 @@ class _Header extends StatelessWidget {
   final int lockedCount;
   final int totalCards;
   final VoidCallback onBack;
-  final Widget? guide;
 
   @override
   Widget build(BuildContext context) {
@@ -423,11 +413,6 @@ class _Header extends StatelessWidget {
             ],
           ),
         ),
-        if (guide != null)
-          SizedBox(
-            width: adaptive.isPhone ? adaptive.space(190) : adaptive.space(280),
-            child: guide!,
-          ),
       ],
     );
   }

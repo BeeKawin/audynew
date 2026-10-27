@@ -3,10 +3,15 @@ import 'package:flutter/material.dart';
 import '../core/app_routes.dart';
 import '../core/audy_theme.dart';
 import '../core/audy_ui.dart';
-import '../data/models/progress_model.dart';
 import '../services/sound_service.dart';
 import '../state/audy_controller.dart';
 import '../widgets/gentle_animations.dart';
+import 'parent/parent_child_progress_page.dart';
+import 'settings/app_settings_page.dart';
+import 'settings/preferences_page.dart';
+import 'parent/parent_profile_page.dart';
+import 'teacher/teacher_child_progress_page.dart';
+import 'teacher/teacher_profile_page.dart';
 
 // Helper function to get localized string
 String _tr(BuildContext context, String key, {Map<String, String>? params}) {
@@ -30,82 +35,6 @@ String _localizedLevelName(BuildContext context, String levelName) {
   }
 }
 
-String _localizedFeatureTitle(BuildContext context, String gameType, String title) {
-  switch (gameType) {
-    case 'emotion_classify':
-      return _tr(context, 'emotion_classify');
-    case 'emotion_mimic':
-      return _tr(context, 'emotion_mimic');
-    case 'minipuzzle':
-      return _tr(context, 'mini_puzzle');
-    case 'sorting':
-      return _tr(context, 'sorting_game');
-    case 'reaction_time':
-      return _tr(context, 'reaction_time');
-    case 'flashcard':
-      return _tr(context, 'flashcard_game');
-    case 'fruit_catching_bear':
-      return _tr(context, 'fruit_catching_bear');
-    case 'reading':
-      return _tr(context, 'read_speak');
-    case 'social_chat':
-      return _tr(context, 'social_chat');
-    default:
-      return title;
-  }
-}
-
-const double _institutionHarderDifficultyThreshold = 0.75;
-
-class _DifficultyRecommendation {
-  const _DifficultyRecommendation({
-    required this.gameType,
-    required this.title,
-    required this.score,
-  });
-
-  final String gameType;
-  final String title;
-  final double score;
-}
-
-List<_DifficultyRecommendation> _skillDifficultyRecommendations(
-  Map<String, double> skillProgress,
-) {
-  final recommendations = skillProgress.entries
-      .where((entry) => entry.value >= _institutionHarderDifficultyThreshold)
-      .map(
-        (entry) => _DifficultyRecommendation(
-          gameType: _gameTypeForSkill(entry.key),
-          title: entry.key,
-          score: entry.value,
-        ),
-      )
-      .toList();
-
-  recommendations.sort((a, b) => b.score.compareTo(a.score));
-  return recommendations.take(3).toList();
-}
-
-String _gameTypeForSkill(String skill) {
-  switch (skill.toLowerCase()) {
-    case 'emotions':
-      return 'emotion_classify';
-    case 'minipuzzle':
-      return 'minipuzzle';
-    case 'sorting':
-      return 'sorting';
-    case 'reaction':
-      return 'reaction_time';
-    case 'reading':
-      return 'reading';
-    case 'social':
-      return 'social_chat';
-    default:
-      return skill;
-  }
-}
-
 class RewardsPage extends StatefulWidget {
   const RewardsPage({super.key});
 
@@ -124,6 +53,9 @@ class _RewardsPageState extends State<RewardsPage> {
     // Set up level up callback
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final controller = AudyScope.of(context);
+      if (controller.currentUser?.role == 'child') {
+        controller.refreshCloudChildData();
+      }
       controller.onLevelUp = (newLevel) {
         setState(() {
           _newLevel = newLevel;
@@ -136,6 +68,12 @@ class _RewardsPageState extends State<RewardsPage> {
   @override
   Widget build(BuildContext context) {
     final controller = AudyScope.of(context);
+    if (controller.currentUser?.role == 'parent') {
+      return const ParentChildProgressPage();
+    }
+    if (controller.currentUser?.role == 'teacher') {
+      return const TeacherChildProgressPage();
+    }
     return AudyResponsivePage(
       builder: (context, adaptive) {
         return Column(
@@ -218,16 +156,6 @@ class _RewardsPageState extends State<RewardsPage> {
                     setState(() => selectedTab = 2);
                   },
                 ),
-                _RewardTabChip(
-                  label: _tr(context, 'achievements'),
-                  icon: Icons.auto_awesome_outlined,
-                  selected: selectedTab == 3,
-                  color: const Color(0xFFC9E8C1),
-                  onTap: () {
-                    SoundService.instance.playTap();
-                    setState(() => selectedTab = 3);
-                  },
-                ),
               ],
             ),
             SizedBox(height: adaptive.space(22)),
@@ -237,11 +165,6 @@ class _RewardsPageState extends State<RewardsPage> {
               _RewardsMyRewardsTab(adaptive: adaptive, controller: controller),
             if (selectedTab == 2)
               _RewardsSkinsTab(adaptive: adaptive, controller: controller),
-            if (selectedTab == 3)
-              _RewardsAchievementsTab(
-                adaptive: adaptive,
-                controller: controller,
-              ),
             // Level up animation overlay
             if (_showLevelUpAnimation)
               Center(
@@ -357,6 +280,12 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   Widget build(BuildContext context) {
     final controller = AudyScope.of(context);
+    if (controller.currentUser?.role == 'parent') {
+      return const ParentProfilePage();
+    }
+    if (controller.currentUser?.role == 'teacher') {
+      return const TeacherProfilePage();
+    }
     return AudyResponsivePage(
       builder: (context, adaptive) {
         return Column(
@@ -385,10 +314,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       child: InkWell(
                         onTap: () {
                           SoundService.instance.playTap();
-                          Navigator.pushNamed(
-                            context,
-                            AppRoutes.remoteControl,
-                          );
+                          Navigator.pushNamed(context, AppRoutes.remoteControl);
                         },
                         borderRadius: BorderRadius.circular(
                           AudySpacing.radiusLarge,
@@ -439,33 +365,13 @@ class _ProfilePageState extends State<ProfilePage> {
                   },
                 ),
                 _RewardTabChip(
-                  label: _tr(context, 'parent_dashboard'),
-                  icon: Icons.family_restroom_outlined,
-                  selected: selectedTab == 1,
-                  color: const Color(0xFFBDD8F2),
-                  onTap: () {
-                    SoundService.instance.playTap();
-                    setState(() => selectedTab = 1);
-                  },
-                ),
-                _RewardTabChip(
-                  label: _tr(context, 'institution_panel'),
-                  icon: Icons.school_outlined,
-                  selected: selectedTab == 2,
-                  color: const Color(0xFFC9E8C1),
-                  onTap: () {
-                    SoundService.instance.playTap();
-                    setState(() => selectedTab = 2);
-                  },
-                ),
-                _RewardTabChip(
                   label: _tr(context, 'settings'),
                   icon: Icons.settings_outlined,
-                  selected: selectedTab == 3,
+                  selected: selectedTab == 1,
                   color: const Color(0xFFF8C7DF),
                   onTap: () {
                     SoundService.instance.playTap();
-                    setState(() => selectedTab = 3);
+                    setState(() => selectedTab = 1);
                   },
                 ),
               ],
@@ -476,10 +382,6 @@ class _ProfilePageState extends State<ProfilePage> {
             if (selectedTab == 0)
               _ProfileTabContent(adaptive: adaptive, controller: controller),
             if (selectedTab == 1)
-              _ParentDashboardTab(adaptive: adaptive, controller: controller),
-            if (selectedTab == 2)
-              _InstitutionPanelTab(adaptive: adaptive, controller: controller),
-            if (selectedTab == 3)
               _SettingsTabContent(adaptive: adaptive, controller: controller),
           ],
         );
@@ -564,8 +466,8 @@ class _ProfileTabContent extends StatelessWidget {
               AudyAdaptiveGrid(
                 adaptive: adaptive,
                 phoneColumns: 2,
-                tabletColumns: 4,
-                desktopColumns: 4,
+                tabletColumns: 3,
+                desktopColumns: 3,
                 items: [
                   _StatCard(
                     icon: Icons.star_outline_rounded,
@@ -578,12 +480,6 @@ class _ProfileTabContent extends StatelessWidget {
                     value: '${controller.gamesPlayed}',
                     label: _tr(context, 'games_played'),
                     color: const Color(0xFFBDD8F2),
-                  ),
-                  _StatCard(
-                    icon: Icons.bar_chart_rounded,
-                    value: '${controller.unlockedAchievementCount}',
-                    label: _tr(context, 'achievements'),
-                    color: const Color(0xFFC9E8C1),
                   ),
                   _StatCard(
                     icon: Icons.calendar_today_outlined,
@@ -655,590 +551,6 @@ class _ProfileTabContent extends StatelessWidget {
   }
 }
 
-class _ParentDashboardTab extends StatelessWidget {
-  const _ParentDashboardTab({required this.adaptive, required this.controller});
-
-  final AudyAdaptive adaptive;
-  final AudyController controller;
-
-  @override
-  Widget build(BuildContext context) {
-    return FutureBuilder<ParentAnalyticsData>(
-      future: controller.getParentAnalytics(),
-      builder: (context, snapshot) {
-        final analytics = snapshot.data ?? _emptyAnalytics();
-        final latest = analytics.latestSession;
-        final difficultyRecommendations =
-            _skillDifficultyRecommendations(controller.skillPercentages);
-
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              _tr(context, 'learning_analytics'),
-              style: TextStyle(
-                fontSize: adaptive.space(20),
-                fontWeight: FontWeight.w800,
-                color: const Color(0xFF243A5A),
-              ),
-            ),
-            SizedBox(height: adaptive.space(6)),
-            Text(
-              '${_formatDate(analytics.rangeStart)} - '
-              '${_formatDate(analytics.rangeEnd)}',
-              style: TextStyle(
-                fontSize: adaptive.space(14),
-                color: const Color(0xFF60758F),
-              ),
-            ),
-            SizedBox(height: adaptive.space(16)),
-            AudyAdaptiveGrid(
-              adaptive: adaptive,
-              phoneColumns: 2,
-              tabletColumns: 4,
-              desktopColumns: 4,
-              items: [
-                _StatCard(
-                  icon: Icons.sports_esports_outlined,
-                  value: '${analytics.totalSessions}',
-                  label: _tr(context, 'seven_day_sessions'),
-                  color: const Color(0xFFBDD8F2),
-                ),
-                _StatCard(
-                  icon: Icons.timer_outlined,
-                  value: '${analytics.totalMinutes}',
-                  label: _tr(context, 'seven_day_minutes'),
-                  color: const Color(0xFFFFF2A8),
-                ),
-                _StatCard(
-                  icon: Icons.query_stats_rounded,
-                  value: analytics.averageScoredAccuracy == null
-                      ? '--'
-                      : _formatPercent(analytics.averageScoredAccuracy!),
-                  label: _tr(context, 'scored_average'),
-                  color: const Color(0xFFC9E8C1),
-                ),
-                _StatCard(
-                  icon: Icons.history_rounded,
-                  value: latest == null
-                      ? '--'
-                      : _localizedFeatureTitle(
-                          context,
-                          latest.gameType,
-                          latest.title,
-                        ),
-                  label: _tr(context, 'latest_activity'),
-                  color: const Color(0xFFF8C7DF),
-                ),
-              ],
-            ),
-            SizedBox(height: adaptive.space(24)),
-            _DifficultyInstructionCard(
-              adaptive: adaptive,
-              description: _tr(context, 'difficulty_instruction_parent_desc'),
-              recommendations: difficultyRecommendations,
-            ),
-            SizedBox(height: adaptive.space(24)),
-            _ChartCard(
-              title: _tr(context, 'daily_activity'),
-              subtitle: _tr(context, 'daily_activity_desc'),
-              values: analytics.dailyActivityValues,
-              color: const Color(0xFFBDD8F2),
-            ),
-            SizedBox(height: adaptive.space(24)),
-            Text(
-              _tr(context, 'learning_features'),
-              style: TextStyle(
-                fontSize: adaptive.space(20),
-                fontWeight: FontWeight.w800,
-                color: const Color(0xFF243A5A),
-              ),
-            ),
-            SizedBox(height: adaptive.space(16)),
-            AudyAdaptiveGrid(
-              adaptive: adaptive,
-              phoneColumns: 1,
-              tabletColumns: 2,
-              desktopColumns: 3,
-              items: analytics.features
-                  .map(
-                    (feature) => _FeatureAnalyticsCard(
-                      adaptive: adaptive,
-                      feature: feature,
-                    ),
-                  )
-                  .toList(),
-            ),
-            SizedBox(height: adaptive.space(24)),
-            Text(
-              _tr(context, 'recent_sessions'),
-              style: TextStyle(
-                fontSize: adaptive.space(20),
-                fontWeight: FontWeight.w800,
-                color: const Color(0xFF243A5A),
-              ),
-            ),
-            SizedBox(height: adaptive.space(16)),
-            AudyPanel(
-              adaptive: adaptive,
-              child: analytics.recentSessions.isEmpty
-                  ? _EmptyDashboardState(adaptive: adaptive)
-                  : Column(
-                      children: analytics.recentSessions
-                          .map(
-                            (session) => _RecentSessionRow(
-                              adaptive: adaptive,
-                              session: session,
-                            ),
-                          )
-                          .toList(),
-                    ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  ParentAnalyticsData _emptyAnalytics() {
-    final now = DateTime.now();
-    const features = [
-      ParentFeatureAnalytics(
-        gameType: 'emotion_classify',
-        title: 'Emotion Classify',
-        sessions: 0,
-        totalSeconds: 0,
-        correctActions: 0,
-        totalActions: 0,
-      ),
-      ParentFeatureAnalytics(
-        gameType: 'emotion_mimic',
-        title: 'Emotion Mimic',
-        sessions: 0,
-        totalSeconds: 0,
-        correctActions: 0,
-        totalActions: 0,
-      ),
-      ParentFeatureAnalytics(
-        gameType: 'minipuzzle',
-        title: 'MiniPuzzle',
-        sessions: 0,
-        totalSeconds: 0,
-        correctActions: 0,
-        totalActions: 0,
-      ),
-      ParentFeatureAnalytics(
-        gameType: 'sorting',
-        title: 'Sorting',
-        sessions: 0,
-        totalSeconds: 0,
-        correctActions: 0,
-        totalActions: 0,
-      ),
-      ParentFeatureAnalytics(
-        gameType: 'reaction_time',
-        title: 'Reaction Time',
-        sessions: 0,
-        totalSeconds: 0,
-        correctActions: 0,
-        totalActions: 0,
-      ),
-      ParentFeatureAnalytics(
-        gameType: 'reading',
-        title: 'Read & Speak',
-        sessions: 0,
-        totalSeconds: 0,
-        correctActions: 0,
-        totalActions: 0,
-      ),
-      ParentFeatureAnalytics(
-        gameType: 'social_chat',
-        title: 'Social Chat',
-        sessions: 0,
-        totalSeconds: 0,
-        correctActions: 0,
-        totalActions: 0,
-      ),
-      ParentFeatureAnalytics(
-        gameType: 'flashcard',
-        title: 'Flashcard Game',
-        sessions: 0,
-        totalSeconds: 0,
-        correctActions: 0,
-        totalActions: 0,
-      ),
-      ParentFeatureAnalytics(
-        gameType: 'fruit_catching_bear',
-        title: 'Fruit Catching Bear',
-        sessions: 0,
-        totalSeconds: 0,
-        correctActions: 0,
-        totalActions: 0,
-      ),
-    ];
-
-    return ParentAnalyticsData(
-      rangeStart: now.subtract(const Duration(days: 7)),
-      rangeEnd: now,
-      totalSessions: 0,
-      totalMinutes: 0,
-      averageScoredAccuracy: null,
-      latestSession: null,
-      features: features,
-      dailyActivityValues: const [],
-      recentSessions: const [],
-    );
-  }
-
-  String _formatDate(DateTime date) {
-    return '${date.month}/${date.day}/${date.year}';
-  }
-
-  String _formatPercent(double value) {
-    return '${(value * 100).round()}%';
-  }
-
-}
-
-class _InstitutionPanelTab extends StatelessWidget {
-  const _InstitutionPanelTab({
-    required this.adaptive,
-    required this.controller,
-  });
-
-  final AudyAdaptive adaptive;
-  final AudyController controller;
-
-  @override
-  Widget build(BuildContext context) {
-    final child = controller.currentChildProfile;
-    final group = controller.groupPerformance;
-    final difficultyRecommendations =
-        _skillDifficultyRecommendations(group.averageSkillProgress);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Current Child Section
-        Text(
-          _tr(context, 'current_child_overview'),
-          style: TextStyle(
-            fontSize: adaptive.space(20),
-            fontWeight: FontWeight.w800,
-            color: const Color(0xFF243A5A),
-          ),
-        ),
-        SizedBox(height: adaptive.space(16)),
-        AudyPanel(
-          adaptive: adaptive,
-          child: Column(
-            children: [
-              Row(
-                children: [
-                  CircleAvatar(
-                    radius: adaptive.isPhone ? 30 : 40,
-                    backgroundColor: const Color(0xFFE7D8FA),
-                    child: Icon(
-                      Icons.child_care_outlined,
-                      size: adaptive.space(28),
-                      color: const Color(0xFF3D4E68),
-                    ),
-                  ),
-                  SizedBox(width: adaptive.space(16)),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          child.name,
-                          style: TextStyle(
-                            fontSize: adaptive.space(20),
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                        SizedBox(height: adaptive.space(4)),
-                        Text(
-                          _tr(
-                            context,
-                            'age_format',
-                            params: {'age': '${child.age}'},
-                          ),
-                          style: TextStyle(
-                            fontSize: adaptive.space(14),
-                            color: const Color(0xFF60758F),
-                          ),
-                        ),
-                        Text(
-                          _tr(
-                            context,
-                            'joined_format',
-                            params: {
-                              'date':
-                                  '${child.joinedDate.day}/${child.joinedDate.month}/${child.joinedDate.year}',
-                            },
-                          ),
-                          style: TextStyle(
-                            fontSize: adaptive.space(14),
-                            color: const Color(0xFF60758F),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              SizedBox(height: adaptive.space(16)),
-              AudyAdaptiveGrid(
-                adaptive: adaptive,
-                phoneColumns: 2,
-                tabletColumns: 4,
-                desktopColumns: 4,
-                items: [
-                  _StatCard(
-                    icon: Icons.sports_esports_outlined,
-                    value: '${child.gamesPlayed}',
-                    label: _tr(context, 'games_label'),
-                    color: const Color(0xFFBDD8F2),
-                  ),
-                  _StatCard(
-                    icon: Icons.star_outline_rounded,
-                    value: '${child.learningPoints}',
-                    label: _tr(context, 'points'),
-                    color: const Color(0xFFFFF2A8),
-                  ),
-                  _StatCard(
-                    icon: Icons.local_fire_department_outlined,
-                    value: '${child.dayStreak}',
-                    label: _tr(context, 'streak'),
-                    color: const Color(0xFFF8C7DF),
-                  ),
-                  _StatCard(
-                    icon: Icons.emoji_events_outlined,
-                    value: '${child.achievementsUnlocked}',
-                    label: _tr(context, 'achievements'),
-                    color: const Color(0xFFC9E8C1),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-        SizedBox(height: adaptive.space(24)),
-        _DifficultyInstructionCard(
-          adaptive: adaptive,
-          description: _tr(context, 'difficulty_instruction_institution_desc'),
-          recommendations: difficultyRecommendations,
-        ),
-        SizedBox(height: adaptive.space(24)),
-
-        // Group Performance Section
-        Text(
-          _tr(context, 'single_child_summary'),
-          style: TextStyle(
-            fontSize: adaptive.space(20),
-            fontWeight: FontWeight.w800,
-            color: const Color(0xFF243A5A),
-          ),
-        ),
-        SizedBox(height: adaptive.space(16)),
-        AudyPanel(
-          adaptive: adaptive,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                _tr(context, 'current_child_statistics'),
-                style: TextStyle(
-                  fontSize: adaptive.space(16),
-                  fontWeight: FontWeight.w700,
-                  color: const Color(0xFF243A5A),
-                ),
-              ),
-              SizedBox(height: adaptive.space(12)),
-              _InstitutionStatRow(
-                label: _tr(context, 'children_shown'),
-                value: '${group.totalChildren}',
-              ),
-              _InstitutionStatRow(
-                label: _tr(context, 'games_completed'),
-                value: group.averageGamesPerChild.toStringAsFixed(1),
-              ),
-              _InstitutionStatRow(
-                label: _tr(context, 'learning_points'),
-                value: group.averagePointsPerChild.toStringAsFixed(0),
-              ),
-              _InstitutionStatRow(
-                label: _tr(context, 'current_streak'),
-                value: group.averageStreak.toStringAsFixed(1),
-              ),
-              SizedBox(height: adaptive.space(16)),
-              Text(
-                _tr(context, 'skill_progress'),
-                style: TextStyle(
-                  fontSize: adaptive.space(16),
-                  fontWeight: FontWeight.w700,
-                  color: const Color(0xFF243A5A),
-                ),
-              ),
-              SizedBox(height: adaptive.space(12)),
-              ...group.averageSkillProgress.entries.map((entry) {
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        flex: 2,
-                        child: Text(
-                          entry.key,
-                          style: const TextStyle(fontWeight: FontWeight.w600),
-                        ),
-                      ),
-                      Expanded(
-                        flex: 3,
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(999),
-                          child: LinearProgressIndicator(
-                            value: entry.value,
-                            minHeight: 8,
-                            backgroundColor: const Color(0xFFE2E5EA),
-                            valueColor: const AlwaysStoppedAnimation(
-                              Color(0xFFC9E8C1),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        '${(entry.value * 100).toInt()}%',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Color(0xFF60758F),
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              }),
-            ],
-          ),
-        ),
-        SizedBox(height: adaptive.space(24)),
-
-        // Export Report Section
-        Text(
-          _tr(context, 'export_report'),
-          style: TextStyle(
-            fontSize: adaptive.space(20),
-            fontWeight: FontWeight.w800,
-            color: const Color(0xFF243A5A),
-          ),
-        ),
-        SizedBox(height: adaptive.space(16)),
-        AudyPanel(
-          adaptive: adaptive,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                _tr(context, 'export_report_desc'),
-                style: TextStyle(
-                  fontSize: adaptive.space(14),
-                  color: const Color(0xFF60758F),
-                ),
-              ),
-              SizedBox(height: adaptive.space(16)),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    SoundService.instance.playTap();
-                    _showExportDialog(context);
-                  },
-                  icon: const Icon(Icons.download_outlined),
-                  label: Text(_tr(context, 'export_report')),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFC9E8C1),
-                    foregroundColor: const Color(0xFF243A5A),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 24,
-                      vertical: 16,
-                    ),
-                    minimumSize: const Size(48, 48),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  void _showExportDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => Dialog(
-        backgroundColor: Colors.transparent,
-        child: Container(
-          padding: const EdgeInsets.all(28),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(28),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(
-                Icons.check_circle_outline_rounded,
-                size: 64,
-                color: Color(0xFF22B860),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                _tr(context, 'report_exported'),
-                style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w800,
-                  color: Color(0xFF243A5A),
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                _tr(context, 'report_saved'),
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 16, color: const Color(0xFF60758F)),
-              ),
-              const SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: () {
-                  SoundService.instance.playTap();
-                  Navigator.pop(context);
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFC9E8C1),
-                  foregroundColor: const Color(0xFF243A5A),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 32,
-                    vertical: 16,
-                  ),
-                  minimumSize: const Size(48, 48),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                ),
-                child: Text(_tr(context, 'great')),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 class _SettingsTabContent extends StatelessWidget {
   const _SettingsTabContent({required this.adaptive, required this.controller});
 
@@ -1250,6 +562,22 @@ class _SettingsTabContent extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        ListTile(
+          contentPadding: EdgeInsets.zero,
+          minVerticalPadding: 16,
+          leading: const Icon(Icons.settings_outlined),
+          title: Text(
+            controller.currentLanguage == 'th'
+                ? 'การตั้งค่าแอป'
+                : 'App Settings',
+          ),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute<void>(builder: (_) => const AppSettingsPage()),
+          ),
+        ),
+        const Divider(height: 32),
         // Preferences Card
         Text(
           _tr(context, 'your_preferences'),
@@ -1313,7 +641,12 @@ class _SettingsTabContent extends StatelessWidget {
           child: ElevatedButton.icon(
             onPressed: () {
               SoundService.instance.playTap();
-              Navigator.pushNamed(context, AppRoutes.preferences);
+              Navigator.push(
+                context,
+                MaterialPageRoute<void>(
+                  builder: (_) => const PreferencesPage(),
+                ),
+              );
             },
             icon: Icon(Icons.edit_outlined, size: adaptive.space(24)),
             label: Text(
@@ -1484,38 +817,6 @@ class _SettingsTabContent extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-
-}
-
-class _InstitutionStatRow extends StatelessWidget {
-  const _InstitutionStatRow({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            label,
-            style: const TextStyle(fontSize: 14, color: Color(0xFF60758F)),
-          ),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
-              color: Color(0xFF243A5A),
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
@@ -1796,8 +1097,10 @@ class _RewardsProgressTabState extends State<_RewardsProgressTab>
           SizedBox(height: widget.adaptive.space(16)),
 
           // Progress Text
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            spacing: widget.adaptive.space(12),
+            runSpacing: widget.adaptive.space(8),
             children: [
               Text(
                 _tr(
@@ -1888,70 +1191,15 @@ class _RewardsMyRewardsTab extends StatelessWidget {
 
     return Column(
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              _tr(context, 'my_rewards'),
-              style: TextStyle(
-                fontSize: adaptive.space(22),
-                fontWeight: FontWeight.w800,
-              ),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: Text(
+            _tr(context, 'my_rewards'),
+            style: TextStyle(
+              fontSize: adaptive.space(22),
+              fontWeight: FontWeight.w800,
             ),
-            if (controller.canAddReward)
-              ElevatedButton.icon(
-                onPressed: () {
-                  SoundService.instance.playTap();
-                  _showAddRewardDialog(context);
-                },
-                icon: Icon(Icons.add, size: adaptive.space(20)),
-                label: Text(
-                  _tr(context, 'add_reward'),
-                  style: TextStyle(fontSize: adaptive.space(14)),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFF8C7DF),
-                  foregroundColor: const Color(0xFF243A5A),
-                  padding: EdgeInsets.symmetric(
-                    horizontal: adaptive.space(16),
-                    vertical: adaptive.space(12),
-                  ),
-                  minimumSize: const Size(48, 48),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                ),
-              )
-            else
-              Container(
-                padding: EdgeInsets.symmetric(
-                  horizontal: adaptive.space(12),
-                  vertical: adaptive.space(8),
-                ),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE2E5EA),
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.info_outline,
-                      size: adaptive.space(16),
-                      color: const Color(0xFF60758F),
-                    ),
-                    SizedBox(width: adaptive.space(6)),
-                    Text(
-                      _tr(context, 'max_rewards_reached'),
-                      style: TextStyle(
-                        fontSize: adaptive.space(12),
-                        color: const Color(0xFF60758F),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-          ],
+          ),
         ),
         SizedBox(height: adaptive.space(18)),
 
@@ -2028,7 +1276,7 @@ class _RewardsMyRewardsTab extends StatelessWidget {
                   adaptive: adaptive,
                   isClaimable: isClaimable,
                   isClaimed: isClaimed,
-                  onClaim: () => controller.claimReward(reward.id),
+                  onClaim: () => controller.claimReward(reward),
                 ),
               )
               .toList(),
@@ -2063,7 +1311,7 @@ class _RewardsMyRewardsTab extends StatelessWidget {
           ),
           SizedBox(height: adaptive.space(8)),
           Text(
-            _tr(context, 'create_reward_hint'),
+            _tr(context, 'caregiver_reward_hint'),
             style: TextStyle(
               fontSize: adaptive.space(14),
               color: const Color(0xFF60758F),
@@ -2071,19 +1319,6 @@ class _RewardsMyRewardsTab extends StatelessWidget {
             textAlign: TextAlign.center,
           ),
         ],
-      ),
-    );
-  }
-
-  void _showAddRewardDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => _AddRewardDialog(
-        adaptive: adaptive,
-        onCreate: (prize, condition, target) {
-          controller.addReward(prize, condition, target);
-          Navigator.pop(context);
-        },
       ),
     );
   }
@@ -2506,566 +1741,6 @@ class _PreviewDot extends StatelessWidget {
   }
 }
 
-class _RewardsAchievementsTab extends StatelessWidget {
-  const _RewardsAchievementsTab({
-    required this.adaptive,
-    required this.controller,
-  });
-
-  final AudyAdaptive adaptive;
-  final AudyController controller;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Center(
-          child: Text(
-            _tr(context, 'your_achievements'),
-            style: TextStyle(
-              fontSize: adaptive.space(22),
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-        ),
-        SizedBox(height: adaptive.space(18)),
-        AudyAdaptiveGrid(
-          adaptive: adaptive,
-          phoneColumns: 1,
-          tabletColumns: 2,
-          desktopColumns: 2,
-          items: controller.achievements.map((item) {
-            final locked = !item.unlocked;
-            return Container(
-              padding: EdgeInsets.all(adaptive.space(20)),
-              decoration: BoxDecoration(
-                color: locked
-                    ? Colors.white.withValues(alpha: 0.55)
-                    : Colors.white,
-                borderRadius: BorderRadius.circular(adaptive.space(22)),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF9FAFC4).withValues(alpha: 0.14),
-                    blurRadius: 18,
-                    offset: const Offset(0, 8),
-                  ),
-                ],
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    locked
-                        ? Icons.lock_outline_rounded
-                        : Icons.auto_awesome_rounded,
-                    size: adaptive.space(36),
-                    color: locked
-                        ? const Color(0xFFB8BFCA)
-                        : const Color(0xFFF59A23),
-                  ),
-                  SizedBox(width: adaptive.space(16)),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          item.title,
-                          style: TextStyle(
-                            fontSize: adaptive.space(18),
-                            fontWeight: FontWeight.w800,
-                            color: locked
-                                ? const Color(0xFF6D7887)
-                                : const Color(0xFF243A5A),
-                          ),
-                        ),
-                        SizedBox(height: adaptive.space(6)),
-                        Text(
-                          item.description,
-                          style: TextStyle(
-                            fontSize: adaptive.space(14),
-                            color: const Color(0xFF728198),
-                          ),
-                        ),
-                        SizedBox(height: adaptive.space(6)),
-                        Text(
-                          locked
-                              ? _tr(context, 'locked')
-                              : _tr(context, 'unlocked'),
-                          style: TextStyle(
-                            fontSize: adaptive.space(13),
-                            fontWeight: FontWeight.w700,
-                            color: locked
-                                ? const Color(0xFFB8BFCA)
-                                : const Color(0xFF22B860),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            );
-          }).toList(),
-        ),
-      ],
-    );
-  }
-}
-
-class _FeatureAnalyticsCard extends StatelessWidget {
-  const _FeatureAnalyticsCard({
-    required this.adaptive,
-    required this.feature,
-  });
-
-  final AudyAdaptive adaptive;
-  final ParentFeatureAnalytics feature;
-
-  @override
-  Widget build(BuildContext context) {
-    final accuracy = feature.averageAccuracy;
-    final color = _analyticsColor(feature.gameType);
-    final hasSessions = feature.sessions > 0;
-
-    return AudyPanel(
-      adaptive: adaptive,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: color,
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Icon(
-                  _analyticsIcon(feature.gameType),
-                  color: const Color(0xFF243A5A),
-                  size: 26,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  _localizedFeatureTitle(context, feature.gameType, feature.title),
-                  style: TextStyle(
-                    fontSize: adaptive.space(17),
-                    fontWeight: FontWeight.w800,
-                    color: const Color(0xFF243A5A),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: adaptive.space(16)),
-          Row(
-            children: [
-              Expanded(
-                child: _MiniMetric(
-                  label: _tr(context, 'sessions'),
-                  value: '${feature.sessions}',
-                ),
-              ),
-              Expanded(
-                child: _MiniMetric(
-                  label: _tr(context, 'minutes'),
-                  value: '${feature.minutes}',
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: adaptive.space(14)),
-          Text(
-            accuracy == null
-                ? _tr(context, 'participation')
-                : _tr(context, 'average_score'),
-            style: const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
-              color: Color(0xFF60758F),
-            ),
-          ),
-          const SizedBox(height: 8),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(999),
-            child: LinearProgressIndicator(
-              value: accuracy ?? (hasSessions ? 1 : 0),
-              minHeight: 12,
-              backgroundColor: const Color(0xFFE2E5EA),
-              valueColor: AlwaysStoppedAnimation(color),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            accuracy == null
-                ? (hasSessions
-                    ? _tr(context, 'recorded_activity')
-                    : _tr(context, 'no_sessions_yet'))
-                : _tr(
-                    context,
-                    'percent_correct',
-                    params: {'percent': '${(accuracy * 100).round()}'},
-                  ),
-            style: const TextStyle(fontSize: 13, color: Color(0xFF60758F)),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _MiniMetric extends StatelessWidget {
-  const _MiniMetric({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          value,
-          style: const TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.w800,
-            color: Color(0xFF243A5A),
-          ),
-        ),
-        const SizedBox(height: 3),
-        Text(
-          label,
-          style: const TextStyle(fontSize: 12, color: Color(0xFF60758F)),
-        ),
-      ],
-    );
-  }
-}
-
-class _RecentSessionRow extends StatelessWidget {
-  const _RecentSessionRow({
-    required this.adaptive,
-    required this.session,
-  });
-
-  final AudyAdaptive adaptive;
-  final ParentRecentSession session;
-
-  @override
-  Widget build(BuildContext context) {
-    final accuracy = session.accuracy;
-    final color = _analyticsColor(session.gameType);
-
-    return Padding(
-      padding: EdgeInsets.only(bottom: adaptive.space(12)),
-      child: Row(
-        children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: color,
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Icon(
-              _analyticsIcon(session.gameType),
-              color: const Color(0xFF243A5A),
-              size: 24,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  _localizedFeatureTitle(context, session.gameType, session.title),
-                  style: TextStyle(
-                    fontSize: adaptive.space(15),
-                    fontWeight: FontWeight.w800,
-                    color: const Color(0xFF243A5A),
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  '${_relativeSessionTime(context, session.endedAt)} - ${_formatDuration(session.durationSeconds)}',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Color(0xFF60758F),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          Text(
-            accuracy == null
-                ? _tr(context, 'done')
-                : '${session.correctActions}/${session.totalActions}',
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w800,
-              color: Color(0xFF243A5A),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _EmptyDashboardState extends StatelessWidget {
-  const _EmptyDashboardState({required this.adaptive});
-
-  final AudyAdaptive adaptive;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.symmetric(vertical: adaptive.space(20)),
-      child: Text(
-        _tr(context, 'no_learning_sessions'),
-        textAlign: TextAlign.center,
-        style: const TextStyle(
-          fontSize: 15,
-          fontWeight: FontWeight.w700,
-          color: Color(0xFF60758F),
-        ),
-      ),
-    );
-  }
-}
-
-class _DifficultyInstructionCard extends StatelessWidget {
-  const _DifficultyInstructionCard({
-    required this.adaptive,
-    required this.description,
-    required this.recommendations,
-  });
-
-  final AudyAdaptive adaptive;
-  final String description;
-  final List<_DifficultyRecommendation> recommendations;
-
-  @override
-  Widget build(BuildContext context) {
-    return AudyPanel(
-      adaptive: adaptive,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFC9E8C1),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: const Icon(
-                  Icons.trending_up_rounded,
-                  color: Color(0xFF243A5A),
-                  size: 26,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      _tr(context, 'difficulty_instruction_title'),
-                      style: TextStyle(
-                        fontSize: adaptive.space(18),
-                        fontWeight: FontWeight.w800,
-                        color: const Color(0xFF243A5A),
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      description,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: Color(0xFF60758F),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: adaptive.space(16)),
-          if (recommendations.isEmpty)
-            Text(
-              _tr(context, 'difficulty_instruction_empty'),
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
-                color: Color(0xFF60758F),
-              ),
-            )
-          else
-            Column(
-              children: recommendations
-                  .map(
-                    (recommendation) => _DifficultyRecommendationRow(
-                      adaptive: adaptive,
-                      recommendation: recommendation,
-                    ),
-                  )
-                  .toList(),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-class _DifficultyRecommendationRow extends StatelessWidget {
-  const _DifficultyRecommendationRow({
-    required this.adaptive,
-    required this.recommendation,
-  });
-
-  final AudyAdaptive adaptive;
-  final _DifficultyRecommendation recommendation;
-
-  @override
-  Widget build(BuildContext context) {
-    final color = _analyticsColor(recommendation.gameType);
-
-    return Padding(
-      padding: EdgeInsets.only(bottom: adaptive.space(10)),
-      child: Row(
-        children: [
-          Container(
-            width: 42,
-            height: 42,
-            decoration: BoxDecoration(
-              color: color,
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Icon(
-              _analyticsIcon(recommendation.gameType),
-              color: const Color(0xFF243A5A),
-              size: 22,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  _localizedFeatureTitle(
-                    context,
-                    recommendation.gameType,
-                    recommendation.title,
-                  ),
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w800,
-                    color: Color(0xFF243A5A),
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  _tr(context, 'try_harder_difficulty'),
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Color(0xFF60758F),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Text(
-            '${(recommendation.score * 100).round()}%',
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w800,
-              color: Color(0xFF243A5A),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-IconData _analyticsIcon(String gameType) {
-  switch (gameType) {
-    case 'emotion_classify':
-      return Icons.sentiment_satisfied_rounded;
-    case 'emotion_mimic':
-      return Icons.face_retouching_natural_rounded;
-    case 'minipuzzle':
-      return Icons.extension_rounded;
-    case 'sorting':
-      return Icons.category_rounded;
-    case 'reaction_time':
-      return Icons.flash_on_rounded;
-    case 'reading':
-      return Icons.menu_book_rounded;
-    case 'social_chat':
-      return Icons.chat_bubble_rounded;
-    default:
-      return Icons.analytics_rounded;
-  }
-}
-
-Color _analyticsColor(String gameType) {
-  switch (gameType) {
-    case 'emotion_classify':
-      return const Color(0xFFF8C7DF);
-    case 'emotion_mimic':
-      return const Color(0xFFE7D8FA);
-    case 'minipuzzle':
-      return const Color(0xFFBDD8F2);
-    case 'sorting':
-      return const Color(0xFFFFF2A8);
-    case 'reaction_time':
-      return const Color(0xFFFFDAC7);
-    case 'reading':
-      return const Color(0xFFC9E8C1);
-    case 'social_chat':
-      return const Color(0xFFBDEBE8);
-    default:
-      return const Color(0xFFE2E5EA);
-  }
-}
-
-String _relativeSessionTime(BuildContext context, DateTime date) {
-  final difference = DateTime.now().difference(date);
-  if (difference.inMinutes < 1) return _tr(context, 'just_now');
-  if (difference.inHours < 1) {
-    return _tr(
-      context,
-      'minutes_ago',
-      params: {'count': '${difference.inMinutes}'},
-    );
-  }
-  if (difference.inDays < 1) {
-    return _tr(
-      context,
-      'hours_ago',
-      params: {'count': '${difference.inHours}'},
-    );
-  }
-  return _tr(context, 'days_ago', params: {'count': '${difference.inDays}'});
-}
-
-String _formatDuration(int seconds) {
-  if (seconds < 60) return '${seconds}s';
-  return '${(seconds / 60).ceil()}m';
-}
-
 class _StatCard extends StatelessWidget {
   const _StatCard({
     required this.icon,
@@ -3106,139 +1781,6 @@ class _StatCard extends StatelessWidget {
     );
   }
 }
-
-class _ChartCard extends StatelessWidget {
-  const _ChartCard({
-    required this.title,
-    required this.values,
-    required this.color,
-    this.subtitle,
-  });
-
-  final String title;
-  final List<double> values;
-  final Color color;
-  final String? subtitle;
-
-  @override
-  Widget build(BuildContext context) {
-    final adaptive = AudyAdaptive(
-      width: MediaQuery.of(context).size.width,
-      height: MediaQuery.of(context).size.height,
-    );
-
-    return AudyPanel(
-      adaptive: adaptive,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
-          ),
-          if (subtitle != null) ...[
-            const SizedBox(height: 6),
-            Text(
-              subtitle!,
-              style: const TextStyle(fontSize: 13, color: Color(0xFF60758F)),
-            ),
-          ],
-          const SizedBox(height: 18),
-          SizedBox(
-            height: 180,
-            child: values.isEmpty
-                ? _EmptyChartState(color: color)
-                : CustomPaint(
-                    painter: _LineChartPainter(values: values, color: color),
-                    child: Container(),
-                  ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _EmptyChartState extends StatelessWidget {
-  const _EmptyChartState({required this.color});
-
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.14),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: color.withValues(alpha: 0.5)),
-      ),
-      child: Center(
-        child: Text(
-          _tr(context, 'not_enough_session_data'),
-          textAlign: TextAlign.center,
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w700,
-            color: Color(0xFF60758F),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _LineChartPainter extends CustomPainter {
-  const _LineChartPainter({required this.values, required this.color});
-
-  final List<double> values;
-  final Color color;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final gridPaint = Paint()
-      ..color = const Color(0xFFE5EAF0)
-      ..strokeWidth = 1;
-
-    for (var i = 0; i < 4; i++) {
-      final y = (size.height / 3) * i;
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), gridPaint);
-    }
-
-    final path = Path();
-    final dotPaint = Paint()..color = color;
-    final strokePaint = Paint()
-      ..color = color
-      ..strokeWidth = 3
-      ..style = PaintingStyle.stroke;
-
-    if (values.length == 1) {
-      final y = size.height - (size.height * values.first);
-      canvas.drawCircle(Offset(size.width / 2, y), 5, dotPaint);
-      return;
-    }
-
-    for (var i = 0; i < values.length; i++) {
-      final x = i * (size.width / (values.length - 1));
-      final y = size.height - (size.height * values[i]);
-      if (i == 0) {
-        path.moveTo(x, y);
-      } else {
-        path.lineTo(x, y);
-      }
-      canvas.drawCircle(Offset(x, y), 4, dotPaint);
-    }
-
-    canvas.drawPath(path, strokePaint);
-  }
-
-  @override
-  bool shouldRepaint(covariant _LineChartPainter oldDelegate) {
-    return oldDelegate.values != values || oldDelegate.color != color;
-  }
-}
-
-// ==================== REWARD CARD WIDGET ====================
 
 class _RewardCard extends StatelessWidget {
   const _RewardCard({
@@ -3441,328 +1983,5 @@ class _RewardCard extends StatelessWidget {
       RewardCondition.socialChat: _tr(context, 'social_chat'),
     };
     return labels[condition] ?? '';
-  }
-}
-
-// ==================== ADD REWARD DIALOG ====================
-
-class _AddRewardDialog extends StatefulWidget {
-  const _AddRewardDialog({required this.adaptive, required this.onCreate});
-
-  final AudyAdaptive adaptive;
-  final void Function(String prize, RewardCondition condition, int target)
-  onCreate;
-
-  @override
-  State<_AddRewardDialog> createState() => _AddRewardDialogState();
-}
-
-class _AddRewardDialogState extends State<_AddRewardDialog> {
-  final _prizeController = TextEditingController();
-  RewardCondition _selectedCondition = RewardCondition.emotionClassify;
-  int _targetCount = 5;
-
-  @override
-  void dispose() {
-    _prizeController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Dialog(
-      backgroundColor: Colors.transparent,
-      child: Container(
-        padding: EdgeInsets.all(widget.adaptive.space(24)),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(widget.adaptive.space(28)),
-        ),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Text(
-                  _tr(context, 'create_reward'),
-                  style: TextStyle(
-                    fontSize: widget.adaptive.space(22),
-                    fontWeight: FontWeight.w800,
-                    color: const Color(0xFF243A5A),
-                  ),
-                ),
-              ),
-              SizedBox(height: widget.adaptive.space(24)),
-
-              // Prize Field
-              Text(
-                _tr(context, 'prize_label'),
-                style: TextStyle(
-                  fontSize: widget.adaptive.space(14),
-                  fontWeight: FontWeight.w700,
-                  color: const Color(0xFF60758F),
-                ),
-              ),
-              SizedBox(height: widget.adaptive.space(8)),
-              TextField(
-                controller: _prizeController,
-                decoration: InputDecoration(
-                  hintText: _tr(context, 'prize_hint'),
-                  hintStyle: TextStyle(color: const Color(0xFFB8BFCA)),
-                  filled: true,
-                  fillColor: const Color(0xFFF8F9FA),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
-                  ),
-                  contentPadding: EdgeInsets.symmetric(
-                    horizontal: widget.adaptive.space(16),
-                    vertical: widget.adaptive.space(14),
-                  ),
-                ),
-              ),
-              SizedBox(height: widget.adaptive.space(20)),
-
-              // Condition Selector
-              Text(
-                _tr(context, 'condition_label'),
-                style: TextStyle(
-                  fontSize: widget.adaptive.space(14),
-                  fontWeight: FontWeight.w700,
-                  color: const Color(0xFF60758F),
-                ),
-              ),
-              SizedBox(height: widget.adaptive.space(12)),
-              Wrap(
-                spacing: widget.adaptive.space(8),
-                runSpacing: widget.adaptive.space(8),
-                children: RewardCondition.values.where((c) => c != RewardCondition.emotionMimic).map((condition) {
-                  final isSelected = _selectedCondition == condition;
-                  return InkWell(
-                    onTap: () {
-                      SoundService.instance.playTap();
-                      setState(() => _selectedCondition = condition);
-                    },
-                    borderRadius: BorderRadius.circular(999),
-                    child: Container(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: widget.adaptive.space(12),
-                        vertical: widget.adaptive.space(10),
-                      ),
-                      decoration: BoxDecoration(
-                        color: isSelected
-                            ? const Color(0xFFF8C7DF)
-                            : const Color(0xFFF8F9FA),
-                        borderRadius: BorderRadius.circular(999),
-                        border: isSelected
-                            ? Border.all(
-                                color: const Color(0xFF5D6A7E),
-                                width: 1.5,
-                              )
-                            : null,
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            _getConditionIcon(condition),
-                            size: widget.adaptive.space(18),
-                            color: const Color(0xFF243A5A),
-                          ),
-                          SizedBox(width: widget.adaptive.space(6)),
-                          Text(
-                            _getConditionLabel(context, condition),
-                            style: TextStyle(
-                              fontSize: widget.adaptive.space(14),
-                              fontWeight: FontWeight.w700,
-                              color: const Color(0xFF243A5A),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                }).toList(),
-              ),
-              SizedBox(height: widget.adaptive.space(20)),
-
-              // Target Count
-              Text(
-                _tr(context, 'target_label'),
-                style: TextStyle(
-                  fontSize: widget.adaptive.space(14),
-                  fontWeight: FontWeight.w700,
-                  color: const Color(0xFF60758F),
-                ),
-              ),
-              SizedBox(height: widget.adaptive.space(12)),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  _CountButton(
-                    icon: Icons.remove,
-                    onPressed: _targetCount > 1
-                        ? () => setState(() => _targetCount--)
-                        : null,
-                    adaptive: widget.adaptive,
-                  ),
-                  SizedBox(width: widget.adaptive.space(16)),
-                  Container(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: widget.adaptive.space(24),
-                      vertical: widget.adaptive.space(12),
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF8F9FA),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      '$_targetCount',
-                      style: TextStyle(
-                        fontSize: widget.adaptive.space(24),
-                        fontWeight: FontWeight.w800,
-                        color: const Color(0xFF243A5A),
-                      ),
-                    ),
-                  ),
-                  SizedBox(width: widget.adaptive.space(16)),
-                  _CountButton(
-                    icon: Icons.add,
-                    onPressed: _targetCount < 20
-                        ? () => setState(() => _targetCount++)
-                        : null,
-                    adaptive: widget.adaptive,
-                  ),
-                ],
-              ),
-              SizedBox(height: widget.adaptive.space(24)),
-
-              // Buttons
-              Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () {
-                        SoundService.instance.playTap();
-                        Navigator.pop(context);
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFE2E5EA),
-                        foregroundColor: const Color(0xFF60758F),
-                        padding: EdgeInsets.symmetric(
-                          vertical: widget.adaptive.space(14),
-                        ),
-                        minimumSize: const Size(48, 48),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(999),
-                        ),
-                      ),
-                      child: Text(_tr(context, 'cancel')),
-                    ),
-                  ),
-                  SizedBox(width: widget.adaptive.space(12)),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: _prizeController.text.trim().isNotEmpty
-                          ? () {
-                              SoundService.instance.playTap();
-                              widget.onCreate(
-                                _prizeController.text.trim(),
-                                _selectedCondition,
-                                _targetCount,
-                              );
-                            }
-                          : null,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFF8C7DF),
-                        foregroundColor: const Color(0xFF243A5A),
-                        padding: EdgeInsets.symmetric(
-                          vertical: widget.adaptive.space(14),
-                        ),
-                        disabledBackgroundColor: const Color(0xFFE2E5EA),
-                        minimumSize: const Size(48, 48),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(999),
-                        ),
-                      ),
-                      child: Text(_tr(context, 'create')),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  IconData _getConditionIcon(RewardCondition condition) {
-    switch (condition) {
-      case RewardCondition.emotionClassify:
-        return Icons.sentiment_satisfied_rounded;
-      case RewardCondition.emotionMimic:
-        return Icons.face_rounded;
-      case RewardCondition.miniPuzzle:
-        return Icons.extension_rounded;
-      case RewardCondition.sortingGame:
-        return Icons.category_rounded;
-      case RewardCondition.reactionTime:
-        return Icons.flash_on_rounded;
-      case RewardCondition.reading:
-        return Icons.menu_book_rounded;
-      case RewardCondition.socialChat:
-        return Icons.chat_bubble_rounded;
-    }
-  }
-
-  String _getConditionLabel(BuildContext context, RewardCondition condition) {
-    final labels = {
-      RewardCondition.emotionClassify: _tr(context, 'emotion_classify'),
-      RewardCondition.emotionMimic: _tr(context, 'emotion_mimic'),
-      RewardCondition.miniPuzzle: _tr(context, 'mini_puzzle'),
-      RewardCondition.sortingGame: _tr(context, 'sorting_game'),
-      RewardCondition.reactionTime: _tr(context, 'reaction_time'),
-      RewardCondition.reading: _tr(context, 'reading'),
-      RewardCondition.socialChat: _tr(context, 'social_chat'),
-    };
-    return labels[condition] ?? '';
-  }
-}
-
-class _CountButton extends StatelessWidget {
-  const _CountButton({
-    required this.icon,
-    required this.onPressed,
-    required this.adaptive,
-  });
-
-  final IconData icon;
-  final VoidCallback? onPressed;
-  final AudyAdaptive adaptive;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: onPressed != null
-          ? const Color(0xFFBDD8F2)
-          : const Color(0xFFE2E5EA),
-      borderRadius: BorderRadius.circular(12),
-      child: InkWell(
-        onTap: onPressed,
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          padding: EdgeInsets.all(adaptive.space(12)),
-          child: Icon(
-            icon,
-            size: adaptive.space(24),
-            color: onPressed != null
-                ? const Color(0xFF243A5A)
-                : const Color(0xFFB8BFCA),
-          ),
-        ),
-      ),
-    );
   }
 }

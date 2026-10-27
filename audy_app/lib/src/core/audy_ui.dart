@@ -1,5 +1,54 @@
 import 'package:flutter/material.dart';
 import 'audy_theme.dart';
+import '../state/audy_controller.dart';
+
+/// Shared controls using the original Parent palette and generous touch targets.
+class AudyControls extends StatelessWidget {
+  const AudyControls({super.key, required this.child});
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Theme(
+      data: theme.copyWith(
+        filledButtonTheme: FilledButtonThemeData(
+          style: FilledButton.styleFrom(
+            minimumSize: const Size(48, 56),
+            backgroundColor: const Color(0xFFBDD8F2),
+            foregroundColor: AudyColors.textPrimary,
+            shape: const StadiumBorder(),
+          ),
+        ),
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            minimumSize: const Size(48, 56),
+            backgroundColor: const Color(0xFFBDD8F2),
+            foregroundColor: AudyColors.textPrimary,
+            shape: const StadiumBorder(),
+          ),
+        ),
+        outlinedButtonTheme: OutlinedButtonThemeData(
+          style: OutlinedButton.styleFrom(
+            minimumSize: const Size(48, 56),
+            foregroundColor: AudyColors.textPrimary,
+            shape: const StadiumBorder(),
+          ),
+        ),
+        textButtonTheme: TextButtonThemeData(
+          style: TextButton.styleFrom(
+            minimumSize: const Size(48, 48),
+            foregroundColor: AudyColors.textPrimary,
+          ),
+        ),
+        iconButtonTheme: IconButtonThemeData(
+          style: IconButton.styleFrom(minimumSize: const Size(48, 48)),
+        ),
+      ),
+      child: child,
+    );
+  }
+}
 
 class AudyAdaptive {
   const AudyAdaptive({required this.width, required this.height});
@@ -21,6 +70,7 @@ class AudyAdaptive {
     return phone;
   }
 }
+
 class AudyResponsivePage extends StatelessWidget {
   const AudyResponsivePage({
     super.key,
@@ -60,11 +110,15 @@ class AudyResponsivePage extends StatelessWidget {
         return Scaffold(
           body: DecoratedBox(
             decoration: BoxDecoration(
-              image: DecorationImage(
-                image: AssetImage('assets/images/background.png'),
-                fit: BoxFit.cover,
-                opacity: 0.5, // Semi-transparent (50% visibility)
-              ),
+              image:
+                  AudyScope.maybeOf(context)?.appSettings.plainBackground ==
+                      true
+                  ? null
+                  : const DecorationImage(
+                      image: AssetImage('assets/images/background.png'),
+                      fit: BoxFit.cover,
+                      opacity: 0.5, // Semi-transparent (50% visibility)
+                    ),
               color: AudyColors.backgroundPrimary,
             ),
             child: SafeArea(
@@ -85,6 +139,7 @@ class AudyResponsivePage extends StatelessWidget {
     );
   }
 }
+
 /// Large, icon-first activity card designed for visual recognition
 class AudyBigIconCard extends StatefulWidget {
   const AudyBigIconCard({
@@ -347,7 +402,9 @@ class AudyGreetingHeader extends StatelessWidget {
             ],
           ),
         ),
-        if (onDeviceTap != null || onProfileTap != null || onAssignmentTap != null)
+        if (onDeviceTap != null ||
+            onProfileTap != null ||
+            onAssignmentTap != null)
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -411,10 +468,11 @@ class AudyGreetingHeader extends StatelessWidget {
                     width: AudySpacing.touchTargetMin,
                     height: AudySpacing.touchTargetMin,
                     decoration: BoxDecoration(
-                      color: (isDeviceConnected
-                              ? AudyColors.mintGreen
-                              : AudyColors.skyBlue)
-                          .withValues(alpha: 0.16),
+                      color:
+                          (isDeviceConnected
+                                  ? AudyColors.mintGreen
+                                  : AudyColors.skyBlue)
+                              .withValues(alpha: 0.16),
                       shape: BoxShape.circle,
                       border: Border.all(
                         color: isDeviceConnected
