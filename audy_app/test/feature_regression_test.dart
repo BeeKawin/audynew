@@ -1,6 +1,8 @@
 import 'package:audy_app/src/data/models/break_settings.dart';
 import 'package:audy_app/src/data/models/game_configuration.dart';
 import 'package:audy_app/src/core/audy_ui.dart';
+import 'package:audy_app/src/core/app_routes.dart';
+import 'package:audy_app/src/features/caretaker/caretaker_routes.dart';
 import 'package:audy_app/src/features/caretaker/customization/game_preview.dart';
 import 'package:audy_app/src/data/repositories/break_settings_repository.dart';
 import 'package:audy_app/src/features/assignments_page.dart';
@@ -258,9 +260,81 @@ void main() {
         'reading',
         'socialChat',
       ]);
+      await tester.enterText(find.byType(TextField), 'A park visit');
+      await tester.pump();
+      expect(
+        tester
+            .widget<ElevatedButton>(
+              find.widgetWithText(ElevatedButton, 'Create'),
+            )
+            .onPressed,
+        isNotNull,
+      );
       expect(tester.takeException(), isNull);
     },
   );
+
+  for (final language in ['en', 'th']) {
+    testWidgets(
+      'Caretaker reward placeholder cannot create rewards in $language',
+      (tester) async {
+        final controller = await mount(tester, const SizedBox.shrink());
+        await controller.setUser(
+          UserProfile(
+            id: 'caretaker-preview',
+            name: 'Caretaker',
+            age: 0,
+            createdAt: DateTime(2026),
+            role: 'caretaker',
+          ),
+        );
+        controller.setLanguage(language);
+        tester.view.physicalSize = const Size(390, 844);
+        final rewardsBefore = List.of(controller.userRewards);
+        await tester.pumpWidget(
+          AudyScope(
+            controller: controller,
+            child: MaterialApp(
+              home: const CaretakerRoute(AppRoutes.caretakerAssignments),
+              builder: (context, child) => MediaQuery(
+                data: MediaQuery.of(
+                  context,
+                ).copyWith(textScaler: TextScaler.linear(1.5)),
+                child: child!,
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        final add = find.widgetWithText(
+          ElevatedButton,
+          controller.tr('add_rewards'),
+        );
+        await tester.ensureVisible(add);
+        await tester.tap(add);
+        await tester.pumpAndSettle();
+        await tester.enterText(find.byType(TextField), 'A park visit');
+        await tester.pump();
+        final create = find.widgetWithText(
+          ElevatedButton,
+          '${controller.tr('create')} · TBD',
+        );
+        await tester.ensureVisible(create);
+        expect(tester.widget<ElevatedButton>(create).onPressed, isNull);
+        final cancel = find.widgetWithText(
+          ElevatedButton,
+          controller.tr('cancel'),
+        );
+        await tester.ensureVisible(cancel);
+        await tester.tap(cancel);
+        await tester.pumpAndSettle();
+        expect(find.byType(AddRewardDialog), findsNothing);
+        expect(controller.userRewards, rewardsBefore);
+        expect(find.byType(CaretakerRoute), findsOneWidget);
+        expect(tester.takeException(), isNull);
+      },
+    );
+  }
 
   testWidgets(
     'retired assignments are not relabeled as Emotion or offered as playable tasks',

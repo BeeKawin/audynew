@@ -11,6 +11,7 @@ import '../parent/parent_child_progress_page.dart';
 import '../teacher/teacher_dashboard.dart';
 import '../teacher/teacher_profile_page.dart';
 import '../teacher/teacher_child_progress_page.dart';
+import 'assignments_rewards_page.dart';
 import 'caretaker_shell.dart';
 import 'caretaker_ui.dart';
 import 'customization/customization_page.dart';
@@ -39,6 +40,9 @@ class CaretakerRoute extends StatelessWidget {
     }
     if (route == AppRoutes.caretakerCustomization) {
       return const _CustomizationEntry();
+    }
+    if (route == AppRoutes.caretakerAssignments) {
+      return const CaretakerAssignmentsRewardsPage();
     }
     if (route == AppRoutes.caretakerEdit) {
       final args = ModalRoute.of(context)?.settings.arguments;

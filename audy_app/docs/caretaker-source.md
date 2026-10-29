@@ -1,6 +1,6 @@
 # Caretaker and web implementation - complete source contents
 
-Complete current files follow. Changed sections are described in caretaker-implementation.md, student-cleanup-verification.md, achievement-removal.md, flashcard-legacy-restoration.md, vercel-deployment.md and web-verification.md. Earlier user changes are preserved. Binary icons reuse the existing app icon; sqlite3.wasm provenance/checksum is recorded in web/DATABASE_ASSETS.md. Backend paths are relative to audy_app.
+Complete current files follow. Changed sections are described in caretaker-implementation.md, student-cleanup-verification.md, achievement-removal.md, flashcard-legacy-restoration.md, vercel-deployment.md web-verification.md and rewards-placeholder.md. Earlier user changes are preserved. Binary icons reuse the existing app icon; sqlite3.wasm provenance/checksum is recorded in web/DATABASE_ASSETS.md. Backend paths are relative to audy_app.
 
 ## lib/main.dart
 ```dart
@@ -1819,6 +1819,7 @@ import '../parent/parent_child_progress_page.dart';
 import '../teacher/teacher_dashboard.dart';
 import '../teacher/teacher_profile_page.dart';
 import '../teacher/teacher_child_progress_page.dart';
+import 'assignments_rewards_page.dart';
 import 'caretaker_shell.dart';
 import 'caretaker_ui.dart';
 import 'customization/customization_page.dart';
@@ -1847,6 +1848,9 @@ class CaretakerRoute extends StatelessWidget {
     }
     if (route == AppRoutes.caretakerCustomization) {
       return const _CustomizationEntry();
+    }
+    if (route == AppRoutes.caretakerAssignments) {
+      return const CaretakerAssignmentsRewardsPage();
     }
     if (route == AppRoutes.caretakerEdit) {
       final args = ModalRoute.of(context)?.settings.arguments;
@@ -17131,9 +17135,14 @@ class RewardDraft {
 }
 
 class AddRewardDialog extends StatefulWidget {
-  const AddRewardDialog({super.key, required this.adaptive});
+  const AddRewardDialog({
+    super.key,
+    required this.adaptive,
+    this.previewOnly = false,
+  });
 
   final AudyAdaptive adaptive;
+  final bool previewOnly;
 
   @override
   State<AddRewardDialog> createState() => _AddRewardDialogState();
@@ -17178,6 +17187,15 @@ class _AddRewardDialogState extends State<AddRewardDialog> {
                   ),
                 ),
               ),
+              if (widget.previewOnly) ...[
+                SizedBox(height: widget.adaptive.space(16)),
+                Text(
+                  controller.currentLanguage == 'th'
+                      ? 'ตัวอย่างเท่านั้น · ยังไม่บันทึกหรือมอบรางวัลให้เด็ก (TBD)'
+                      : 'Preview only · Saving and assigning rewards are TBD.',
+                  style: const TextStyle(color: Color(0xFF243A5A)),
+                ),
+              ],
               SizedBox(height: widget.adaptive.space(24)),
               Text(
                 controller.tr('prize_label'),
@@ -17317,7 +17335,9 @@ class _AddRewardDialogState extends State<AddRewardDialog> {
                   SizedBox(width: widget.adaptive.space(12)),
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: _prizeController.text.trim().isEmpty
+                      onPressed:
+                          widget.previewOnly ||
+                              _prizeController.text.trim().isEmpty
                           ? null
                           : () {
                               SoundService.instance.playTap();
@@ -17342,7 +17362,11 @@ class _AddRewardDialogState extends State<AddRewardDialog> {
                           borderRadius: BorderRadius.circular(999),
                         ),
                       ),
-                      child: Text(controller.tr('create')),
+                      child: Text(
+                        widget.previewOnly
+                            ? '${controller.tr('create')} · TBD'
+                            : controller.tr('create'),
+                      ),
                     ),
                   ),
                 ],
@@ -17409,13 +17433,15 @@ class _ActivityChoice extends StatelessWidget {
                 color: const Color(0xFF243A5A),
               ),
               SizedBox(width: adaptive.space(6)),
-              Text(
-                label,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: adaptive.space(14),
-                  fontWeight: FontWeight.w700,
-                  color: const Color(0xFF243A5A),
+              Flexible(
+                child: Text(
+                  label,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: adaptive.space(14),
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF243A5A),
+                  ),
                 ),
               ),
             ],
@@ -22729,6 +22755,8 @@ void main() {
 import 'package:audy_app/src/data/models/break_settings.dart';
 import 'package:audy_app/src/data/models/game_configuration.dart';
 import 'package:audy_app/src/core/audy_ui.dart';
+import 'package:audy_app/src/core/app_routes.dart';
+import 'package:audy_app/src/features/caretaker/caretaker_routes.dart';
 import 'package:audy_app/src/features/caretaker/customization/game_preview.dart';
 import 'package:audy_app/src/data/repositories/break_settings_repository.dart';
 import 'package:audy_app/src/features/assignments_page.dart';
@@ -22986,9 +23014,81 @@ void main() {
         'reading',
         'socialChat',
       ]);
+      await tester.enterText(find.byType(TextField), 'A park visit');
+      await tester.pump();
+      expect(
+        tester
+            .widget<ElevatedButton>(
+              find.widgetWithText(ElevatedButton, 'Create'),
+            )
+            .onPressed,
+        isNotNull,
+      );
       expect(tester.takeException(), isNull);
     },
   );
+
+  for (final language in ['en', 'th']) {
+    testWidgets(
+      'Caretaker reward placeholder cannot create rewards in $language',
+      (tester) async {
+        final controller = await mount(tester, const SizedBox.shrink());
+        await controller.setUser(
+          UserProfile(
+            id: 'caretaker-preview',
+            name: 'Caretaker',
+            age: 0,
+            createdAt: DateTime(2026),
+            role: 'caretaker',
+          ),
+        );
+        controller.setLanguage(language);
+        tester.view.physicalSize = const Size(390, 844);
+        final rewardsBefore = List.of(controller.userRewards);
+        await tester.pumpWidget(
+          AudyScope(
+            controller: controller,
+            child: MaterialApp(
+              home: const CaretakerRoute(AppRoutes.caretakerAssignments),
+              builder: (context, child) => MediaQuery(
+                data: MediaQuery.of(
+                  context,
+                ).copyWith(textScaler: TextScaler.linear(1.5)),
+                child: child!,
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        final add = find.widgetWithText(
+          ElevatedButton,
+          controller.tr('add_rewards'),
+        );
+        await tester.ensureVisible(add);
+        await tester.tap(add);
+        await tester.pumpAndSettle();
+        await tester.enterText(find.byType(TextField), 'A park visit');
+        await tester.pump();
+        final create = find.widgetWithText(
+          ElevatedButton,
+          '${controller.tr('create')} · TBD',
+        );
+        await tester.ensureVisible(create);
+        expect(tester.widget<ElevatedButton>(create).onPressed, isNull);
+        final cancel = find.widgetWithText(
+          ElevatedButton,
+          controller.tr('cancel'),
+        );
+        await tester.ensureVisible(cancel);
+        await tester.tap(cancel);
+        await tester.pumpAndSettle();
+        expect(find.byType(AddRewardDialog), findsNothing);
+        expect(controller.userRewards, rewardsBefore);
+        expect(find.byType(CaretakerRoute), findsOneWidget);
+        expect(tester.takeException(), isNull);
+      },
+    );
+  }
 
   testWidgets(
     'retired assignments are not relabeled as Emotion or offered as playable tasks',
@@ -35146,4 +35246,103 @@ class EmotionActivationTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+```
+
+## lib/src/features/caretaker/assignments_rewards_page.dart
+```dart
+import 'package:flutter/material.dart';
+
+import '../../core/audy_ui.dart';
+import '../../state/audy_controller.dart';
+import '../../widgets/add_reward_dialog.dart';
+import 'caretaker_ui.dart';
+
+class CaretakerAssignmentsRewardsPage extends StatelessWidget {
+  const CaretakerAssignmentsRewardsPage({super.key});
+
+  Future<void> _previewReward(BuildContext context, AudyAdaptive adaptive) {
+    return showDialog<void>(
+      context: context,
+      builder: (_) => CaretakerAccountGuard(
+        child: AddRewardDialog(adaptive: adaptive, previewOnly: true),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(
+      title: Text(ct(context, 'Assignments & Rewards', 'งานและรางวัล')),
+    ),
+    body: AudyResponsivePage(
+      builder: (context, adaptive) =>
+          AudyPanel(adaptive: adaptive, child: _content(context, adaptive)),
+    ),
+  );
+
+  Widget _content(BuildContext context, AudyAdaptive adaptive) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      Text(
+        ct(context, 'Assignments · TBD', 'งานที่มอบหมาย · TBD'),
+        style: Theme.of(context).textTheme.titleLarge,
+      ),
+      const SizedBox(height: 8),
+      Text(
+        ct(
+          context,
+          'Assignments will be connected in a future update.',
+          'จะเชื่อมต่อการมอบหมายงานในการอัปเดตภายหลัง',
+        ),
+      ),
+      const Divider(height: 48),
+      Text(
+        AudyScope.of(context).tr('rewards'),
+        style: Theme.of(context).textTheme.titleLarge,
+      ),
+      const SizedBox(height: 8),
+      Text(
+        ct(
+          context,
+          'Preview reward setup. Saving rewards and assigning them to children are TBD.',
+          'ทดลองตั้งค่ารางวัล การบันทึกและมอบรางวัลให้เด็กจะเชื่อมต่อภายหลัง (TBD)',
+        ),
+      ),
+      const SizedBox(height: 24),
+      ElevatedButton.icon(
+        onPressed: () => _previewReward(context, adaptive),
+        icon: const Icon(Icons.add_rounded),
+        label: Text(AudyScope.of(context).tr('add_rewards')),
+      ),
+    ],
+  );
+}
+```
+
+## docs/rewards-placeholder.md
+```markdown
+# Assignments & Rewards placeholder
+
+Restored 30 October 2026 at the user's request.
+
+- Caretaker Home's existing Assignments & Rewards entry opens a dedicated page
+  using the existing background, panel, button styling and account guard.
+- Assignments remain TBD. The Rewards section has an Add Rewards button that
+  opens the legacy prize/activity/target-count form.
+- That form is explicitly preview-only on this page. Its Create action stays
+  disabled and marked TBD even after valid input. Cancel closes the form.
+  Preview input is temporary; nothing is assigned to a child or persisted.
+- `AddRewardDialog.previewOnly` defaults to false, preserving existing legacy
+  callers and their `RewardDraft` results. The placeholder passes true and has
+  no reward-saving callback or repository integration.
+- Existing Caretaker guides, Student rewards, analytical content and other
+  TBD sections retain their existing behavior.
+
+Verification covers the actual Caretaker route, opening/editing/cancelling
+the placeholder, disabled creation and unchanged rewards in English and Thai
+at a narrow viewport with enlarged text. The existing legacy dialog check
+also verifies that valid input still enables its normal Create action.
+
+Complete affected files are included in `caretaker-source.md` under their
+file paths.
 ```

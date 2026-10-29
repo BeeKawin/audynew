@@ -17,9 +17,14 @@ class RewardDraft {
 }
 
 class AddRewardDialog extends StatefulWidget {
-  const AddRewardDialog({super.key, required this.adaptive});
+  const AddRewardDialog({
+    super.key,
+    required this.adaptive,
+    this.previewOnly = false,
+  });
 
   final AudyAdaptive adaptive;
+  final bool previewOnly;
 
   @override
   State<AddRewardDialog> createState() => _AddRewardDialogState();
@@ -64,6 +69,15 @@ class _AddRewardDialogState extends State<AddRewardDialog> {
                   ),
                 ),
               ),
+              if (widget.previewOnly) ...[
+                SizedBox(height: widget.adaptive.space(16)),
+                Text(
+                  controller.currentLanguage == 'th'
+                      ? 'ตัวอย่างเท่านั้น · ยังไม่บันทึกหรือมอบรางวัลให้เด็ก (TBD)'
+                      : 'Preview only · Saving and assigning rewards are TBD.',
+                  style: const TextStyle(color: Color(0xFF243A5A)),
+                ),
+              ],
               SizedBox(height: widget.adaptive.space(24)),
               Text(
                 controller.tr('prize_label'),
@@ -203,7 +217,9 @@ class _AddRewardDialogState extends State<AddRewardDialog> {
                   SizedBox(width: widget.adaptive.space(12)),
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: _prizeController.text.trim().isEmpty
+                      onPressed:
+                          widget.previewOnly ||
+                              _prizeController.text.trim().isEmpty
                           ? null
                           : () {
                               SoundService.instance.playTap();
@@ -228,7 +244,11 @@ class _AddRewardDialogState extends State<AddRewardDialog> {
                           borderRadius: BorderRadius.circular(999),
                         ),
                       ),
-                      child: Text(controller.tr('create')),
+                      child: Text(
+                        widget.previewOnly
+                            ? '${controller.tr('create')} · TBD'
+                            : controller.tr('create'),
+                      ),
                     ),
                   ),
                 ],
@@ -295,13 +315,15 @@ class _ActivityChoice extends StatelessWidget {
                 color: const Color(0xFF243A5A),
               ),
               SizedBox(width: adaptive.space(6)),
-              Text(
-                label,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: adaptive.space(14),
-                  fontWeight: FontWeight.w700,
-                  color: const Color(0xFF243A5A),
+              Flexible(
+                child: Text(
+                  label,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: adaptive.space(14),
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF243A5A),
+                  ),
                 ),
               ),
             ],
