@@ -1,6 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:speech_to_text/speech_to_text.dart';
+import '../../../../services/speech_service.dart';
+import '../../../../state/audy_controller.dart';
+import '../../../social_chat/chat_models.dart';
 import '../../../social_chat/chat_service.dart';
 import '../../caretaker_ui.dart';
 
@@ -16,123 +21,168 @@ class _SocialPreviewState extends State<SocialPreview> {
   final _speech = SpeechToText();
   final _tts = FlutterTts();
   final _text = TextEditingController();
-  final List<(bool, String)> _messages = [];
-  bool _busy = false;
+  final _messagesByLanguage = <ChatLanguage, List<(bool, String)>>{};
+  final _pending = <ChatLanguage>{};
+  ChatLanguage? _language;
+  int _revision = 0;
+  int _micRevision = 0;
+  bool _startingMic = false;
   bool _listening = false;
+  VoidCallback? _detachMicHandlers;
   String? _error;
+
+  List<(bool, String)> get _messages =>
+      _messagesByLanguage.putIfAbsent(_language!, () => []);
+  bool get _busy => _pending.contains(_language);
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final language = AudyScope.of(context).socialLanguage;
+    if (_language == language) return;
+    _revision++;
+    _language = language;
+    _error = null;
+    _cancelMic();
+    unawaited(_stopVoice());
+  }
+
+  void _cancelMic() {
+    _micRevision++;
+    _detachMicHandlers?.call();
+    _detachMicHandlers = null;
+    if (_listening || _startingMic) {
+      _listening = false;
+      unawaited(_speech.cancel().catchError((Object _) {}));
+    }
+  }
+
+  Future<void> _stopVoice() async {
+    try {
+      await _tts.stop();
+    } catch (_) {
+      // The device may not offer speech playback.
+    }
+  }
+
   Future<void> _speak(String text) async {
-    await _tts.setLanguage('th-TH');
-    await _tts.speak(text);
+    final revision = _revision;
+    try {
+      await _tts.setLanguage(_language!.voiceLocale);
+      if (mounted && revision == _revision) await _tts.speak(text);
+    } catch (_) {
+      // The preview still shows the written reply.
+    }
   }
 
   Future<void> _listen() async {
+    if (_startingMic) return;
     if (_listening) {
       await _speech.stop();
       if (mounted) setState(() => _listening = false);
       return;
     }
+
+    final language = _language!;
+    final revision = _revision;
+    final micRevision = ++_micRevision;
+    bool isCurrent() =>
+        mounted && revision == _revision && micRevision == _micRevision;
+    void showError() {
+      if (!isCurrent()) return;
+      setState(() {
+        _listening = false;
+        _error = AudyScope.of(context).tr('chat_voice_unavailable');
+      });
+    }
+
+    _startingMic = true;
     try {
-      final available = await _speech.initialize(
-        onStatus: (s) {
-          if (mounted && (s == 'done' || s == 'notListening')) {
+      final available = await _speech.initialize();
+      if (!isCurrent()) return;
+      if (!available) {
+        showError();
+        return;
+      }
+      final locales = await _speech.locales();
+      if (!isCurrent()) return;
+
+      _detachMicHandlers?.call();
+      _detachMicHandlers = attachChatRecognitionHandlers(
+        _speech,
+        onStatus: (status) {
+          if (isCurrent() &&
+              _listening &&
+              (status == 'done' || status == 'notListening')) {
             setState(() => _listening = false);
           }
         },
-        onError: (_) {
-          if (mounted) {
-            setState(() {
-              _listening = false;
-              _error = ct(
-                context,
-                'Microphone unavailable. You can type instead.',
-                'ใช้ไมโครโฟนไม่ได้ สามารถพิมพ์แทนได้',
-              );
-            });
-          }
-        },
+        onError: (_) => showError(),
       );
-      if (!mounted) return;
-      if (!available) {
-        setState(
-          () => _error = ct(
-            context,
-            'Microphone unavailable. You can type instead.',
-            'ใช้ไมโครโฟนไม่ได้ สามารถพิมพ์แทนได้',
-          ),
-        );
-        return;
-      }
-      setState(() => _listening = true);
+      setState(() {
+        _listening = true;
+        _error = null;
+      });
       await _speech.listen(
-        localeId: 'th_TH',
+        localeId: language.recognitionLocale(
+          locales.map((locale) => locale.localeId),
+        ),
         listenFor: Duration(seconds: widget.values['listen_seconds'] as int),
         pauseFor: Duration(seconds: widget.values['pause_seconds'] as int),
-        onResult: (r) {
-          if (mounted) _text.text = r.recognizedWords;
+        onResult: (result) {
+          if (isCurrent()) _text.text = result.recognizedWords;
         },
       );
+      if (!isCurrent()) await _speech.cancel();
     } catch (_) {
-      if (mounted) {
-        setState(
-          () => _error = ct(
-            context,
-            'Please type your message instead.',
-            'กรุณาพิมพ์ข้อความแทน',
-          ),
-        );
-      }
+      showError();
+    } finally {
+      _startingMic = false;
     }
   }
 
   Future<void> _send() async {
+    if (_busy) return;
     final text = _text.text.trim();
     if (text.isEmpty || text.length > 200) {
-      setState(
-        () => _error = ct(
-          context,
-          'Enter 1–200 characters.',
-          'กรอกข้อความ 1–200 ตัวอักษร',
-        ),
-      );
+      final controller = AudyScope.of(context);
+      setState(() {
+        _error = controller.tr(text.isEmpty ? 'chat_empty' : 'chat_too_long');
+      });
       return;
     }
-    await _speech.stop();
-    if (!mounted) return;
+    final language = _language!;
+    final revision = _revision;
+    final messages = _messages;
+    _cancelMic();
     setState(() {
-      _busy = true;
-      _listening = false;
+      _pending.add(language);
       _error = null;
-      _messages.add((true, text));
+      messages.add((true, text));
       _text.clear();
     });
     try {
-      final reply = await _chat
-          .sendMessage(text)
-          .timeout(const Duration(seconds: 30));
+      final reply = await _chat.sendMessage(text, language: language);
       if (!mounted) return;
-      setState(() => _messages.add((false, reply.response)));
-      if (widget.values['reply_speech'] == 'automatic') {
+      setState(() => messages.add((false, reply.response)));
+      if (revision == _revision &&
+          widget.values['reply_speech'] == 'automatic') {
         await _speak(reply.response);
       }
     } catch (_) {
-      if (mounted) {
-        setState(
-          () => _error = ct(
-            context,
-            'Could not get a reply. Type or send again to retry.',
-            'รับคำตอบไม่ได้ ลองส่งข้อความอีกครั้ง',
-          ),
-        );
+      if (mounted && revision == _revision) {
+        final controller = AudyScope.of(context);
+        setState(() => _error = controller.tr('chat_offline_reply'));
       }
     } finally {
-      if (mounted) setState(() => _busy = false);
+      if (mounted) setState(() => _pending.remove(language));
     }
   }
 
   @override
   void dispose() {
-    if (_speech.isListening) _speech.cancel();
-    _tts.stop();
+    _cancelMic();
+    unawaited(_stopVoice());
     _text.dispose();
     _chat.clearSession();
     super.dispose();
@@ -148,7 +198,7 @@ class _SocialPreviewState extends State<SocialPreview> {
             CaretakerNotice(
               ct(
                 context,
-                'Practice a Thai conversation. Messages stay in this preview.',
+                'Practice an English conversation. Messages stay in this preview.',
                 'ทดลองสนทนาภาษาไทย ข้อความอยู่เฉพาะการทดลองนี้',
               ),
             ),
@@ -188,7 +238,7 @@ class _SocialPreviewState extends State<SocialPreview> {
               maxLength: 200,
               enabled: !_busy,
               decoration: InputDecoration(
-                labelText: ct(context, 'Message in Thai', 'ข้อความภาษาไทย'),
+                labelText: ct(context, 'Message in English', 'ข้อความภาษาไทย'),
                 border: const OutlineInputBorder(),
               ),
             ),

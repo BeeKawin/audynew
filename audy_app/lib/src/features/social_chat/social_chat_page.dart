@@ -8,10 +8,13 @@ import '../../core/audy_ui.dart';
 import '../../services/bluetooth_service.dart';
 import '../../services/interactive_input_service.dart';
 import '../../services/sound_service.dart';
+import '../../services/speech_service.dart';
 import '../../state/audy_controller.dart';
 
 class SocialPracticePage extends StatefulWidget {
-  const SocialPracticePage({super.key});
+  const SocialPracticePage({super.key, this.inputService});
+
+  final InteractiveInputService? inputService;
 
   @override
   State<SocialPracticePage> createState() => _SocialPracticePageState();
@@ -21,8 +24,12 @@ class _SocialPracticePageState extends State<SocialPracticePage> {
   late final TextEditingController messageController;
   late final ScrollController _scrollController;
   final stt.SpeechToText _speech = stt.SpeechToText();
+  AudyController? _controller;
   StreamSubscription<AudyBleMessage>? _bleMicSub;
-  bool _speechInitialized = false;
+  bool _startingMic = false;
+  VoidCallback? _detachMicHandlers;
+  int? _chatRevision;
+  int _micRevision = 0;
   bool _isListening = false;
   int _listeningCount = 0; // To trigger AvatarGlow rebuild for each listen
   int _lastMessageCount = 0; // To track new messages for auto-scrolling
@@ -33,9 +40,8 @@ class _SocialPracticePageState extends State<SocialPracticePage> {
     messageController = TextEditingController();
     _scrollController = ScrollController();
     unawaited(_sendGameEnterBleState());
-    _bleMicSub = InteractiveInputService.instance.incomingMessages.listen(
-      _handleBleInput,
-    );
+    final inputs = widget.inputService ?? InteractiveInputService.instance;
+    _bleMicSub = inputs.incomingMessages.listen(_handleBleInput);
     // Scroll to bottom after initial build
     WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
   }
@@ -57,12 +63,35 @@ class _SocialPracticePageState extends State<SocialPracticePage> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final controller = AudyScope.of(context);
+    _controller = controller;
+    final revision = controller.chatLanguageRevision;
+    if (_chatRevision != null && _chatRevision != revision) {
+      _cancelMic();
+    }
+    _chatRevision = revision;
+  }
+
+  void _cancelMic() {
+    _micRevision++;
+    _detachMicHandlers?.call();
+    _detachMicHandlers = null;
+    if (_isListening || _startingMic) {
+      _isListening = false;
+      unawaited(_speech.cancel().catchError((Object _) {}));
+    }
+  }
+
+  @override
   void dispose() {
     unawaited(_resetGameBleState());
     _bleMicSub?.cancel();
     messageController.dispose();
     _scrollController.dispose();
-    _speech.stop();
+    _cancelMic();
+    unawaited(_controller?.geminiTtsService.stopSpeaking());
     super.dispose();
   }
 
@@ -84,95 +113,105 @@ class _SocialPracticePageState extends State<SocialPracticePage> {
     }
   }
 
-  void _listen() async {
+  Future<void> _listen() async {
+    if (_startingMic) return;
     final controller = AudyScope.of(context);
+    final revision = controller.chatLanguageRevision;
+    final language = controller.socialLanguage;
+    final micRevision = _isListening ? _micRevision : ++_micRevision;
+    bool isCurrent() =>
+        mounted &&
+        revision == controller.chatLanguageRevision &&
+        micRevision == _micRevision &&
+        ModalRoute.of(context)?.isCurrent == true;
 
-    if (!_isListening) {
-      // Initialize STT on first use
-      if (!_speechInitialized) {
-        try {
-          _speechInitialized = await _speech.initialize(
-            onStatus: (status) {
-              if (status == 'notListening' || status == 'done') {
-                if (mounted && _isListening) {
-                  setState(() => _isListening = false);
-                }
-              }
-            },
-            onError: (error) {
-              if (mounted) {
-                setState(() => _isListening = false);
-              }
-            },
-          );
-        } catch (_) {
-          _speechInitialized = false;
-        }
-      }
-      if (!mounted) return;
-      if (!_speechInitialized) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Voice input is unavailable. You can type your message instead.',
-            ),
-          ),
-        );
-        return;
-      }
-      if (_speechInitialized) {
-        SoundService.instance.playTap();
-        setState(() {
-          _isListening = true;
-          _listeningCount++;
-        });
-        _speech.listen(
-          localeId: 'th_TH',
-          listenFor: const Duration(seconds: 30),
-          pauseFor: const Duration(seconds: 3),
-          listenOptions: stt.SpeechListenOptions(partialResults: true),
-          onResult: (result) {
-            if (mounted) {
-              setState(() {
-                messageController.text = result.recognizedWords;
-              });
-            }
-          },
-        );
-      }
-    } else {
-      // User taps mic again to stop listening and submit recognized speech.
+    if (_isListening) {
       SoundService.instance.playTap();
       setState(() => _isListening = false);
       await _speech.stop();
-      await _submitMessage(controller);
+      if (isCurrent()) await _submitMessage(controller);
+      return;
     }
+
+    _startingMic = true;
+    try {
+      final available = await _speech.initialize();
+      if (!isCurrent()) return;
+      if (!available) {
+        _showVoiceUnavailable(controller);
+        return;
+      }
+      final locales = await _speech.locales();
+      if (!isCurrent()) return;
+
+      _detachMicHandlers?.call();
+      _detachMicHandlers = attachChatRecognitionHandlers(
+        _speech,
+        onStatus: (status) {
+          if (isCurrent() &&
+              _isListening &&
+              (status == 'notListening' || status == 'done')) {
+            setState(() => _isListening = false);
+          }
+        },
+        onError: (_) {
+          if (isCurrent()) _showVoiceUnavailable(controller);
+        },
+      );
+
+      SoundService.instance.playTap();
+      setState(() {
+        _isListening = true;
+        _listeningCount++;
+      });
+      await _speech.listen(
+        localeId: language.recognitionLocale(
+          locales.map((locale) => locale.localeId),
+        ),
+        listenFor: const Duration(seconds: 30),
+        pauseFor: const Duration(seconds: 3),
+        listenOptions: stt.SpeechListenOptions(partialResults: true),
+        onResult: (result) {
+          if (isCurrent()) messageController.text = result.recognizedWords;
+        },
+      );
+      if (!isCurrent()) await _speech.cancel();
+    } catch (_) {
+      if (isCurrent()) _showVoiceUnavailable(controller);
+    } finally {
+      _startingMic = false;
+    }
+  }
+
+  void _showVoiceUnavailable(AudyController controller) {
+    if (_isListening) setState(() => _isListening = false);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(controller.tr('chat_voice_unavailable'))),
+    );
   }
 
   Future<void> _submitMessage(AudyController controller) async {
     if (controller.isChatLoading) return;
-
     final text = messageController.text;
-    if (controller.validateThaiChatMessage(text) != null) return;
+    if (!controller.validateSocialMessage(text)) return;
 
-    final previousMessageCount = controller.thaiSocialMessages.length;
-
+    final revision = controller.chatLanguageRevision;
+    _cancelMic();
     messageController.clear();
-    await controller.submitThaiSocialMessage(text);
-
-    final newBotMessages = controller.thaiSocialMessages
-        .skip(previousMessageCount)
-        .where((message) => !message.isUser);
-    if (newBotMessages.isNotEmpty) {
-      await controller.speakThaiResponse(newBotMessages.last.text);
+    final reply = await controller.submitSocialMessage(text);
+    if (reply != null &&
+        mounted &&
+        revision == controller.chatLanguageRevision &&
+        ModalRoute.of(context)?.isCurrent == true) {
+      await controller.speakSocialResponse(reply);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final controller = AudyScope.of(context);
-    if (controller.thaiSocialMessages.length != _lastMessageCount) {
-      _lastMessageCount = controller.thaiSocialMessages.length;
+    if (controller.socialMessages.length != _lastMessageCount) {
+      _lastMessageCount = controller.socialMessages.length;
       WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
     }
     return AudyResponsivePage(
@@ -225,9 +264,9 @@ class _SocialPracticePageState extends State<SocialPracticePage> {
                 child: ListView.builder(
                   controller: _scrollController,
                   padding: const EdgeInsets.all(12),
-                  itemCount: controller.thaiSocialMessages.length,
+                  itemCount: controller.socialMessages.length,
                   itemBuilder: (context, index) {
-                    final message = controller.thaiSocialMessages[index];
+                    final message = controller.socialMessages[index];
                     return _ChatBubble(
                       text: message.text,
                       isUser: message.isUser,
@@ -242,7 +281,7 @@ class _SocialPracticePageState extends State<SocialPracticePage> {
               padding: EdgeInsets.all(adaptive.space(10)),
               child: Row(
                 children: [
-                  // Mic button for Thai speech input
+                  // Microphone
                   AvatarGlow(
                     key: ValueKey('glow_$_listeningCount'),
                     glowColor: const Color(0xFFF8C7DF),
@@ -283,16 +322,16 @@ class _SocialPracticePageState extends State<SocialPracticePage> {
                     ),
                   ),
                   SizedBox(width: adaptive.space(12)),
-                  // Speaker button (TTS for Thai)
+                  // Play the latest reply
                   InkWell(
                     onTap: () {
                       SoundService.instance.playTap();
                       // Get last bot message and speak it
-                      final botMessages = controller.thaiSocialMessages
+                      final botMessages = controller.socialMessages
                           .where((m) => !m.isUser)
                           .toList();
                       if (botMessages.isNotEmpty) {
-                        controller.speakThaiResponse(botMessages.last.text);
+                        controller.speakSocialResponse(botMessages.last.text);
                       }
                     },
                     child: CircleAvatar(
@@ -345,9 +384,6 @@ class _SocialPracticePageState extends State<SocialPracticePage> {
               child: Text(
                 controller.isChatLoading
                     ? controller.tr('thinking')
-                    : controller.socialFeedback ==
-                          'Start a conversation with a short message.'
-                    ? controller.tr('start_conversation')
                     : controller.socialFeedback,
                 textAlign: TextAlign.center,
                 style: TextStyle(

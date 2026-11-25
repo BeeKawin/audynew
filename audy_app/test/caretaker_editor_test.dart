@@ -607,7 +607,7 @@ void main() {
         addTearDown(controller.dispose);
         final points = controller.learningPoints;
         final played = controller.gamesPlayed;
-        final messages = controller.thaiSocialMessages.length;
+        final messages = controller.socialMessages.length;
         final v = GameConfiguration.defaults(game).toJson();
         if (game == CaretakerGame.socialChat) {
           v['input_mode'] = 'text_only';
@@ -638,7 +638,7 @@ void main() {
         }
         expect(controller.learningPoints, points);
         expect(controller.gamesPlayed, played);
-        expect(controller.thaiSocialMessages.length, messages);
+        expect(controller.socialMessages.length, messages);
         expect(tester.takeException(), isNull);
       },
     );

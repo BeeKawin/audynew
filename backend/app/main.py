@@ -4,7 +4,7 @@ from app.cors import configure_cors
 
 app = FastAPI(
     title="AUDY Backend API",
-    description="Thai chat and emotion classification API for AUDY learning app",
+    description="Bilingual social chat and emotion classification API for AUDY",
     version="1.1.0",
 )
 
@@ -25,6 +25,7 @@ async def root():
         "endpoints": [
             "/api/health",
             "/api/thai-chat",
+            "/api/social-chat",
             "/api/emotion/classify",
             "/api/emotion/health",
             "/api/tts",

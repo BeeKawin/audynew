@@ -1,21 +1,26 @@
+import logging
+
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import Response
 from pydantic import BaseModel
 
 from app.services.tts_service import tts_service
+from app.models.chat import ChatLanguage
 
 router = APIRouter(prefix="/api/tts", tags=["Text-to-Speech"])
+logger = logging.getLogger(__name__)
 
 
 class TTSRequest(BaseModel):
     """Request body for text-to-speech generation."""
     text: str
+    language: ChatLanguage = "th"
 
 
 @router.post("")
 async def generate_speech(request: TTSRequest):
     """
-    Generate speech from Thai text using Gemini TTS.
+    Generate speech using Gemini TTS in the selected language.
     
     Returns WAV audio data that can be played directly.
     
@@ -30,7 +35,7 @@ async def generate_speech(request: TTSRequest):
     """
     try:
         # Generate speech
-        wav_bytes = await tts_service.generate_speech(request.text)
+        wav_bytes = await tts_service.generate_speech(request.text, request.language)
         
         # Return as WAV audio
         return Response(
@@ -41,11 +46,11 @@ async def generate_speech(request: TTSRequest):
             }
         )
         
-    except Exception as e:
+    except Exception as error:
+        logger.warning("TTS request failed: %s", type(error).__name__)
         raise HTTPException(
-            status_code=500,
-            detail=f"TTS generation failed: {str(e)}"
-        )
+            status_code=502, detail="Could not generate speech"
+        ) from error
 
 
 @router.get("/health")

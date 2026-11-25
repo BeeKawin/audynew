@@ -16,6 +16,7 @@ import '../data/datasources/local_data_source.dart' show LocalDataSource;
 import '../data/repositories/break_settings_repository.dart';
 import '../data/repositories/student_game_configuration_repository.dart';
 import 'student_break_settings.dart';
+import '../features/social_chat/chat_models.dart';
 import '../features/social_chat/chat_service.dart';
 import '../services/auth_service.dart';
 import '../services/web_stats_sync.dart';
@@ -211,7 +212,7 @@ class AudyController extends ChangeNotifier {
        ) {
     breakSettings.addListener(notifyListeners);
     _seedState();
-    _initThaiChat();
+    _initSocialChat();
   }
 
   /// Initialize the controller - load storage and check auth
@@ -262,6 +263,7 @@ class AudyController extends ChangeNotifier {
         !isLoggingOut &&
         revision == _authRevision &&
         profile != null) {
+      if (_currentUser?.id != profile.id) _resetSocialChat();
       _currentUser = profile;
       _studentGames.useAccount(profile.role == 'child' ? profile.id : null);
       breakSettings.useAccount(profile.role == 'child' ? profile.id : null);
@@ -275,6 +277,7 @@ class AudyController extends ChangeNotifier {
   /// Set user after login (called from LoginPage after successful auth)
   Future<void> setUser(UserProfile profile) async {
     _authRevision++;
+    if (_currentUser?.id != profile.id) _resetSocialChat();
     _currentUser = profile;
     _studentGames.useAccount(profile.role == 'child' ? profile.id : null);
     breakSettings.useAccount(profile.role == 'child' ? profile.id : null);
@@ -288,6 +291,7 @@ class AudyController extends ChangeNotifier {
   void clearUser() {
     _authRevision++;
     _currentUser = null;
+    _resetSocialChat();
     _studentGames.useAccount(null);
     if (kIsWeb) {
       _webAccountRevision++;
@@ -484,7 +488,7 @@ class AudyController extends ChangeNotifier {
   /// Set current language
   void setLanguage(String lang) {
     if (lang != 'en' && lang != 'th') return;
-    currentLanguage = lang;
+    _applyLanguage(lang);
     appSettings = appSettings.copyWith(language: lang);
     unawaited(appSettings.save().catchError((Object _) {}));
     notifyListeners();
@@ -493,9 +497,16 @@ class AudyController extends ChangeNotifier {
   Future<void> saveAppSettings(AppSettings value) async {
     await value.save();
     appSettings = value;
-    currentLanguage = value.language;
+    _applyLanguage(value.language);
     SoundService.instance.setEnabled(value.soundEffects);
     notifyListeners();
+  }
+
+  void _applyLanguage(String language) {
+    if (currentLanguage == language) return;
+    currentLanguage = language;
+    _chatLanguageRevision++;
+    unawaited(geminiTtsService.stopSpeaking());
   }
 
   /// Translate a string key to current language
@@ -699,15 +710,23 @@ class AudyController extends ChangeNotifier {
       : reactionTimes.reduce((a, b) => a + b) ~/ reactionTimes.length;
 
   double socialConfidence = 0.20;
-  String socialFeedback = 'Start a conversation with a short message.';
-
-  // Thai Chat Services
   late final SpeechService speechService;
-  late final ChatService chatService;
+  late ChatService chatService;
   late final GeminiTTSService geminiTtsService;
 
-  // Thai voice messages
-  final List<SocialMessage> thaiSocialMessages = [];
+  final _socialMessages = <ChatLanguage, List<SocialMessage>>{};
+  final _socialFeedbackKeys = <ChatLanguage, String>{};
+  final _pendingChats = <ChatLanguage>{};
+  int _chatAccountGeneration = 0;
+  int _chatLanguageRevision = 0;
+
+  ChatLanguage get socialLanguage =>
+      ChatLanguage.fromAppLanguage(currentLanguage);
+  List<SocialMessage> get socialMessages => _socialMessages[socialLanguage]!;
+  String get socialFeedback =>
+      tr(_socialFeedbackKeys[socialLanguage] ?? 'start_conversation');
+  bool get isChatLoading => _pendingChats.contains(socialLanguage);
+  int get chatLanguageRevision => _chatLanguageRevision;
 
   // Persisted in ProgressData.learningPoints.
   int learningPoints = 0;
@@ -1368,8 +1387,6 @@ class AudyController extends ChangeNotifier {
     userPreferences = const UserPreferences();
     ownedSkinIds = {0};
     selectedSkinId = 0;
-    thaiSocialMessages.clear();
-    _seedThaiMessages();
   }
 
   Future<void> _prepareWebAccount(UserProfile profile) {
@@ -1714,180 +1731,158 @@ class AudyController extends ChangeNotifier {
     gamesInCurrentSession++;
   }
 
-  // ==================== THAI CHAT METHODS ====================
-
-  bool _isChatLoading = false;
-  bool get isChatLoading => _isChatLoading;
-
-  /// Get backend URL based on platform
-  ///
-  /// IMPORTANT: Update this IP address when running on physical devices!
-  /// - Android Emulator: 10.0.2.2
-  /// - iOS Simulator: localhost
-  /// - Physical Device: Your computer's IP (e.g., 192.168.1.x)
-  /// - Web: localhost
-  ///
-  /// To use Railway backend (default): Just use ApiConfig.baseUrl
-  /// To use local backend: Run with --dart-define=USE_LOCAL=true
-  String get _backendBaseUrl => ApiConfig.baseUrl;
-
-  /// Initialize Thai chat services
-  void _initThaiChat() {
+  void _initSocialChat() {
     speechService = SpeechService();
-    speechService.init();
+    unawaited(speechService.init());
     geminiTtsService = GeminiTTSService.instance;
     geminiTtsService.init(fallbackTts: speechService);
-    _initChatService();
-    _seedThaiMessages();
+    chatService = ChatService();
+    _seedSocialMessages();
   }
 
-  /// Initialize or reinitialize chat service with current backend URL
-  void _initChatService() {
-    chatService = ChatService(baseUrl: _backendBaseUrl);
+  void _resetSocialChat() {
+    _chatAccountGeneration++;
+    _chatLanguageRevision++;
+    _pendingChats.clear();
+    _socialFeedbackKeys.clear();
+    chatService.clearSession();
+    _seedSocialMessages();
+    unawaited(geminiTtsService.stopSpeaking());
   }
 
-  /// Update backend URL (useful for testing or changing servers)
   void updateBackendUrl(String newUrl) {
+    _resetSocialChat();
     chatService = ChatService(baseUrl: newUrl);
-  }
-
-  /// Check if backend is available
-  Future<bool> checkBackendHealth() async {
-    try {
-      return await chatService.isBackendAvailable();
-    } catch (e) {
-      return false;
-    }
-  }
-
-  /// Seed initial Thai chat messages
-  void _seedThaiMessages() {
-    final now = DateTime.now();
-    thaiSocialMessages.addAll([
-      SocialMessage(
-        id: 'bot-1',
-        text: 'สวัสดี! ฉันคือเพื่อนที่คุยสนุก 🤗',
-        isUser: false,
-        createdAt: now,
-      ),
-      SocialMessage(
-        id: 'bot-2',
-        text: 'วันนี้เธอทำอะไรมา?',
-        isUser: false,
-        createdAt: now,
-      ),
-    ]);
-  }
-
-  /// Submit Thai message via ChatService
-  Future<void> submitThaiSocialMessage(String message) async {
-    final error = validateThaiChatMessage(message);
-    if (error != null) {
-      socialFeedback = error;
-      notifyListeners();
-      return;
-    }
-
-    final trimmed = message.trim();
-    final sessionStartedAt = DateTime.now();
-    _isChatLoading = true;
     notifyListeners();
+  }
 
-    // Add user message
-    thaiSocialMessages.add(
+  Future<bool> checkBackendHealth() => chatService.isBackendAvailable();
+
+  void _seedSocialMessages() {
+    final now = DateTime.now();
+    for (final language in ChatLanguage.values) {
+      _socialMessages[language] = [
+        SocialMessage(
+          id: 'bot-1',
+          text: AppStrings.get('chat_greeting', language.code),
+          isUser: false,
+          createdAt: now,
+        ),
+        SocialMessage(
+          id: 'bot-2',
+          text: AppStrings.get('chat_first_question', language.code),
+          isUser: false,
+          createdAt: now,
+        ),
+      ];
+    }
+  }
+
+  String? _chatValidationKey(String message) {
+    final trimmed = message.trim();
+    if (trimmed.isEmpty) return 'chat_empty';
+    if (trimmed.length > 200) return 'chat_too_long';
+    return null;
+  }
+
+  bool validateSocialMessage(String message) {
+    final error = _chatValidationKey(message);
+    if (error == null) return true;
+    _socialFeedbackKeys[socialLanguage] = error;
+    notifyListeners();
+    return false;
+  }
+
+  Future<String?> submitSocialMessage(String message) async {
+    final language = socialLanguage;
+    if (!validateSocialMessage(message) || !_pendingChats.add(language)) {
+      return null;
+    }
+
+    final generation = _chatAccountGeneration;
+    bool accountIsCurrent() =>
+        !_isDisposed && generation == _chatAccountGeneration;
+    final messages = _socialMessages[language]!;
+    final trimmed = message.trim();
+    final startedAt = DateTime.now();
+    messages.add(
       SocialMessage(
-        id: 'user-${DateTime.now().microsecondsSinceEpoch}',
+        id: 'user-${startedAt.microsecondsSinceEpoch}',
         text: trimmed,
         isUser: true,
-        createdAt: DateTime.now(),
+        createdAt: startedAt,
       ),
     );
-
-    // Count the student's accepted message once, independently of the AI reply.
-    await trackMessageSent();
+    notifyListeners();
 
     try {
-      // Get response from backend
-      final response = await chatService.sendMessage(trimmed);
-
-      // Add bot response
-      thaiSocialMessages.add(
+      // Count an accepted message even if the backend fails to reply.
+      await trackMessageSent();
+      if (!accountIsCurrent()) return null;
+      final response = await chatService.sendMessage(
+        trimmed,
+        language: language,
+      );
+      if (!accountIsCurrent()) return null;
+      final endedAt = DateTime.now();
+      messages.add(
         SocialMessage(
-          id: 'bot-${DateTime.now().microsecondsSinceEpoch}',
+          id: 'bot-${endedAt.microsecondsSinceEpoch}',
           text: response.response,
           isUser: false,
           createdAt: response.timestamp,
         ),
       );
+      _socialFeedbackKeys[language] = 'chat_sent';
 
-      // Add points
       await addPoints(2);
-
-      final sessionEndedAt = DateTime.now();
-      final durationSeconds = max(
-        1,
-        sessionEndedAt.difference(sessionStartedAt).inSeconds,
-      );
+      if (!accountIsCurrent()) return null;
       await recordAnalyticsSession(
         GameSessionData(
           gameType: 'social_chat',
           correctActions: 0,
           totalActions: 0,
           accuracyPercent: 0,
-          durationSeconds: durationSeconds,
-          sessionStartedAt: sessionStartedAt,
-          sessionEndedAt: sessionEndedAt,
+          durationSeconds: max(1, endedAt.difference(startedAt).inSeconds),
+          sessionStartedAt: startedAt,
+          sessionEndedAt: endedAt,
         ),
       );
-
-      socialFeedback = 'ข้อความส่งแล้ว';
-    } catch (e) {
-      // Fallback to offline mode
-      thaiSocialMessages.add(
+      return accountIsCurrent() ? response.response : null;
+    } catch (_) {
+      if (!accountIsCurrent()) return null;
+      final now = DateTime.now();
+      final reply = AppStrings.get('chat_offline_reply', language.code);
+      messages.add(
         SocialMessage(
-          id: 'bot-${DateTime.now().microsecondsSinceEpoch}',
-          text: 'ขอโทษนะ เชื่อมต่อไม่ได้ ลองใหม่อีกครั้ง',
+          id: 'bot-${now.microsecondsSinceEpoch}',
+          text: reply,
           isUser: false,
-          createdAt: DateTime.now(),
+          createdAt: now,
         ),
       );
-      socialFeedback = 'เชื่อมต่อล้มเหลว';
+      _socialFeedbackKeys[language] = 'chat_connection_failed';
+      return reply;
     } finally {
-      _isChatLoading = false;
+      if (accountIsCurrent()) {
+        _pendingChats.remove(language);
+        notifyListeners();
+      }
     }
-
-    notifyListeners();
   }
 
-  /// Speak bot response (Thai TTS) using Gemini TTS with fallback
-  Future<void> speakThaiResponse(String text) async {
+  Future<void> speakSocialResponse(String text) async {
     final trimmed = text.trim();
     if (trimmed.isEmpty) return;
-
+    final language = socialLanguage;
+    final revision = _chatLanguageRevision;
     try {
       await AudyBluetoothService.instance.setEmotion(1);
     } catch (e) {
       debugPrint('Social Chat BLE emotion signal failed: $e');
     }
-
-    await geminiTtsService.speakThai(trimmed);
-  }
-
-  /// Listen for Thai speech (STT)
-  Future<String?> listenThaiSpeech() async {
-    return await speechService.listenThai();
-  }
-
-  /// Validate Thai message
-  String? validateThaiChatMessage(String message) {
-    final trimmed = message.trim();
-    if (trimmed.isEmpty) {
-      return 'กรุณาพิมพ์ข้อความ';
-    }
-    if (trimmed.length > 200) {
-      return 'ข้อความสั้นเกินไป';
-    }
-    return null;
+    if (_isDisposed || revision != _chatLanguageRevision) return;
+    await geminiTtsService.speak(trimmed, language);
   }
 
   /// Add points with level up check and persistence

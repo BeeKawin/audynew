@@ -1,6 +1,7 @@
 from typing import Dict, List, Optional
 from datetime import datetime, timedelta
 from app.models import Message
+from app.models.chat import ChatLanguage
 from app.config import settings
 
 
@@ -13,18 +14,23 @@ class ConversationStore:
     def __init__(self):
         self._store: Dict[str, List[Message]] = {}
         self._last_activity: Dict[str, datetime] = {}
+        self._languages: Dict[str, ChatLanguage] = {}
 
-    def get_or_create_session(self, session_id: Optional[str] = None) -> str:
+    def get_or_create_session(
+        self, session_id: Optional[str] = None, language: ChatLanguage = "th"
+    ) -> str:
         """Get existing session or create new one."""
         import uuid
 
-        if session_id and session_id in self._store:
+        self._cleanup_expired()
+        if session_id and self._languages.get(session_id) == language:
             self._last_activity[session_id] = datetime.now()
             return session_id
 
         new_id = str(uuid.uuid4())
         self._store[new_id] = []
         self._last_activity[new_id] = datetime.now()
+        self._languages[new_id] = language
         return new_id
 
     def add_message(self, session_id: str, role: str, content: str) -> None:
@@ -62,6 +68,7 @@ class ConversationStore:
         for sid in expired:
             self._store.pop(sid, None)
             self._last_activity.pop(sid, None)
+            self._languages.pop(sid, None)
 
 
 # Global instance

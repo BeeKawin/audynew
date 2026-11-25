@@ -531,6 +531,32 @@ class AppStrings {
       'en': 'Start a conversation with a short message.',
       'th': 'เริ่มคุยด้วยข้อความสั้นๆ',
     },
+    'chat_greeting': {
+      'en': 'Hi! I’m AUDY, your chat friend. 🤖',
+      'th': 'สวัสดี! ฉันคือเพื่อนที่คุยสนุก 🤖',
+    },
+    'chat_first_question': {
+      'en': 'What did you do today?',
+      'th': 'วันนี้เธอทำอะไรมา?',
+    },
+    'chat_empty': {'en': 'Type a message.', 'th': 'กรุณาพิมพ์ข้อความ'},
+    'chat_too_long': {
+      'en': 'Use 200 characters or fewer.',
+      'th': 'พิมพ์ไม่เกิน 200 ตัวอักษร',
+    },
+    'chat_sent': {'en': 'Message sent.', 'th': 'ข้อความส่งแล้ว'},
+    'chat_connection_failed': {
+      'en': 'Could not connect.',
+      'th': 'เชื่อมต่อล้มเหลว',
+    },
+    'chat_offline_reply': {
+      'en': 'I couldn’t connect. Let’s try again.',
+      'th': 'ขอโทษนะ เชื่อมต่อไม่ได้ ลองใหม่อีกครั้ง',
+    },
+    'chat_voice_unavailable': {
+      'en': 'Voice input is unavailable. You can type instead.',
+      'th': 'ใช้ไมโครโฟนไม่ได้ พิมพ์ข้อความแทนได้',
+    },
 
     // Reading & Pronunciation
     'letters_practice': {'en': 'Letters Practice', 'th': 'ฝึกตัวอักษร'},

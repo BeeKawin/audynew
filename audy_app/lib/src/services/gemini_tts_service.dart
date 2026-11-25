@@ -4,10 +4,11 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
+import '../features/social_chat/chat_models.dart';
 import '../features/social_chat/chat_service.dart';
 import 'speech_service.dart';
 
-/// Thai TTS Service using backend proxy
+/// TTS service using the backend proxy or a matching device voice.
 /// Calls the backend /api/tts endpoint which handles Gemini TTS securely
 /// Falls back to device TTS if backend fails
 class GeminiTTSService {
@@ -18,6 +19,7 @@ class GeminiTTSService {
 
   // Audio player for playing synthesized speech
   AudioPlayer? _audioPlayer;
+  int _speechGeneration = 0;
 
   // Reference to fallback speech service
   SpeechService? _fallbackTts;
@@ -25,32 +27,42 @@ class GeminiTTSService {
   /// Initialize the service
   void init({SpeechService? fallbackTts}) {
     _fallbackTts = fallbackTts;
-    _audioPlayer = AudioPlayer();
+    _audioPlayer ??= AudioPlayer();
   }
 
-  /// Generate and play Thai TTS using backend API
-  /// Falls back to device TTS if backend fails
-  Future<void> speakThai(String text) async {
+  Future<void> speakThai(String text) => speak(text, ChatLanguage.thai);
+
+  Future<void> speak(String text, ChatLanguage language) async {
     if (text.isEmpty) return;
+    final generation = ++_speechGeneration;
+    await _stopPlayback();
+    if (generation != _speechGeneration) return;
 
     try {
-      await _generateAndPlayAudio(text);
+      final audio = await _generateAudio(text, language);
+      if (generation != _speechGeneration) return;
+      final player = _audioPlayer;
+      if (player == null) return;
+      await player.play(BytesSource(audio));
     } catch (e) {
-      debugPrint('Backend TTS failed, using fallback: $e');
-      // Fallback to device TTS
-      await _fallbackTts?.speakThai(text);
+      if (generation != _speechGeneration) return;
+      debugPrint('Backend TTS failed, using device voice: ${e.runtimeType}');
+      try {
+        await _fallbackTts?.speak(text, language);
+      } catch (_) {
+        debugPrint('Device voice unavailable.');
+      }
     }
   }
 
-  /// Call backend TTS API to generate audio and play it
-  Future<void> _generateAndPlayAudio(String text) async {
+  Future<Uint8List> _generateAudio(String text, ChatLanguage language) async {
     final url = Uri.parse('${ApiConfig.baseUrl}/api/tts');
 
     final response = await http
         .post(
           url,
           headers: {'Content-Type': 'application/json'},
-          body: '{"text": ${jsonEncode(text)}}',
+          body: jsonEncode({'text': text, 'language': language.code}),
         )
         .timeout(
           const Duration(seconds: 30),
@@ -60,32 +72,26 @@ class GeminiTTSService {
         );
 
     if (response.statusCode != 200) {
-      throw Exception(
-        'TTS API error: ${response.statusCode} - ${response.body}',
-      );
+      throw Exception('TTS API error: ${response.statusCode}');
     }
 
-    // Response is already WAV bytes from backend
-    final wavBytes = response.bodyBytes;
-
-    // Play the audio
-    await _playAudioBytes(wavBytes);
-  }
-
-  /// Play audio from bytes
-  Future<void> _playAudioBytes(Uint8List audioBytes) async {
-    if (_audioPlayer == null) {
-      throw Exception('Audio player not initialized');
-    }
-
-    await _audioPlayer!.stop();
-    await _audioPlayer!.play(BytesSource(audioBytes));
+    return response.bodyBytes;
   }
 
   /// Stop any ongoing speech
   Future<void> stopSpeaking() async {
-    await _audioPlayer?.stop();
-    _fallbackTts?.stopSpeaking();
+    _speechGeneration++;
+    await _stopPlayback();
+  }
+
+  Future<void> _stopPlayback() async {
+    // The web or device audio plugin may not be available.
+    try {
+      await _audioPlayer?.stop();
+    } catch (_) {}
+    try {
+      await _fallbackTts?.stopSpeaking();
+    } catch (_) {}
   }
 
   /// Dispose resources

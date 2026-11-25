@@ -1,11 +1,15 @@
 from pydantic import BaseModel
-from typing import Optional
+from typing import Literal, Optional
 from datetime import datetime
+
+
+ChatLanguage = Literal["en", "th"]
 
 
 class ChatRequest(BaseModel):
     session_id: Optional[str] = None  # None = new session
     message: str
+    language: ChatLanguage = "th"
 
 
 class ChatResponse(BaseModel):

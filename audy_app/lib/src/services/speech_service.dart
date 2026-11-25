@@ -3,7 +3,29 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 
-/// Speech service for Thai voice features
+import '../features/social_chat/chat_models.dart';
+
+/// Attach handlers for one microphone session, then restore the previous ones.
+VoidCallback attachChatRecognitionHandlers(
+  SpeechToText speech, {
+  required SpeechStatusListener onStatus,
+  required SpeechErrorListener onError,
+}) {
+  final previousStatus = speech.statusListener;
+  final previousError = speech.errorListener;
+  speech.statusListener = onStatus;
+  speech.errorListener = onError;
+  return () {
+    if (identical(speech.statusListener, onStatus)) {
+      speech.statusListener = previousStatus;
+    }
+    if (identical(speech.errorListener, onError)) {
+      speech.errorListener = previousError;
+    }
+  };
+}
+
+/// Speech service for device voice features.
 /// Handles STT (Speech-to-Text) and TTS (Text-to-Speech)
 class SpeechService {
   final FlutterTts _tts = FlutterTts();
@@ -12,6 +34,7 @@ class SpeechService {
   bool _isSpeaking = false;
   bool _isListening = false;
   bool _sttAvailable = false;
+  int _ttsGeneration = 0;
 
   bool get isSpeaking => _isSpeaking;
   bool get isListening => _isListening;
@@ -40,17 +63,19 @@ class SpeechService {
     });
   }
 
-  /// Speak Thai text aloud using TTS
-  Future<void> speakThai(String text) async {
-    if (_isSpeaking || text.isEmpty) return;
+  Future<void> speakThai(String text) => speak(text, ChatLanguage.thai);
 
-    await _tts.setLanguage('th-TH');
+  Future<void> speak(String text, ChatLanguage language) async {
+    if (text.isEmpty) return;
+    final generation = ++_ttsGeneration;
+    await _tts.setLanguage(language.voiceLocale);
     await _tts.setPitch(childPitch);
     await _tts.setSpeechRate(childRate);
 
+    if (generation != _ttsGeneration) return;
     _isSpeaking = true;
     await _tts.speak(text);
-    _isSpeaking = false;
+    if (generation == _ttsGeneration) _isSpeaking = false;
   }
 
   /// Listen for Thai speech and return transcribed text using STT
@@ -101,11 +126,10 @@ class SpeechService {
   }
 
   /// Stop TTS speaking
-  void stopSpeaking() async {
-    if (_isSpeaking) {
-      await _tts.stop();
-      _isSpeaking = false;
-    }
+  Future<void> stopSpeaking() async {
+    _ttsGeneration++;
+    await _tts.stop();
+    _isSpeaking = false;
   }
 
   /// Stop STT listening
