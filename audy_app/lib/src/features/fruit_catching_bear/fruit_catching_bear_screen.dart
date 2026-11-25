@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/app_routes.dart';
 import '../../core/audy_theme.dart';
 import '../../core/audy_ui.dart';
+import '../../data/models/student_game_options.dart';
 import '../../services/bluetooth_service.dart';
 import '../../services/interactive_input_service.dart';
 import '../../services/sound_service.dart';
@@ -15,14 +16,21 @@ import '../../widgets/robot_panel_layout.dart';
 import '../../widgets/virtual_robot_panel.dart';
 
 class FruitCatchingBearScreen extends StatefulWidget {
-  const FruitCatchingBearScreen({super.key});
+  const FruitCatchingBearScreen({
+    super.key,
+    this.options,
+    this.refreshOnReplay = false,
+  });
+  final StudentFruitCatchOptions? options;
+  final bool refreshOnReplay;
 
   @override
   State<FruitCatchingBearScreen> createState() =>
       _FruitCatchingBearScreenState();
 }
 
-class _FruitCatchingBearScreenState extends State<FruitCatchingBearScreen> {
+class _FruitCatchingBearScreenState extends State<FruitCatchingBearScreen>
+    with WidgetsBindingObserver {
   static const String _backgroundAsset =
       'assets/images/games/basket/background.png';
   static const String _playerAsset =
@@ -43,6 +51,7 @@ class _FruitCatchingBearScreenState extends State<FruitCatchingBearScreen> {
 
   Timer? _gameLoop;
   Timer? _spawnLoop;
+  Timer? _durationTimer;
   StreamSubscription<AudyBleMessage>? _bleInputSub;
 
   double _playerX = 0.25;
@@ -50,16 +59,15 @@ class _FruitCatchingBearScreenState extends State<FruitCatchingBearScreen> {
   int _score = 0;
   int _highScore = 0;
   bool _isGameOver = false;
-  DateTime _startedAt = DateTime.now();
-  Duration _elapsedTime = Duration.zero;
+  final _elapsed = Stopwatch();
   _StageMetrics? _stageMetrics;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     SoundService.instance.playFruitCatchIntro();
     unawaited(_sendGameEnterBleState());
-    _startedAt = DateTime.now();
     _loadHighScore();
     _startGame();
     _bleInputSub = InteractiveInputService.instance.incomingMessages.listen(
@@ -130,13 +138,21 @@ class _FruitCatchingBearScreenState extends State<FruitCatchingBearScreen> {
   void _startGame() {
     _gameLoop?.cancel();
     _spawnLoop?.cancel();
+    _durationTimer?.cancel();
+    _elapsed.start();
+    final duration = widget.options?.duration;
+    if (duration != null) {
+      _durationTimer = Timer(duration - _elapsed.elapsed, () {
+        if (mounted && !_isGameOver) setState(_endGame);
+      });
+    }
 
     _gameLoop = Timer.periodic(
       const Duration(milliseconds: 16),
       (_) => _tickGame(),
     );
     _spawnLoop = Timer.periodic(
-      const Duration(milliseconds: 900),
+      widget.options?.spawnInterval ?? const Duration(milliseconds: 900),
       (_) => _spawnItem(),
     );
   }
@@ -144,18 +160,22 @@ class _FruitCatchingBearScreenState extends State<FruitCatchingBearScreen> {
   void _spawnItem() {
     if (!mounted || _isGameOver) return;
 
-    final isBomb = _score >= 2 && _random.nextDouble() < 0.2;
+    final isBomb =
+        _score >= (widget.options?.bombGraceCount ?? 2) &&
+        _random.nextDouble() < (widget.options?.bombProbability ?? .2);
+    final fruits = widget.options?.fruitIds;
+    final fruitPath = fruits == null
+        ? _fruitAssets[_random.nextInt(_fruitAssets.length)]
+        : 'assets/images/games/basket/fruits/${fruits[_random.nextInt(fruits.length)]}.png';
     final laneX = _random.nextBool() ? 0.25 : 0.75;
     setState(() {
       _items.add(
         _FallingItem(
-          assetPath: isBomb
-              ? _bombAsset
-              : _fruitAssets[_random.nextInt(_fruitAssets.length)],
+          assetPath: isBomb ? _bombAsset : fruitPath,
           type: isBomb ? _FallingItemType.bomb : _FallingItemType.fruit,
           x: laneX,
           y: -0.12,
-          speed: 0.0048,
+          speed: widget.options?.fallSpeed ?? .0048,
           sizeFactor: 0.088 + (_random.nextDouble() * 0.025),
         ),
       );
@@ -166,6 +186,11 @@ class _FruitCatchingBearScreenState extends State<FruitCatchingBearScreen> {
     if (!mounted || _isGameOver) return;
 
     setState(() {
+      final duration = widget.options?.duration;
+      if (duration != null && _elapsed.elapsed >= duration) {
+        _endGame();
+        return;
+      }
       _playerX = _playerX + (_targetPlayerX - _playerX) * 0.25;
 
       for (final item in _items) {
@@ -241,10 +266,11 @@ class _FruitCatchingBearScreenState extends State<FruitCatchingBearScreen> {
 
   void _endGame() {
     if (_isGameOver) return;
-    _elapsedTime = DateTime.now().difference(_startedAt);
+    _elapsed.stop();
     _isGameOver = true;
     _gameLoop?.cancel();
     _spawnLoop?.cancel();
+    _durationTimer?.cancel();
     SoundService.instance.playGameComplete();
     unawaited(_sendCompletionBleCelebration());
   }
@@ -261,14 +287,17 @@ class _FruitCatchingBearScreenState extends State<FruitCatchingBearScreen> {
 
   void _restartGame() {
     SoundService.instance.playTap();
+    if (widget.refreshOnReplay) {
+      Navigator.pushReplacementNamed(context, AppRoutes.fruitCatchingBear);
+      return;
+    }
     setState(() {
       _items.clear();
       _playerX = 0.25;
       _targetPlayerX = 0.25;
       _score = 0;
       _isGameOver = false;
-      _startedAt = DateTime.now();
-      _elapsedTime = Duration.zero;
+      _elapsed.reset();
     });
     unawaited(_sendGameEnterBleState());
     _startGame();
@@ -285,16 +314,32 @@ class _FruitCatchingBearScreenState extends State<FruitCatchingBearScreen> {
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      if (!_isGameOver && !_elapsed.isRunning) _startGame();
+    } else {
+      _elapsed.stop();
+      _gameLoop?.cancel();
+      _spawnLoop?.cancel();
+      _durationTimer?.cancel();
+    }
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _elapsed.stop();
     unawaited(_resetGameBleState());
     _gameLoop?.cancel();
     _spawnLoop?.cancel();
+    _durationTimer?.cancel();
     _bleInputSub?.cancel();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final app = AudyScope.of(context);
     return AudyResponsivePage(
       scrollable: false,
       builder: (context, adaptive) {
@@ -321,6 +366,12 @@ class _FruitCatchingBearScreenState extends State<FruitCatchingBearScreen> {
                     },
                   ),
                   SizedBox(height: adaptive.space(12)),
+                  if (widget.options?.showGuide == true && !_isGameOver)
+                    Text(
+                      app.currentLanguage == 'th'
+                          ? 'แตะซ้ายหรือขวาเพื่อรับผลไม้และหลบระเบิด'
+                          : 'Tap left or right to catch fruit and avoid bombs.',
+                    ),
                   Expanded(
                     child: _GameStage(
                       backgroundAsset: _backgroundAsset,
@@ -330,9 +381,7 @@ class _FruitCatchingBearScreenState extends State<FruitCatchingBearScreen> {
                       isGameOver: _isGameOver,
                       score: _score,
                       highScore: _highScore,
-                      duration: _isGameOver
-                          ? _elapsedTime
-                          : DateTime.now().difference(_startedAt),
+                      duration: _elapsed.elapsed,
                       onRestart: _restartGame,
                       onDone: _finishGame,
                       onMetricsChanged: _updateStageMetrics,

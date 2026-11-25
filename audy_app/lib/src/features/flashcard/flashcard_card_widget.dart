@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/audy_theme.dart';
+import 'card_picture.dart';
 import 'flashcard_models.dart';
 
 class FlashcardWordCard extends StatelessWidget {
@@ -43,10 +44,10 @@ class FlashcardWordCard extends StatelessWidget {
     final borderColor = status == null
         ? color
         : (status == FlashcardValidationStatus.correct
-            ? AudyColors.success
-            : (status == FlashcardValidationStatus.move
-                ? AudyColors.warning
-                : AudyColors.error));
+              ? AudyColors.success
+              : (status == FlashcardValidationStatus.move
+                    ? AudyColors.warning
+                    : AudyColors.error));
 
     return AnimatedContainer(
       duration: AudyAnimation.slow,
@@ -69,8 +70,13 @@ class FlashcardWordCard extends StatelessWidget {
                   padding: EdgeInsets.all(paddingVal),
                   decoration: BoxDecoration(
                     color: AudyColors.backgroundCard,
-                    borderRadius: BorderRadius.circular(AudySpacing.radiusLarge),
-                    border: Border.all(color: borderColor, width: borderThickness),
+                    borderRadius: BorderRadius.circular(
+                      AudySpacing.radiusLarge,
+                    ),
+                    border: Border.all(
+                      color: borderColor,
+                      width: borderThickness,
+                    ),
                   ),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -106,14 +112,9 @@ class FlashcardWordCard extends StatelessWidget {
                                       ),
                                     ),
                                   )
-                                : Image.asset(
+                                : CardPicture(
                                     card.imageAsset,
-                                    fit: BoxFit.contain,
-                                    errorBuilder: (context, error, stackTrace) => Icon(
-                                      Icons.style_rounded,
-                                      color: color,
-                                      size: cardWidth * 0.32,
-                                    ),
+                                    size: circleSize,
                                   ),
                           ),
                         ),
@@ -157,8 +158,8 @@ class FlashcardWordCard extends StatelessWidget {
                   status == FlashcardValidationStatus.correct
                       ? Icons.check_rounded
                       : (status == FlashcardValidationStatus.move
-                          ? Icons.swap_horiz_rounded
-                          : Icons.close_rounded),
+                            ? Icons.swap_horiz_rounded
+                            : Icons.close_rounded),
                   color: Colors.white,
                   size: isPreview ? 24 : 16,
                 ),

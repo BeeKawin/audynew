@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../core/app_routes.dart';
 import '../../core/audy_theme.dart';
 import '../../core/audy_ui.dart';
+import '../../data/models/student_game_options.dart';
 import '../../services/bluetooth_service.dart';
 import '../../services/sound_service.dart';
 import '../../state/audy_controller.dart';
@@ -23,11 +24,13 @@ String _tr(BuildContext context, String key, {Map<String, String>? params}) {
 class MiniPuzzleGameScreen extends StatefulWidget {
   final MiniPuzzleType gameType;
   final MiniPuzzleDifficulty difficulty;
+  final StudentMiniPuzzleOptions? options;
 
   const MiniPuzzleGameScreen({
     super.key,
     required this.gameType,
     required this.difficulty,
+    this.options,
   });
 
   @override
@@ -185,6 +188,14 @@ class _MiniPuzzleGameScreenState extends State<MiniPuzzleGameScreen> {
               ),
             ),
             SizedBox(height: adaptive.space(32)),
+            if (widget.options?.showGuide == true)
+              Text(
+                _tr(context, switch (widget.gameType) {
+                  MiniPuzzleType.pattern => 'minipuzzle_pattern_desc',
+                  MiniPuzzleType.oddOneOut => 'minipuzzle_odd_one_out_desc',
+                  MiniPuzzleType.puzzle => 'minipuzzle_visual_match_desc',
+                }),
+              ),
 
             // Game content
             SingleChildScrollView(
@@ -196,6 +207,13 @@ class _MiniPuzzleGameScreenState extends State<MiniPuzzleGameScreen> {
 
             // Feedback area
             if (_controller.showingFeedback) _buildFeedback(adaptive),
+            if (widget.options != null &&
+                widget.options!.advanceDelay == null &&
+                _controller.roundComplete)
+              FilledButton(
+                onPressed: _handleContinue,
+                child: Text(_tr(context, 'continue')),
+              ),
           ],
         );
       },
@@ -265,6 +283,10 @@ class _MiniPuzzleGameScreenState extends State<MiniPuzzleGameScreen> {
   }
 
   void _scheduleAutoAdvanceIfNeeded() {
+    final delay = widget.options == null
+        ? const Duration(milliseconds: 900)
+        : widget.options!.advanceDelay;
+    if (delay == null) return;
     if (_isNavigating ||
         !_controller.roundComplete ||
         !_controller.isCorrect ||
@@ -274,7 +296,7 @@ class _MiniPuzzleGameScreenState extends State<MiniPuzzleGameScreen> {
 
     _autoAdvanceRound = _controller.currentRound;
     _autoAdvanceTimer?.cancel();
-    _autoAdvanceTimer = Timer(const Duration(milliseconds: 900), () {
+    _autoAdvanceTimer = Timer(delay, () {
       if (!mounted ||
           _isNavigating ||
           !_controller.roundComplete ||
@@ -287,7 +309,7 @@ class _MiniPuzzleGameScreenState extends State<MiniPuzzleGameScreen> {
   }
 
   void _handleContinue() {
-    if (_isNavigating) return;
+    if (_isNavigating || !_controller.roundComplete) return;
 
     _autoAdvanceTimer?.cancel();
     _autoAdvanceRound = null;
@@ -302,6 +324,7 @@ class _MiniPuzzleGameScreenState extends State<MiniPuzzleGameScreen> {
         arguments: {
           'sessionData': _controller.getSessionData(),
           'controller': controller,
+          'studentGeneration': controller.studentAccountGeneration,
         },
       );
     } else {

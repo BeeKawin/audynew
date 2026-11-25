@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
-import '../../core/app_routes.dart';
 import '../../core/audy_theme.dart';
 import '../../core/audy_ui.dart';
+import '../../data/models/student_game_options.dart';
 import '../../services/sound_service.dart';
 import '../../state/audy_controller.dart';
+import '../../widgets/student_game_entry.dart';
+import 'minipuzzle_level_select.dart';
 import 'minipuzzle_models.dart';
 
 // Helper function to get localized string
@@ -14,7 +16,8 @@ String _tr(BuildContext context, String key, {Map<String, String>? params}) {
 /// Game selection screen for MiniPuzzle
 /// User selects which mini-game to play
 class MiniPuzzleGameSelection extends StatelessWidget {
-  const MiniPuzzleGameSelection({super.key});
+  const MiniPuzzleGameSelection({super.key, this.options});
+  final StudentMiniPuzzleOptions? options;
 
   static const List<MiniPuzzleGameInfo> _games = [
     MiniPuzzleGameInfo(
@@ -88,19 +91,21 @@ class MiniPuzzleGameSelection extends StatelessWidget {
             SizedBox(height: adaptive.space(32)),
 
             // Game selection cards
-            ..._games.map(
-              (game) => Padding(
-                padding: EdgeInsets.only(bottom: adaptive.space(16)),
-                child: _GameCard(
-                  game: game,
-                  adaptive: adaptive,
-                  onTap: () {
-                    SoundService.instance.playTap();
-                    _selectGame(context, game.type);
-                  },
+            ..._games
+                .where((game) => options?.allows(game.type.name) ?? true)
+                .map(
+                  (game) => Padding(
+                    padding: EdgeInsets.only(bottom: adaptive.space(16)),
+                    child: _GameCard(
+                      game: game,
+                      adaptive: adaptive,
+                      onTap: () {
+                        SoundService.instance.playTap();
+                        _selectGame(context, game.type);
+                      },
+                    ),
+                  ),
                 ),
-              ),
-            ),
           ],
         );
       },
@@ -108,8 +113,11 @@ class MiniPuzzleGameSelection extends StatelessWidget {
   }
 
   void _selectGame(BuildContext context, MiniPuzzleType type) {
-    debugPrint('Selecting game: $type');
-    Navigator.pushNamed(context, AppRoutes.miniPuzzleLevel, arguments: type);
+    final page = StudentGameGuard.capture(
+      context,
+      MiniPuzzleLevelSelect(gameType: type, options: options),
+    );
+    Navigator.push(context, MaterialPageRoute<void>(builder: (_) => page));
   }
 }
 

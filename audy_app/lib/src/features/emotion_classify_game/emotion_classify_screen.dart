@@ -6,11 +6,13 @@ import '../../core/audy_theme.dart';
 import '../../core/audy_ui.dart';
 import '../../core/emotion_character_widget.dart';
 import '../../core/emotion_images.dart';
+import '../../data/models/student_game_options.dart';
 import '../../services/bluetooth_service.dart';
 import '../../services/interactive_input_service.dart';
 import '../../services/sound_service.dart';
 import '../../state/audy_controller.dart';
 import '../../widgets/robot_panel_layout.dart';
+import '../../widgets/student_game_entry.dart';
 import '../../widgets/virtual_robot_panel.dart';
 import '../emotion_mimic_game/selfie_capture_screen.dart';
 import 'emotion_classify_complete_screen.dart';
@@ -18,7 +20,13 @@ import 'emotion_classify_complete_screen.dart';
 /// "What is this emotion?" - Classification game
 /// Shows a human face image and asks user to classify the emotion
 class EmotionClassifyScreen extends StatefulWidget {
-  const EmotionClassifyScreen({super.key});
+  const EmotionClassifyScreen({
+    super.key,
+    this.options,
+    this.freshSession = false,
+  });
+  final StudentEmotionOptions? options;
+  final bool freshSession;
 
   @override
   State<EmotionClassifyScreen> createState() => _EmotionClassifyScreenState();
@@ -42,10 +50,24 @@ class _EmotionClassifyScreenState extends State<EmotionClassifyScreen> {
   String? _selectedAnswer;
   bool _showingFeedback = false;
   bool _isCorrect = false;
+  bool _prepared = false;
+  bool _captureOpen = false;
+  bool _offerCapture = false;
+  Timer? _captureTimer;
   final Map<int, String> _roundImagePaths = {};
   final DateTime _sessionStartedAt = DateTime.now();
 
   StreamSubscription<AudyBleMessage>? _bleInputSub;
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_prepared) return;
+    _prepared = true;
+    if (widget.freshSession || widget.options != null) {
+      AudyScope.of(context).startEmotionSession(widget.options);
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -149,9 +171,6 @@ class _EmotionClassifyScreenState extends State<EmotionClassifyScreen> {
         final characterSize = adaptive.isPhone
             ? adaptive.space(180)
             : adaptive.space(220);
-        final answerGridHeight = adaptive.isPhone
-            ? adaptive.space(148)
-            : adaptive.space(176);
 
         return ValueListenableBuilder<bool>(
           valueListenable: AudyBluetoothService.instance.connectionNotifier,
@@ -216,93 +235,108 @@ class _EmotionClassifyScreenState extends State<EmotionClassifyScreen> {
                       ),
                     ],
                   ),
-                  SizedBox(height: sectionGap),
-                  Center(
-                    child: Text(
-                      controller.tr('what_emotion'),
-                      style: AudyTypography.headingLarge,
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                  SizedBox(height: sectionGap),
-                  Center(
-                    child: EmotionCharacterWidget(
-                      emotion: question.correctAnswer,
-                      size: characterSize,
-                      useHumanImage: true,
-                      imagePath: imagePath,
-                    ),
-                  ),
-                  SizedBox(height: sectionGap),
                   Expanded(
-                    child: Center(
-                      child: ConstrainedBox(
-                        constraints: BoxConstraints(
-                          maxWidth: 600,
-                          maxHeight: answerGridHeight,
-                        ),
-                        child: GridView.count(
-                          physics: const NeverScrollableScrollPhysics(),
-                          crossAxisCount: 2,
-                          mainAxisSpacing: adaptive.space(12),
-                          crossAxisSpacing: adaptive.space(12),
-                          childAspectRatio: adaptive.isPhone ? 2.8 : 2.6,
-                          children: orderedOptions.map((option) {
-                            final isSelected = _selectedAnswer == option;
-                            final isAnswered = _showingFeedback;
-                            final correctOption =
-                                option == question.correctAnswer;
-
-                            Color cardColor =
-                                _choicePalette[option] ??
-                                const Color(0xFFE7D8FA);
-                            if (isAnswered) {
-                              if (correctOption) {
-                                cardColor = AudyColors.mintGreen;
-                              } else if (isSelected && !_isCorrect) {
-                                cardColor = AudyColors.error.withValues(
-                                  alpha: 0.3,
-                                );
-                              }
-                            }
-
-                            return InkWell(
-                              onTap: isAnswered
-                                  ? null
-                                  : () {
-                                      SoundService.instance.playTap();
-                                      _handleAnswer(option, controller);
-                                    },
-                              borderRadius: BorderRadius.circular(
-                                AudySpacing.radiusLarge,
+                    child: SingleChildScrollView(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          if (widget.options?.showGuide == true)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 8),
+                              child: Text(
+                                controller.currentLanguage == 'th'
+                                    ? 'เลือกอารมณ์ให้ตรงกับภาพ แล้วแสดงสีหน้าแบบเดียวกัน'
+                                    : 'Choose the matching emotion, then make the same face.',
                               ),
-                              child: AnimatedContainer(
-                                duration: AudyAnimation.normal,
-                                decoration: BoxDecoration(
-                                  color: cardColor,
-                                  borderRadius: BorderRadius.circular(
-                                    AudySpacing.radiusLarge,
-                                  ),
-                                  boxShadow: AudyShadows.cardShadow,
-                                  border: isSelected
-                                      ? Border.all(
-                                          color: AudyColors.skyBlue,
-                                          width: 3,
-                                        )
-                                      : null,
-                                ),
-                                child: Center(
-                                  child: Text(
-                                    option,
-                                    style: AudyTypography.headingSmall.copyWith(
-                                      color: AudyColors.textPrimary,
+                            ),
+                          SizedBox(height: sectionGap),
+                          Center(
+                            child: Text(
+                              controller.tr('what_emotion'),
+                              style: AudyTypography.headingLarge,
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                          SizedBox(height: sectionGap),
+                          Center(
+                            child: EmotionCharacterWidget(
+                              emotion: question.correctAnswer,
+                              size: characterSize,
+                              useHumanImage: true,
+                              imagePath: imagePath,
+                            ),
+                          ),
+                          SizedBox(height: sectionGap),
+                          Center(
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 600),
+                              child: GridView.count(
+                                shrinkWrap: true,
+                                physics: const NeverScrollableScrollPhysics(),
+                                crossAxisCount: 2,
+                                mainAxisSpacing: adaptive.space(12),
+                                crossAxisSpacing: adaptive.space(12),
+                                childAspectRatio: adaptive.isPhone ? 2.8 : 2.6,
+                                children: orderedOptions.map((option) {
+                                  final isSelected = _selectedAnswer == option;
+                                  final isAnswered = _showingFeedback;
+                                  final correctOption =
+                                      option == question.correctAnswer;
+
+                                  Color cardColor =
+                                      _choicePalette[option] ??
+                                      const Color(0xFFE7D8FA);
+                                  if (isAnswered) {
+                                    if (correctOption) {
+                                      cardColor = AudyColors.mintGreen;
+                                    } else if (isSelected && !_isCorrect) {
+                                      cardColor = AudyColors.error.withValues(
+                                        alpha: 0.3,
+                                      );
+                                    }
+                                  }
+
+                                  return InkWell(
+                                    onTap: isAnswered
+                                        ? null
+                                        : () {
+                                            SoundService.instance.playTap();
+                                            _handleAnswer(option, controller);
+                                          },
+                                    borderRadius: BorderRadius.circular(
+                                      AudySpacing.radiusLarge,
                                     ),
-                                  ),
-                                ),
+                                    child: AnimatedContainer(
+                                      duration: AudyAnimation.normal,
+                                      decoration: BoxDecoration(
+                                        color: cardColor,
+                                        borderRadius: BorderRadius.circular(
+                                          AudySpacing.radiusLarge,
+                                        ),
+                                        boxShadow: AudyShadows.cardShadow,
+                                        border: isSelected
+                                            ? Border.all(
+                                                color: AudyColors.skyBlue,
+                                                width: 3,
+                                              )
+                                            : null,
+                                      ),
+                                      child: Center(
+                                        child: Text(
+                                          option,
+                                          style: AudyTypography.headingSmall
+                                              .copyWith(
+                                                color: AudyColors.textPrimary,
+                                              ),
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                }).toList(),
                               ),
-                            );
-                          }).toList(),
-                        ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -315,6 +349,15 @@ class _EmotionClassifyScreenState extends State<EmotionClassifyScreen> {
                         style: AudyTypography.bodyLarge,
                       ),
                     ),
+                    if (_offerCapture)
+                      Center(
+                        child: FilledButton(
+                          onPressed: _captureOpen
+                              ? null
+                              : () => _openCapture(controller),
+                          child: Text(controller.tr('continue')),
+                        ),
+                      ),
                   ],
                   const SizedBox(height: AudySpacing.smallGap),
                 ],
@@ -346,24 +389,42 @@ class _EmotionClassifyScreenState extends State<EmotionClassifyScreen> {
     }
 
     controller.submitClassifyAnswer(answer);
+    final delay = widget.options == null
+        ? const Duration(milliseconds: 1500)
+        : widget.options!.advanceDelay;
+    if (delay == null) {
+      setState(() => _offerCapture = true);
+    } else {
+      _captureTimer = Timer(delay, () => _openCapture(controller));
+    }
+  }
 
-    Future.delayed(const Duration(milliseconds: 1500), () async {
-      if (mounted) {
-        final targetEmotion = controller.currentClassifyQuestion.correctAnswer;
-        await Navigator.push<bool>(
-          context,
-          MaterialPageRoute(
-            builder: (_) => SelfieCaptureScreen(targetEmotion: targetEmotion),
-          ),
-        );
-
-        if (mounted) {
-          setState(() {
-            _selectedAnswer = null;
-            _showingFeedback = false;
-            _isCorrect = false;
-          });
-        }
+  Future<void> _openCapture(AudyController controller) async {
+    if (!mounted || _captureOpen || !_showingFeedback) return;
+    if (ModalRoute.of(context)?.isCurrent != true) {
+      setState(() => _offerCapture = true);
+      return;
+    }
+    setState(() => _captureOpen = true);
+    final round = controller.classifyCurrentRound;
+    final page = StudentGameGuard.capture(
+      context,
+      SelfieCaptureScreen(
+        targetEmotion: controller.currentClassifyQuestion.correctAnswer,
+      ),
+    );
+    await Navigator.push<bool>(
+      context,
+      MaterialPageRoute<bool>(builder: (_) => page),
+    );
+    if (!mounted) return;
+    setState(() {
+      _captureOpen = false;
+      _offerCapture = controller.classifyCurrentRound == round;
+      if (!_offerCapture) {
+        _selectedAnswer = null;
+        _showingFeedback = false;
+        _isCorrect = false;
       }
     });
   }
@@ -381,6 +442,9 @@ class _EmotionClassifyScreenState extends State<EmotionClassifyScreen> {
 
   String? _imagePathForRound(int round, String emotion) {
     if (!EmotionImages.hasImages(emotion)) return null;
+    if (widget.options?.consistentImage == true) {
+      return EmotionImages.getDefaultPath(emotion);
+    }
     return _roundImagePaths.putIfAbsent(
       round,
       () => EmotionImages.getRandomPath(emotion),
@@ -413,6 +477,7 @@ class _EmotionClassifyScreenState extends State<EmotionClassifyScreen> {
 
   @override
   void dispose() {
+    _captureTimer?.cancel();
     unawaited(_resetGameBleState());
     _bleInputSub?.cancel();
     super.dispose();

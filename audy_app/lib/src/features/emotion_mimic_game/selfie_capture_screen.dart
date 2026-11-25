@@ -16,6 +16,7 @@ import '../../services/face_guidance_service.dart';
 import '../../services/interactive_input_service.dart';
 import '../../services/sound_service.dart';
 import '../../widgets/robot_panel_layout.dart';
+import '../../widgets/student_game_entry.dart';
 import '../../widgets/virtual_robot_panel.dart';
 import 'mimic_result_screen.dart';
 
@@ -147,17 +148,7 @@ class _SelfieCaptureScreenState extends State<SelfieCaptureScreen> {
         if (!mounted) return;
         if (result.detectedEmotion.toLowerCase() ==
             widget.targetEmotion.toLowerCase()) {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (_) => MimicResultScreen(
-                capturedImage: MemoryImage(bytes),
-                expectedEmotion: widget.targetEmotion,
-                detectedEmotion: result.detectedEmotion,
-                confidence: result.confidence,
-              ),
-            ),
-          );
+          await _showResult(MemoryImage(bytes), result);
         } else {
           setState(() {
             _isProcessing = false;
@@ -187,17 +178,7 @@ class _SelfieCaptureScreenState extends State<SelfieCaptureScreen> {
               widget.targetEmotion.toLowerCase();
 
           if (isMatch) {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (_) => MimicResultScreen(
-                  capturedImage: FileImage(preparedFile),
-                  expectedEmotion: widget.targetEmotion,
-                  detectedEmotion: result.detectedEmotion,
-                  confidence: result.confidence,
-                ),
-              ),
-            );
+            await _showResult(FileImage(preparedFile), result);
           } else {
             setState(() {
               _isProcessing = false;
@@ -227,6 +208,26 @@ class _SelfieCaptureScreenState extends State<SelfieCaptureScreen> {
         );
         await _startFaceGuidanceStream();
       }
+    }
+  }
+
+  Future<void> _showResult(ImageProvider image, EmotionResult result) async {
+    if (ModalRoute.of(context)?.isCurrent != true) return;
+    final page = StudentGameGuard.capture(
+      context,
+      MimicResultScreen(
+        capturedImage: image,
+        expectedEmotion: widget.targetEmotion,
+        detectedEmotion: result.detectedEmotion,
+        confidence: result.confidence,
+      ),
+    );
+    final completed = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute<bool>(builder: (_) => page),
+    );
+    if (mounted && ModalRoute.of(context)?.isCurrent == true) {
+      Navigator.pop(context, completed);
     }
   }
 

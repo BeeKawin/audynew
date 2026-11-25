@@ -160,6 +160,7 @@ class AudyBluetoothService {
 
   StreamSubscription<BluetoothConnectionState>? _connectionStateSub;
   final List<StreamSubscription<List<int>>> _incomingSubs = [];
+  Future<void> _connectionOperation = Future<void>.value();
 
   final ValueNotifier<bool> connectionNotifier = ValueNotifier<bool>(false);
   final ValueNotifier<AudyBleMessage?> lastIncomingMessage =
@@ -172,9 +173,8 @@ class AudyBluetoothService {
   final StreamController<AudyMpuMotion> _mpuMotionController =
       StreamController<AudyMpuMotion>.broadcast();
 
-  bool _isConnected = false;
-
-  bool get isConnected => _isConnected;
+  /// True once the BLE link and all required input subscriptions are ready.
+  bool get isConnected => connectionNotifier.value;
   String? get deviceName => _device?.platformName;
   Stream<AudyBleMessage> get incomingMessages => _incomingController.stream;
   Stream<AudyMpuMotion> get mpuMotionMessages => _mpuMotionController.stream;
@@ -281,37 +281,40 @@ class AudyBluetoothService {
   }
 
   /// Connect to AUDY device.
-  Future<void> connect(BluetoothDevice device) async {
+  Future<void> connect(BluetoothDevice device) =>
+      _runConnectionOperation(() => _connect(device));
+
+  Future<void> _connect(BluetoothDevice device) async {
     debugPrint('AudyBluetoothService: Connecting...');
 
-    await disconnect();
-
+    await _disconnect();
     _device = device;
 
-    _connectionStateSub = device.connectionState.listen((state) {
-      final connected = state == BluetoothConnectionState.connected;
+    try {
+      await device.connect();
+      _connectionStateSub = device.connectionState.listen((state) {
+        debugPrint('AudyBluetoothService: Connection state: $state');
+        if (state == BluetoothConnectionState.disconnected) {
+          _clearCharacteristics();
+          unawaited(_cancelIncomingSubscriptions());
+          _clearInputState();
+        }
+      });
 
-      _isConnected = connected;
-      connectionNotifier.value = connected;
-
-      debugPrint('AudyBluetoothService: Connection state: $state');
-
-      if (!connected) {
-        unawaited(_cancelIncomingSubscriptions());
-        _clearCharacteristics();
+      await _findRobotCharacteristics();
+      await _resetOutgoingChannelsToDefault();
+      await _enableIncomingNotifications();
+      if (!device.isConnected) {
+        throw StateError('AUDY disconnected during Bluetooth setup');
       }
-    });
 
-    await device.connect();
-
-    _isConnected = true;
-    connectionNotifier.value = true;
-
-    await _findRobotCharacteristics();
-    await _resetOutgoingChannelsToDefault();
-    await _enableIncomingNotifications();
-
-    debugPrint('AudyBluetoothService: Connected!');
+      connectionNotifier.value = true;
+      debugPrint('AudyBluetoothService: Connected!');
+    } catch (error) {
+      debugPrint('AudyBluetoothService: Connection setup failed: $error');
+      await _disconnect();
+      rethrow;
+    }
   }
 
   /// Find all robot command and sensor characteristics.
@@ -377,8 +380,6 @@ class AudyBluetoothService {
 
   /// Enable ESP32 -> Flutter notifications.
   Future<void> _enableIncomingNotifications() async {
-    await _cancelIncomingSubscriptions();
-
     await _enableNotification('tummy', _tummyCharacteristic);
     await _enableNotification('nose', _noseCharacteristic);
     await _enableNotification('force', _forceCharacteristic);
@@ -388,7 +389,7 @@ class AudyBluetoothService {
 
   Future<void> setMpuMotionEnabled(bool enabled) async {
     final characteristic = _mpuCharacteristic;
-    if (!_isConnected || characteristic == null) {
+    if (!isConnected || characteristic == null) {
       debugPrint(
         'AudyBluetoothService: Cannot ${enabled ? 'enable' : 'disable'} MPU notifications',
       );
@@ -412,9 +413,19 @@ class AudyBluetoothService {
   }
 
   Future<void> _resetOutgoingChannelsToDefault() async {
-    await _writeNumericCommand('arms', _armsCharacteristic, 0);
-    await _writeNumericCommand('emotion', _emotionCharacteristic, 0);
-    await _writeNumericCommand('led', _ledCharacteristic, 0);
+    await _writeNumericCommand(
+      'arms',
+      _armsCharacteristic,
+      0,
+      duringSetup: true,
+    );
+    await _writeNumericCommand(
+      'emotion',
+      _emotionCharacteristic,
+      0,
+      duringSetup: true,
+    );
+    await _writeNumericCommand('led', _ledCharacteristic, 0, duringSetup: true);
 
     debugPrint('AudyBluetoothService: Outgoing channels reset to defaults');
   }
@@ -432,12 +443,20 @@ class AudyBluetoothService {
     );
     _incomingSubs.add(sub);
 
-    await characteristic.setNotifyValue(true);
+    try {
+      await characteristic.setNotifyValue(true);
+    } catch (error) {
+      debugPrint(
+        'AudyBluetoothService: Notify setup failed for '
+        '$channel (${characteristic.uuid}): $error',
+      );
+      rethrow;
+    }
     debugPrint('AudyBluetoothService: Notify enabled for $channel');
   }
 
   void _handleIncomingValue(String channel, List<int> value) {
-    if (value.isEmpty) return;
+    if (!isConnected || value.isEmpty) return;
 
     final decoded = utf8.decode(value).trim();
     if (channel == 'mpu') {
@@ -452,7 +471,13 @@ class AudyBluetoothService {
       return;
     }
 
-    _publishIncomingMessage(channel, parsedValue);
+    // The bear reports its ear sides in the opposite order to the game inputs.
+    final logicalValue = switch ((channel, parsedValue)) {
+      ('ears', 1) => 2,
+      ('ears', 2) => 1,
+      _ => parsedValue,
+    };
+    _publishIncomingMessage(channel, logicalValue);
   }
 
   void _handleMpuValue(String decoded) {
@@ -588,9 +613,11 @@ class AudyBluetoothService {
   Future<void> _writeNumericCommand(
     String channel,
     BluetoothCharacteristic? characteristic,
-    int value,
-  ) async {
-    if (!_isConnected || characteristic == null) {
+    int value, {
+    bool duringSetup = false,
+  }) async {
+    final canWrite = duringSetup ? _device?.isConnected == true : isConnected;
+    if (!canWrite || characteristic == null) {
       throw Exception('Not connected to AUDY device');
     }
 
@@ -614,35 +641,52 @@ class AudyBluetoothService {
   }
 
   /// Disconnect from AUDY.
-  Future<void> disconnect() async {
+  Future<void> disconnect() => _runConnectionOperation(_disconnect);
+
+  Future<void> _runConnectionOperation(Future<void> Function() operation) {
+    final result = _connectionOperation.then((_) => operation());
+    _connectionOperation = result.then<void>(
+      (_) {},
+      onError: (Object _, StackTrace _) {},
+    );
+    return result;
+  }
+
+  Future<void> _disconnect() async {
     debugPrint('AudyBluetoothService: Disconnecting...');
 
-    await _cancelIncomingSubscriptions();
-    await _connectionStateSub?.cancel();
-
+    final device = _device;
+    final connectionSub = _connectionStateSub;
+    _device = null;
     _connectionStateSub = null;
     _clearCharacteristics();
+    _clearInputState();
 
-    if (_device != null) {
+    await connectionSub?.cancel();
+    await _cancelIncomingSubscriptions();
+    if (device != null) {
       try {
-        await _device!.disconnect();
+        await device.disconnect();
       } catch (e) {
         debugPrint('AudyBluetoothService: Disconnect failed - $e');
       }
     }
+  }
 
-    _device = null;
-    _isConnected = false;
+  void _clearInputState() {
     connectionNotifier.value = false;
+    lastIncomingMessage.value = null;
+    lastMpuMotion.value = null;
   }
 
   Future<void> _cancelIncomingSubscriptions() async {
-    await _mpuMotionSub?.cancel();
+    final mpuSub = _mpuMotionSub;
     _mpuMotionSub = null;
 
     final subs = List<StreamSubscription<List<int>>>.from(_incomingSubs);
     _incomingSubs.clear();
 
+    await mpuSub?.cancel();
     for (final sub in subs) {
       await sub.cancel();
     }

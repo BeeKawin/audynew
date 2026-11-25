@@ -7,11 +7,14 @@ import 'package:flutter/foundation.dart';
 
 import '../core/app_strings.dart';
 import '../data/models/game_session_model.dart';
+import '../data/models/game_configuration.dart';
+import '../data/models/student_game_options.dart';
 import '../data/models/progress_model.dart';
 import '../data/repositories/storage_repository.dart';
 import '../data/database/database.dart';
 import '../data/datasources/local_data_source.dart' show LocalDataSource;
 import '../data/repositories/break_settings_repository.dart';
+import '../data/repositories/student_game_configuration_repository.dart';
 import 'student_break_settings.dart';
 import '../features/social_chat/chat_service.dart';
 import '../services/auth_service.dart';
@@ -190,6 +193,12 @@ class AudyController extends ChangeNotifier {
 
   bool _isDisposed = false;
   final StudentBreakSettings breakSettings;
+  late final StudentGameConfigurationRepository _studentGames =
+      StudentGameConfigurationRepository(Supabase.instance.client);
+
+  Future<GameConfiguration?> studentGameConfiguration(CaretakerGame game) =>
+      _studentGames.load(game, storage?.local.db);
+  int get studentAccountGeneration => _studentGames.accountGeneration;
   AudyController({
     StorageRepository? storage,
     BreakSettingsRepository? breakSettingsRepository,
@@ -254,6 +263,7 @@ class AudyController extends ChangeNotifier {
         revision == _authRevision &&
         profile != null) {
       _currentUser = profile;
+      _studentGames.useAccount(profile.role == 'child' ? profile.id : null);
       breakSettings.useAccount(profile.role == 'child' ? profile.id : null);
       if (kIsWeb) await _prepareWebAccount(profile);
       if (_isDisposed || _currentUser?.id != profile.id) return;
@@ -266,6 +276,7 @@ class AudyController extends ChangeNotifier {
   Future<void> setUser(UserProfile profile) async {
     _authRevision++;
     _currentUser = profile;
+    _studentGames.useAccount(profile.role == 'child' ? profile.id : null);
     breakSettings.useAccount(profile.role == 'child' ? profile.id : null);
     if (kIsWeb) await _prepareWebAccount(profile);
     if (_isDisposed || _currentUser?.id != profile.id) return;
@@ -277,6 +288,7 @@ class AudyController extends ChangeNotifier {
   void clearUser() {
     _authRevision++;
     _currentUser = null;
+    _studentGames.useAccount(null);
     if (kIsWeb) {
       _webAccountRevision++;
       _webAccountId = null;
@@ -535,17 +547,53 @@ class AudyController extends ChangeNotifier {
   }
 
   void resetClassifyGame() {
+    startEmotionSession();
+    notifyListeners();
+  }
+
+  void startEmotionSession([StudentEmotionOptions? options]) {
     classifyCurrentRound = 1;
     classifyScore = 0;
     classifyQuestionIndex = 0;
-    _classifyQuestions = _buildShuffledClassifyQuestions();
+    classifyTotalRounds = options?.roundCount ?? 3;
+    _classifyQuestions = options == null
+        ? _buildShuffledClassifyQuestions()
+        : _buildCustomizedEmotionQuestions(options);
     classifyFeedback = 'Choose the matching emotion.';
     mimicCurrentRound = 1;
     mimicScore = 0;
     _mimicEmotionIndex = 0;
-    _mimicEmotions = _buildShuffledMimicEmotions();
+    mimicTotalRounds = classifyTotalRounds;
+    _mimicEmotions = options == null
+        ? _buildShuffledMimicEmotions()
+        : _classifyQuestions.map((question) => question.correctAnswer).toList();
     mimicLastConfidence = 0.0;
-    notifyListeners();
+  }
+
+  List<EmotionQuestion> _buildCustomizedEmotionQuestions(
+    StudentEmotionOptions options,
+  ) {
+    final targets = <String>[];
+    while (targets.length < options.roundCount) {
+      final cycle = options.targets.toList()..shuffle(_random);
+      if (targets.isNotEmpty && cycle.first == targets.last) {
+        cycle.add(cycle.removeAt(0));
+      }
+      targets.addAll(cycle);
+    }
+    return [
+      for (final target in targets.take(options.roundCount))
+        EmotionQuestion(
+          prompt: 'Choose the matching emotion.',
+          correctAnswer: target,
+          options: List.unmodifiable([
+            target,
+            ...(options.targets.where((item) => item != target).toList()
+                  ..shuffle(_random))
+                .take(options.choiceCount - 1),
+          ]),
+        ),
+    ];
   }
 
   // ==================== EMOTION MIMIC GAME ====================
@@ -583,6 +631,7 @@ class AudyController extends ChangeNotifier {
   }
 
   void resetMimicGame() {
+    mimicTotalRounds = 3;
     mimicCurrentRound = 1;
     mimicScore = 0;
     _mimicEmotionIndex = 0;
@@ -1865,6 +1914,7 @@ class AudyController extends ChangeNotifier {
   @override
   void dispose() {
     _isDisposed = true;
+    _studentGames.useAccount(null);
     if (kIsWeb) {
       unawaited(_webAccountLoad.whenComplete(() => _webDatabase?.close()));
     }

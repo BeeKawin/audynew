@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import '../../core/audy_theme.dart';
 import '../../core/audy_ui.dart';
+import '../../data/models/student_game_options.dart';
 import '../../services/sound_service.dart';
 import '../../state/audy_controller.dart';
+import '../../widgets/student_game_entry.dart';
 import 'minipuzzle_game_screen.dart';
 import 'minipuzzle_models.dart';
 
@@ -15,8 +17,13 @@ String _tr(BuildContext context, String key, {Map<String, String>? params}) {
 /// User selects difficulty level for the chosen game
 class MiniPuzzleLevelSelect extends StatelessWidget {
   final MiniPuzzleType gameType;
+  final StudentMiniPuzzleOptions? options;
 
-  const MiniPuzzleLevelSelect({super.key, required this.gameType});
+  const MiniPuzzleLevelSelect({
+    super.key,
+    required this.gameType,
+    this.options,
+  });
 
   static const List<MiniPuzzleDifficulty> _levels = [
     MiniPuzzleDifficulty.easy,
@@ -116,20 +123,26 @@ class MiniPuzzleLevelSelect extends StatelessWidget {
             SizedBox(height: adaptive.space(32)),
 
             // Level selection cards
-            ..._levels.map(
-              (level) => Padding(
-                padding: EdgeInsets.only(bottom: adaptive.space(16)),
-                child: _LevelCard(
-                  level: level,
-                  gameColor: gameColor,
-                  adaptive: adaptive,
-                  onTap: () {
-                    SoundService.instance.playTap();
-                    _selectLevel(context, level);
-                  },
+            ..._levels
+                .where((level) {
+                  final assigned =
+                      options?.difficulty(gameType.name) ?? 'child_choice';
+                  return assigned == 'child_choice' || assigned == level.name;
+                })
+                .map(
+                  (level) => Padding(
+                    padding: EdgeInsets.only(bottom: adaptive.space(16)),
+                    child: _LevelCard(
+                      level: level,
+                      gameColor: gameColor,
+                      adaptive: adaptive,
+                      onTap: () {
+                        SoundService.instance.playTap();
+                        _selectLevel(context, level);
+                      },
+                    ),
+                  ),
                 ),
-              ),
-            ),
           ],
         );
       },
@@ -138,13 +151,15 @@ class MiniPuzzleLevelSelect extends StatelessWidget {
 
   void _selectLevel(BuildContext context, MiniPuzzleDifficulty level) {
     debugPrint('Selecting level: $level for game: $gameType');
-    Navigator.push(
+    final page = StudentGameGuard.capture(
       context,
-      MaterialPageRoute(
-        builder: (_) =>
-            MiniPuzzleGameScreen(gameType: gameType, difficulty: level),
+      MiniPuzzleGameScreen(
+        gameType: gameType,
+        difficulty: level,
+        options: options,
       ),
     );
+    Navigator.push(context, MaterialPageRoute<void>(builder: (_) => page));
   }
 }
 

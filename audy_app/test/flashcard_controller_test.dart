@@ -55,6 +55,109 @@ void main() {
     expect(controller.handCards, hasLength(3));
     expect(controller.resetUnlockedSelectedCards(), isFalse);
   });
+
+  test(
+    'custom cards keep pictures local and share stable IDs for validation',
+    () async {
+      final api = _CustomFlashcardApi();
+      final controller = FlashcardController(
+        difficulty: FlashcardDifficulty.easy,
+        api: api,
+        preferCustomCards: true,
+      );
+      addTearDown(controller.dispose);
+      const picture = 'data:image/png;base64,abc=';
+      await controller.startSession(
+        'th',
+        customCards: [
+          {
+            'id': 'one',
+            'category': 'adverb',
+            'word': 'เบาๆ',
+            'image_url': picture,
+          },
+        ],
+      );
+      expect(controller.phase, FlashcardGamePhase.previewing);
+      expect(
+        controller.currentRound!.cards
+            .singleWhere((card) => card.id == 'custom:one')
+            .imageAsset,
+        picture,
+      );
+      expect(api.generationCards, [
+        {'id': 'custom:one', 'category': 'adverb', 'word': 'เบาๆ'},
+      ]);
+      for (var card = 0; card < controller.cardCount; card++) {
+        controller.advancePreview();
+      }
+      for (final id in controller.currentRound!.targetCardIds) {
+        controller.selectCard(
+          controller.handCards.singleWhere((card) => card.id == id),
+        );
+      }
+      await controller.submit();
+      expect(api.validationCards, api.generationCards);
+      expect(controller.lastValidation?.isCorrect, isTrue);
+    },
+  );
+}
+
+class _CustomFlashcardApi extends _CompleteFlashcardApi {
+  List<Map<String, dynamic>>? generationCards;
+  List<Map<String, dynamic>>? validationCards;
+
+  @override
+  Future<FlashcardRound> generateRound({
+    required String language,
+    required int wordCount,
+    List<Map<String, dynamic>>? customCards,
+  }) async {
+    generationCards = customCards;
+    final base = await super.generateRound(
+      language: language,
+      wordCount: wordCount,
+    );
+    final entry = customCards!.single;
+    final cards = [
+      ...base.cards.take(wordCount - 1),
+      FlashcardCard(
+        id: entry['id'] as String,
+        category: FlashcardCategory.adverb,
+        displayText: entry['word'] as String,
+        ttsText: entry['word'] as String,
+        imageAsset: 'emoji:A',
+        language: language,
+      ),
+    ];
+    return FlashcardRound(
+      roundId: base.roundId,
+      language: language,
+      wordCount: wordCount,
+      sentenceText: base.sentenceText,
+      scenario: base.scenario,
+      cards: cards,
+      targetCardIds: cards.map((card) => card.id).toList(),
+    );
+  }
+
+  @override
+  Future<FlashcardValidation> validateRound({
+    required String roundId,
+    required String language,
+    required List<String> targetCardIds,
+    required List<String> selectedCardIds,
+    List<Map<String, dynamic>>? customCards,
+  }) {
+    validationCards = customCards;
+    return super.validateRound(
+      roundId: roundId,
+      language: language,
+      targetCardIds: targetCardIds,
+      selectedCardIds: selectedCardIds,
+      customCards: customCards,
+    );
+  }
 }
 
 class _CompleteFlashcardApi extends FlashcardApiService {

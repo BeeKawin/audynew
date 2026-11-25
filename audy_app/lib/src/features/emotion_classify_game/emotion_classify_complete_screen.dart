@@ -77,7 +77,8 @@ class _EmotionClassifyCompleteScreenState
     if (_hasShownCelebration || !mounted) return;
 
     // Points were already added during gameplay
-    final pointsEarned = (widget.controller.classifyScore * 5) +
+    final pointsEarned =
+        (widget.controller.classifyScore * 5) +
         (widget.controller.mimicScore * 5);
 
     if (pointsEarned > 0) {
@@ -120,14 +121,8 @@ class _EmotionClassifyCompleteScreenState
         .clamp(1, 600)
         .toInt();
 
-    // Track both classification and mimicry completions
-    await widget.controller.trackClassifyGameCompleted(
-      durationSeconds: durationSeconds,
-    );
-    await widget.controller.trackMimicGameCompleted(
-      durationSeconds: durationSeconds,
-    );
-
+    final controller = widget.controller;
+    final generation = controller.studentAccountGeneration;
     final classifySession = GameSessionData.fromTimes(
       gameType: 'emotion_classify',
       correctActions: widget.controller.classifyScore,
@@ -136,8 +131,6 @@ class _EmotionClassifyCompleteScreenState
       sessionStartedAt: widget.sessionStartedAt,
       sessionEndedAt: endedAt,
     );
-    await widget.controller.recordAnalyticsSession(classifySession);
-
     final mimicSession = GameSessionData.fromTimes(
       gameType: 'emotion_mimic',
       correctActions: widget.controller.mimicScore,
@@ -146,7 +139,15 @@ class _EmotionClassifyCompleteScreenState
       sessionStartedAt: widget.sessionStartedAt,
       sessionEndedAt: endedAt,
     );
-    await widget.controller.recordAnalyticsSession(mimicSession);
+    await controller.trackClassifyGameCompleted(
+      durationSeconds: durationSeconds,
+    );
+    if (controller.studentAccountGeneration != generation) return;
+    await controller.trackMimicGameCompleted(durationSeconds: durationSeconds);
+    if (controller.studentAccountGeneration != generation) return;
+    await controller.recordAnalyticsSession(classifySession);
+    if (controller.studentAccountGeneration != generation) return;
+    await controller.recordAnalyticsSession(mimicSession);
   }
 
   @override
@@ -162,7 +163,10 @@ class _EmotionClassifyCompleteScreenState
                   onTap: () {
                     SoundService.instance.playTap();
                     widget.controller.resetClassifyGame();
-                    AppRoutes.navigateAfterGameCompletion(context, widget.controller);
+                    AppRoutes.navigateAfterGameCompletion(
+                      context,
+                      widget.controller,
+                    );
                   },
                   borderRadius: BorderRadius.circular(AudySpacing.radiusMedium),
                   child: SizedBox(
@@ -264,7 +268,10 @@ class _EmotionClassifyCompleteScreenState
                     onPressed: () {
                       SoundService.instance.playTap();
                       widget.controller.resetClassifyGame();
-                      AppRoutes.navigateAfterGameCompletion(context, widget.controller);
+                      AppRoutes.navigateAfterGameCompletion(
+                        context,
+                        widget.controller,
+                      );
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AudyColors.mintGreen,

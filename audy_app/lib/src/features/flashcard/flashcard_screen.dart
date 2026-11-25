@@ -8,18 +8,21 @@ import '../../core/app_routes.dart';
 import '../../core/audy_theme.dart';
 import '../../core/audy_ui.dart';
 import '../../data/models/game_session_model.dart';
+import '../../data/models/student_game_options.dart';
 import '../../services/bluetooth_service.dart';
 import '../../services/interactive_input_service.dart';
 import '../../services/sound_service.dart';
 import '../../state/audy_controller.dart';
+import 'card_picture.dart';
 import 'flashcard_card_widget.dart';
 import 'flashcard_controller.dart';
 import 'flashcard_models.dart';
 
 class FlashcardScreen extends StatefulWidget {
-  const FlashcardScreen({super.key, required this.difficulty});
+  const FlashcardScreen({super.key, required this.difficulty, this.options});
 
   final FlashcardDifficulty difficulty;
+  final StudentFlashcardOptions? options;
 
   @override
   State<FlashcardScreen> createState() => _FlashcardScreenState();
@@ -35,6 +38,11 @@ class _FlashcardScreenState extends State<FlashcardScreen> {
   bool _hasRecordedCompletion = false;
   bool _isSubmitting = false;
   String? _spokenRoundId;
+  String? _spokenPreview;
+  late String _sessionLanguage;
+  bool get _autoSpeak => widget.options?.autoSpeak ?? true;
+  bool get _manualPreview =>
+      widget.options != null && widget.options!.previewDelay == null;
   String? _robotBindingRoundId;
   String? _leftRobotCardId;
   String? _middleRobotCardId;
@@ -44,18 +52,29 @@ class _FlashcardScreenState extends State<FlashcardScreen> {
   void initState() {
     super.initState();
     SoundService.instance.playFlashcardInstruction();
-    _controller = FlashcardController(difficulty: widget.difficulty)
-      ..addListener(_onControllerChanged);
+    _controller = FlashcardController(
+      difficulty: widget.difficulty,
+      preferCustomCards: widget.options != null,
+    )..addListener(_onControllerChanged);
     unawaited(_sendGameEnterBleState());
     _bleInputSub = InteractiveInputService.instance.incomingMessages.listen(
       _handleBleInput,
     );
     _sessionStartedAt = DateTime.now();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
       final scope = AudyScope.of(context);
-      final language = scope.currentLanguage;
+      _sessionLanguage =
+          widget.options?.language(scope.currentLanguage) ??
+          scope.currentLanguage;
       final teacherId = scope.currentUser?.teacherId;
-      unawaited(_controller.startSession(language, teacherId: teacherId));
+      unawaited(
+        _controller.startSession(
+          _sessionLanguage,
+          teacherId: teacherId,
+          customCards: widget.options?.customCards,
+        ),
+      );
     });
   }
 
@@ -134,7 +153,7 @@ class _FlashcardScreenState extends State<FlashcardScreen> {
       if (card.id == selectedCardId) {
         SoundService.instance.playTap();
         _controller.selectCard(card);
-        unawaited(_speakCard(card));
+        if (_autoSpeak) unawaited(_speakCard(card));
         return;
       }
     }
@@ -174,7 +193,7 @@ class _FlashcardScreenState extends State<FlashcardScreen> {
       final round = _controller.currentRound;
       if (round != null && _spokenRoundId != round.roundId) {
         _spokenRoundId = round.roundId;
-        unawaited(_speakText(round.scenario, round.language));
+        if (_autoSpeak) unawaited(_speakText(round.scenario, round.language));
       }
     }
 
@@ -188,15 +207,23 @@ class _FlashcardScreenState extends State<FlashcardScreen> {
   }
 
   void _schedulePreview() {
-    _previewTimer?.cancel();
     final card = _controller.previewCard;
     if (card == null) return;
+    final key =
+        '${_controller.currentRound?.roundId}:${_controller.previewIndex}';
+    if (_spokenPreview == key) return;
+    _spokenPreview = key;
+    _previewTimer?.cancel();
 
-    unawaited(_speakCard(card));
-    _previewTimer = Timer(const Duration(seconds: 2), () {
-      if (!mounted) return;
-      _controller.advancePreview();
-    });
+    if (_autoSpeak) unawaited(_speakCard(card));
+    if (_manualPreview) return;
+    _previewTimer = Timer(
+      widget.options?.previewDelay ?? const Duration(seconds: 2),
+      () {
+        if (!mounted) return;
+        _controller.advancePreview();
+      },
+    );
   }
 
   void _scheduleFeedbackResolve() {
@@ -239,11 +266,15 @@ class _FlashcardScreenState extends State<FlashcardScreen> {
 
     try {
       SoundService.instance.playTap();
-      final selected = _controller.selectedCards;
-      for (final card in selected) {
-        await _speakCard(card);
-        await Future<void>.delayed(const Duration(milliseconds: 180));
+      if (_autoSpeak) {
+        final selected = _controller.selectedCards;
+        for (final card in selected) {
+          if (!mounted) return;
+          await _speakCard(card);
+          await Future<void>.delayed(const Duration(milliseconds: 180));
+        }
       }
+      if (!mounted) return;
       await _controller.submit();
       // Gentle, non-punishing feedback: celebrate a full sentence, otherwise a
       // soft "try again" rather than a harsh buzzer.
@@ -263,6 +294,7 @@ class _FlashcardScreenState extends State<FlashcardScreen> {
     unawaited(_sendCompletionBleCelebration());
 
     final appController = AudyScope.of(context);
+    final generation = appController.studentAccountGeneration;
     final endedAt = DateTime.now();
     final correct = _controller.sessionCorrectCount;
     final total = _controller.sessionTotalCards;
@@ -271,9 +303,11 @@ class _FlashcardScreenState extends State<FlashcardScreen> {
     final stars = mistakes == 0 ? 3 : (mistakes <= total ? 2 : 1);
 
     await appController.trackFlashcardCompleted();
+    if (appController.studentAccountGeneration != generation) return;
     if (points > 0) {
       await appController.addPoints(points);
     }
+    if (appController.studentAccountGeneration != generation) return;
     await appController.recordAnalyticsSession(
       GameSessionData.fromTimes(
         gameType: 'flashcard',
@@ -318,7 +352,11 @@ class _FlashcardScreenState extends State<FlashcardScreen> {
       case FlashcardGamePhase.loading:
         return _LoadingState(adaptive: adaptive);
       case FlashcardGamePhase.previewing:
-        return _PreviewState(controller: _controller);
+        return _PreviewState(
+          controller: _controller,
+          onNext: _manualPreview ? _controller.advancePreview : null,
+          onSpeak: widget.options != null ? _speakCard : null,
+        );
       case FlashcardGamePhase.playing:
       case FlashcardGamePhase.validating:
       case FlashcardGamePhase.feedback:
@@ -346,8 +384,7 @@ class _FlashcardScreenState extends State<FlashcardScreen> {
         return _ErrorState(
           adaptive: adaptive,
           onRetry: () {
-            final language = AudyScope.of(context).currentLanguage;
-            unawaited(_controller.retry(language));
+            unawaited(_controller.retry(_sessionLanguage));
           },
         );
     }
@@ -450,16 +487,18 @@ class _LoadingState extends StatelessWidget {
 // ---------------------------------------------------------------------------
 
 class _PreviewState extends StatelessWidget {
-  const _PreviewState({required this.controller});
+  const _PreviewState({required this.controller, this.onNext, this.onSpeak});
 
   final FlashcardController controller;
+  final VoidCallback? onNext;
+  final ValueChanged<FlashcardCard>? onSpeak;
 
   @override
   Widget build(BuildContext context) {
     final card = controller.previewCard;
     if (card == null) return const SizedBox.shrink();
 
-    return Center(
+    final picture = Center(
       child: AnimatedSwitcher(
         duration: AudyAnimation.slow,
         switchInCurve: Curves.easeOutCubic,
@@ -479,6 +518,29 @@ class _PreviewState extends StatelessWidget {
           isPreview: true,
         ),
       ),
+    );
+    if (onNext == null && onSpeak == null) return picture;
+    final app = AudyScope.of(context);
+    return Column(
+      children: [
+        Expanded(child: picture),
+        if (onSpeak != null)
+          IconButton(
+            onPressed: () => onSpeak!(card),
+            tooltip: app.currentLanguage == 'th'
+                ? 'อ่านออกเสียง'
+                : 'Speak card',
+            icon: const Icon(Icons.volume_up_rounded),
+            constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+          ),
+        if (onNext != null)
+          FilledButton(
+            onPressed: onNext,
+            child: Text(
+              app.currentLanguage == 'th' ? 'บัตรถัดไป' : 'Next card',
+            ),
+          ),
+      ],
     );
   }
 }
@@ -800,6 +862,11 @@ class _GhostHintSlot extends StatelessWidget {
               Opacity(
                 opacity: 0.5,
                 child: Text(emoji, style: TextStyle(fontSize: width * 0.4)),
+              )
+            else if (card.id.startsWith('custom:'))
+              Opacity(
+                opacity: 0.5,
+                child: CardPicture(card.imageAsset, size: width * .55),
               )
             else
               Icon(

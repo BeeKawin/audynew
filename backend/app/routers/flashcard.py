@@ -18,6 +18,7 @@ async def generate_round(request: FlashcardRoundRequest):
             language=request.language,
             word_count=request.word_count,
             custom_cards=request.custom_cards,
+            prefer_custom=request.prefer_custom,
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Round generation failed: {e}")

@@ -18,7 +18,7 @@ class CustomizationPage extends StatefulWidget {
 
 class _CustomizationPageState extends State<CustomizationPage> {
   final _repository = GameConfigurationRepository(Supabase.instance.client);
-  Set<String> _saved = {};
+  Map<String, bool> _saved = {};
   String? _error;
   bool _loading = true;
   int _request = 0;
@@ -44,7 +44,7 @@ class _CustomizationPageState extends State<CustomizationPage> {
     });
     try {
       final saved = _child == null
-          ? <String>{}
+          ? <String, bool>{}
           : await _repository.summaries(_child!);
       if (mounted && request == _request) setState(() => _saved = saved);
     } catch (e) {
@@ -119,14 +119,14 @@ class _CustomizationPageState extends State<CustomizationPage> {
             ),
             const Divider(height: 32),
             Text(
-              ct(context, 'Game previews', 'การทดลองเกม'),
+              ct(context, 'Game settings', 'การตั้งค่าเกม'),
               style: Theme.of(context).textTheme.titleLarge,
             ),
             CaretakerNotice(
               ct(
                 context,
-                'Saved settings are for Caretaker previews. Student gameplay is unchanged in this phase.',
-                'การตั้งค่าใช้ในการทดลองของผู้ดูแล เกมของเด็กยังใช้การตั้งค่าเดิมในระยะนี้',
+                'Preview settings or apply them to the selected student’s next session.',
+                'ทดลองการตั้งค่าหรือใช้ในการเล่นครั้งถัดไปของเด็กที่เลือก',
               ),
             ),
             if (_loading) const LinearProgressIndicator(),
@@ -143,15 +143,23 @@ class _CustomizationPageState extends State<CustomizationPage> {
                           'Settings not loaded',
                           'ยังไม่ได้โหลดการตั้งค่า',
                         )
-                      : ct(
-                          context,
-                          _saved.contains(game.key)
-                              ? 'Customized'
-                              : 'Default settings',
-                          _saved.contains(game.key)
-                              ? 'ปรับแต่งแล้ว'
-                              : 'ค่าเริ่มต้น',
-                        ),
+                      : switch (_saved[game.key]) {
+                          true => ct(
+                            context,
+                            'Applies to Student play',
+                            'ใช้ในการเล่นของเด็ก',
+                          ),
+                          false => ct(
+                            context,
+                            'Saved preview',
+                            'บันทึกตัวอย่างแล้ว',
+                          ),
+                          null => ct(
+                            context,
+                            'Default settings',
+                            'ค่าเริ่มต้น',
+                          ),
+                        },
                 ),
                 trailing: const Icon(Icons.chevron_right),
                 enabled:

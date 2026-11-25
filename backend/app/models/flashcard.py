@@ -11,6 +11,7 @@ class FlashcardRoundRequest(BaseModel):
     language: FlashcardLanguage = "en"
     word_count: Literal[3, 5, 7] = 3
     custom_cards: Optional[list[dict]] = None
+    prefer_custom: bool = False
 
 
 class FlashcardCard(BaseModel):

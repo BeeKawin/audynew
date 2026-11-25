@@ -47,14 +47,21 @@ class AppDatabase extends _$AppDatabase {
   }) : super(_openConnection(name, onWebStorageWarning));
   AppDatabase.forTesting(super.executor);
 
+  Future<void> _createStudentConfigCache() => customStatement(
+    'CREATE TABLE IF NOT EXISTS student_game_config_cache ('
+    'child_id TEXT NOT NULL, game_key TEXT NOT NULL, revision INTEGER NOT NULL, '
+    'payload TEXT NOT NULL, PRIMARY KEY (child_id, game_key))',
+  );
+
   @override
-  int get schemaVersion => 9;
+  int get schemaVersion => 10;
 
   @override
   MigrationStrategy get migration {
     return MigrationStrategy(
       onCreate: (m) async {
         await m.createAll();
+        await _createStudentConfigCache();
       },
       onUpgrade: (m, from, to) async {
         // Migration from version 1 to 2: Add game counter columns
@@ -102,6 +109,7 @@ class AppDatabase extends _$AppDatabase {
             await customStatement('DROP TABLE IF EXISTS achievements');
           });
         }
+        if (from <= 9) await _createStudentConfigCache();
       },
     );
   }

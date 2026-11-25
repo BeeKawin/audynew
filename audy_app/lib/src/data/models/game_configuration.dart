@@ -3,6 +3,8 @@ import 'dart:convert';
 enum CaretakerGame { socialChat, flashcard, miniPuzzle, emotion, fruitCatch }
 
 extension CaretakerGameKey on CaretakerGame {
+  bool get supportsStudentPlay => this != CaretakerGame.socialChat;
+
   String get key => const [
     'social_chat',
     'flashcard',
@@ -245,10 +247,12 @@ class SavedGameConfiguration {
     this.config,
     this.revision, {
     this.schemaVersion = 1,
+    this.appliesToStudent = false,
   });
   final GameConfiguration config;
   final int revision;
   final int schemaVersion;
+  final bool appliesToStudent;
   bool get editable => schemaVersion == 1;
 }
 

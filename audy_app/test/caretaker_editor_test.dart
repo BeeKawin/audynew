@@ -35,15 +35,20 @@ class MemoryConfigurations extends GameConfigurationRepository {
   Future<SavedGameConfiguration> save(
     String childId,
     GameConfiguration config,
-    int revision,
-  ) async {
+    int revision, {
+    bool? appliesToStudent,
+  }) async {
     if (conflict) {
       throw const PostgrestException(
         message: 'revision conflict',
         code: '40001',
       );
     }
-    final result = SavedGameConfiguration(config, revision + 1);
+    final result = SavedGameConfiguration(
+      config,
+      revision + 1,
+      appliesToStudent: appliesToStudent ?? false,
+    );
     records['$childId:${config.game.key}'] = result;
     return result;
   }
@@ -160,6 +165,37 @@ void main() {
     await tester.pumpAndSettle();
     return controller;
   }
+
+  testWidgets(
+    'Caregiver activation can be saved on and off without losing the draft',
+    (tester) async {
+      final repo = MemoryConfigurations();
+      await showEditor(tester, repo, CaretakerGame.emotion);
+      final toggle = find.widgetWithText(
+        SwitchListTile,
+        'Apply to Student play',
+      );
+      final save = find.text('Save settings');
+      await tester.ensureVisible(toggle);
+      await tester.tap(toggle);
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(save);
+      await tester.tap(save);
+      await tester.pumpAndSettle();
+      final active = repo.records['child-a:emotion']!;
+      expect(active.appliesToStudent, isTrue);
+      await tester.ensureVisible(toggle);
+      await tester.tap(toggle);
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(save);
+      await tester.tap(save);
+      await tester.pumpAndSettle();
+      final inactive = repo.records['child-a:emotion']!;
+      expect(inactive.appliesToStudent, isFalse);
+      expect(inactive.config.toJson(), active.config.toJson());
+      expect(inactive.revision, active.revision + 1);
+    },
+  );
 
   testWidgets('legacy Home cards, child overview and progress navigation', (
     tester,

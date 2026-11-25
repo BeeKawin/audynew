@@ -50,6 +50,7 @@ class _MimicResultScreenState extends State<MimicResultScreen> {
     setState(() => _isContinuing = true);
 
     final controller = AudyScope.of(context);
+    final generation = controller.studentAccountGeneration;
     final navigator = Navigator.of(context);
     final isFinalRound =
         controller.mimicCurrentRound >= controller.mimicTotalRounds;
@@ -58,10 +59,12 @@ class _MimicResultScreenState extends State<MimicResultScreen> {
       // Add points silently (no celebration here, shown at complete screen)
       await controller.addPoints(5);
     }
+    if (!mounted || controller.studentAccountGeneration != generation) return;
 
     if (isFinalRound || isMatch) {
       await _sendRoundBleSignal(isFinalRound: isFinalRound);
     }
+    if (!mounted || controller.studentAccountGeneration != generation) return;
     controller.completeEmotionRound(
       isMatch: isMatch,
       confidence: widget.confidence,

@@ -56,7 +56,9 @@ final class AppRoutes {
       if (controller.shouldTriggerMeltdown) {
         navigator.pushNamed(meltdown);
       } else {
-        navigator.popUntil((route) => route.settings.name == games);
+        navigator.popUntil(
+          (route) => route.settings.name == games || route.isFirst,
+        );
       }
     } finally {
       _pendingBreakChecks.remove(navigator);

@@ -33,6 +33,7 @@ class _GameEditorState extends State<GameEditor> {
   int _formRevision = 0;
   int _cardsRevision = 0;
   bool _pendingCard = false;
+  bool _applyToStudent = false;
   String? _ownerId;
   bool _started = false;
   bool get _sessionActive =>
@@ -40,7 +41,8 @@ class _GameEditorState extends State<GameEditor> {
   bool get _dirty =>
       _pendingCard ||
       (_draft != null &&
-          jsonEncode(_draft) != jsonEncode(_saved!.config.toJson()));
+          (_applyToStudent != _saved!.appliesToStudent ||
+              jsonEncode(_draft) != jsonEncode(_saved!.config.toJson())));
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -59,6 +61,7 @@ class _GameEditorState extends State<GameEditor> {
         setState(() {
           _saved = saved;
           _draft = saved.config.toJson();
+          _applyToStudent = saved.appliesToStudent;
           _error = saved.editable
               ? null
               : ct(
@@ -97,6 +100,9 @@ class _GameEditorState extends State<GameEditor> {
         widget.child.id,
         config,
         _saved!.revision,
+        appliesToStudent: widget.game.supportsStudentPlay
+            ? _applyToStudent
+            : null,
       );
       if (!mounted || !_sessionActive) return false;
       setState(() {
@@ -108,8 +114,12 @@ class _GameEditorState extends State<GameEditor> {
           content: Text(
             ct(
               context,
-              'Saved for ${widget.child.name}. Student gameplay is unchanged.',
-              'บันทึกสำหรับ ${widget.child.name} แล้ว เกมของเด็กยังใช้ค่าเดิม',
+              saved.appliesToStudent
+                  ? 'Saved for ${widget.child.name}’s next session.'
+                  : 'Saved as a preview for ${widget.child.name}.',
+              saved.appliesToStudent
+                  ? 'บันทึกสำหรับการเล่นครั้งถัดไปของ ${widget.child.name} แล้ว'
+                  : 'บันทึกเป็นตัวอย่างสำหรับ ${widget.child.name} แล้ว',
             ),
           ),
         ),
@@ -192,8 +202,12 @@ class _GameEditorState extends State<GameEditor> {
               CaretakerNotice(
                 ct(
                   context,
-                  'Caretaker preview settings. Student games keep their current behavior.',
-                  'ตั้งค่าสำหรับการทดลองของผู้ดูแล เกมของเด็กยังใช้พฤติกรรมเดิม',
+                  widget.game.supportsStudentPlay
+                      ? 'Preview a draft or save settings for the student’s next session.'
+                      : 'Social Chat settings are available for Caretaker previews.',
+                  widget.game.supportsStudentPlay
+                      ? 'ทดลองค่าที่แก้ไขหรือบันทึกสำหรับการเล่นครั้งถัดไปของเด็ก'
+                      : 'การตั้งค่าแชตใช้สำหรับการทดลองของผู้ดูแล',
                 ),
               ),
               if (_busy) const LinearProgressIndicator(),
@@ -205,6 +219,20 @@ class _GameEditorState extends State<GameEditor> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
+                      if (widget.game.supportsStudentPlay)
+                        SwitchListTile(
+                          contentPadding: EdgeInsets.zero,
+                          title: Text(
+                            ct(
+                              context,
+                              'Apply to Student play',
+                              'ใช้ในการเล่นของเด็ก',
+                            ),
+                          ),
+                          value: _applyToStudent,
+                          onChanged: (value) =>
+                              setState(() => _applyToStudent = value),
+                        ),
                       if (widget.game == CaretakerGame.flashcard) ...[
                         CustomCardsEditor(
                           key: ValueKey('${widget.child.id}-$_cardsRevision'),
@@ -288,9 +316,13 @@ class _GameEditorState extends State<GameEditor> {
                         : () async {
                             // Reload first after an uncertain write; never replay a possibly committed save.
                             final keep = Map<String, dynamic>.from(_draft!);
+                            final keepActivation = _applyToStudent;
                             await _load();
                             if (mounted && _saved != null && !_busy) {
-                              setState(() => _draft = keep);
+                              setState(() {
+                                _draft = keep;
+                                _applyToStudent = keepActivation;
+                              });
                             }
                           },
                     child: Text(

@@ -6,10 +6,11 @@ import '../social_chat/chat_service.dart';
 import 'flashcard_models.dart';
 
 class FlashcardApiService {
-  FlashcardApiService({String? baseUrl})
+  FlashcardApiService({String? baseUrl, this.preferCustomCards = false})
     : baseUrl = baseUrl ?? ApiConfig.baseUrl;
 
   final String baseUrl;
+  final bool preferCustomCards;
 
   Future<FlashcardRound> generateRound({
     required String language,
@@ -24,6 +25,7 @@ class FlashcardApiService {
             'language': language,
             'word_count': wordCount,
             'custom_cards': customCards,
+            if (preferCustomCards) 'prefer_custom': true,
           }),
         )
         .timeout(const Duration(seconds: 20));

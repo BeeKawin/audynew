@@ -17,13 +17,18 @@ enum FlashcardGamePhase {
 }
 
 class FlashcardController extends ChangeNotifier {
-  FlashcardController({required this.difficulty, FlashcardApiService? api})
-    : _api = api ?? FlashcardApiService();
+  FlashcardController({
+    required this.difficulty,
+    FlashcardApiService? api,
+    bool preferCustomCards = false,
+  }) : _api = api ?? FlashcardApiService(preferCustomCards: preferCustomCards),
+       _preferCustomCards = preferCustomCards;
 
   /// Chosen difficulty. Drives sentence length and hint visibility.
   final FlashcardDifficulty difficulty;
 
   final FlashcardApiService _api;
+  final bool _preferCustomCards;
   final Random _random = Random();
 
   /// A session plays this many sentences (rounds) at the chosen difficulty.
@@ -58,6 +63,7 @@ class FlashcardController extends ChangeNotifier {
   final List<FlashcardCard> _selectedCards = [];
   final Set<String> _lockedCardIds = {};
   List<Map<String, dynamic>>? _customCards;
+  final _customPictures = <String, String>{};
 
   List<FlashcardCard> get handCards => List.unmodifiable(_handCards);
   List<FlashcardCard> get selectedCards => List.unmodifiable(_selectedCards);
@@ -108,14 +114,34 @@ class FlashcardController extends ChangeNotifier {
     return null;
   }
 
-  Future<void> startSession(String language, {String? teacherId}) async {
+  Future<void> startSession(
+    String language, {
+    String? teacherId,
+    List<Map<String, dynamic>>? customCards,
+  }) async {
     _language = language;
     roundIndex = 0;
     sessionMistakes = 0;
     sessionCorrect = 0;
     _customCards = null;
+    _customPictures.clear();
 
-    if (teacherId != null && teacherId.isNotEmpty) {
+    if (customCards != null) {
+      _customCards = customCards
+          .map((card) {
+            final id = 'custom:${card['id']}';
+            final image = card['image_url'];
+            if (image is String && image.isNotEmpty) {
+              _customPictures[id] = image;
+            }
+            return {
+              'id': id,
+              'word': card['word'],
+              'category': card['category'],
+            };
+          })
+          .toList(growable: false);
+    } else if (teacherId != null && teacherId.isNotEmpty) {
       try {
         final words = await AuthService().fetchClassWords(teacherId);
         _customCards = words
@@ -133,7 +159,7 @@ class FlashcardController extends ChangeNotifier {
       }
     }
 
-    await _loadRound();
+    if (!_disposed) await _loadRound();
   }
 
   Future<void> retry(String language) async {
@@ -159,7 +185,40 @@ class FlashcardController extends ChangeNotifier {
         wordCount: difficulty.cardCount,
         customCards: _customCards,
       );
-      currentRound = round;
+      if (_disposed) return;
+      final customCards = _customCards;
+      if (_preferCustomCards &&
+          customCards != null &&
+          customCards.isNotEmpty &&
+          !customCards.any(
+            (card) => round.targetCardIds.contains(card['id']),
+          )) {
+        throw StateError('The backend did not return a customized round.');
+      }
+      currentRound = _customPictures.isEmpty
+          ? round
+          : FlashcardRound(
+              roundId: round.roundId,
+              language: round.language,
+              wordCount: round.wordCount,
+              sentenceText: round.sentenceText,
+              targetCardIds: round.targetCardIds,
+              scenario: round.scenario,
+              cards: round.cards
+                  .map((card) {
+                    final picture = _customPictures[card.id];
+                    if (picture == null) return card;
+                    return FlashcardCard(
+                      id: card.id,
+                      category: card.category,
+                      displayText: card.displayText,
+                      ttsText: card.ttsText,
+                      imageAsset: picture,
+                      language: card.language,
+                    );
+                  })
+                  .toList(growable: false),
+            );
       // Preview cards in a random order so the sequence isn't the answer.
       _previewOrder
         ..clear()

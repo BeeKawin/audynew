@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 
 import '../../core/audy_theme.dart';
 import '../../core/audy_ui.dart';
+import '../../data/models/student_game_options.dart';
 import '../../services/sound_service.dart';
 import '../../state/audy_controller.dart';
+import '../../widgets/student_game_entry.dart';
 import 'flashcard_models.dart';
 import 'flashcard_screen.dart';
 
@@ -12,7 +14,8 @@ import 'flashcard_screen.dart';
 /// Calm, high-contrast, three consistent tap targets. No timer, no pressure —
 /// tuned for autistic players.
 class FlashcardDifficultyScreen extends StatelessWidget {
-  const FlashcardDifficultyScreen({super.key});
+  const FlashcardDifficultyScreen({super.key, this.options});
+  final StudentFlashcardOptions? options;
 
   static const List<FlashcardDifficulty> _levels = [
     FlashcardDifficulty.easy,
@@ -66,25 +69,32 @@ class FlashcardDifficultyScreen extends StatelessWidget {
               ),
             ),
             SizedBox(height: adaptive.space(32)),
-            ..._levels.map(
-              (level) => Padding(
-                padding: EdgeInsets.only(bottom: adaptive.space(16)),
-                child: _DifficultyCard(
-                  level: level,
-                  isThai: isThai,
-                  adaptive: adaptive,
-                  onTap: () {
-                    SoundService.instance.playTap();
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => FlashcardScreen(difficulty: level),
-                      ),
-                    );
-                  },
+            ..._levels
+                .where((level) {
+                  final assigned = options?.difficulty ?? 'child_choice';
+                  return assigned == 'child_choice' || assigned == level.name;
+                })
+                .map(
+                  (level) => Padding(
+                    padding: EdgeInsets.only(bottom: adaptive.space(16)),
+                    child: _DifficultyCard(
+                      level: level,
+                      isThai: isThai,
+                      adaptive: adaptive,
+                      onTap: () {
+                        SoundService.instance.playTap();
+                        final page = StudentGameGuard.capture(
+                          context,
+                          FlashcardScreen(difficulty: level, options: options),
+                        );
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute<void>(builder: (_) => page),
+                        );
+                      },
+                    ),
+                  ),
                 ),
-              ),
-            ),
           ],
         );
       },

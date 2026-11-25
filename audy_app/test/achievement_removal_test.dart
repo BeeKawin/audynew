@@ -137,7 +137,7 @@ void main() {
         (await db.customSelect('pragma user_version').get()).single.read<int>(
           'user_version',
         ),
-        9,
+        10,
       );
       expect(
         (await db.customSelect('select * from user_progress').get())

@@ -5,6 +5,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'src/core/app_routes.dart';
 import 'src/core/audy_theme.dart';
+import 'src/data/models/game_configuration.dart';
+import 'src/data/models/student_game_options.dart';
 import 'src/data/service_locator.dart';
 import 'src/features/assignments_page.dart';
 import 'src/features/auth/login_page.dart';
@@ -37,6 +39,7 @@ import 'src/state/audy_controller.dart';
 import 'src/features/device/device_connection_page.dart';
 import 'src/features/social_chat/social_chat_page.dart';
 import 'src/features/settings/preferences_page.dart';
+import 'src/widgets/student_game_entry.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -319,12 +322,34 @@ class _AudyAppState extends State<AudyApp> {
           AppRoutes.login: (_) => const LoginPage(),
           AppRoutes.dashboard: (_) => _HomeShell(currentIndex: _currentIndex),
           AppRoutes.games: (_) => _HomeShell(currentIndex: 1),
-          AppRoutes.emotionClassify: (_) => const EmotionClassifyScreen(),
+          AppRoutes.emotionClassify: (_) => StudentGameEntry(
+            game: CaretakerGame.emotion,
+            builder: (config) => EmotionClassifyScreen(
+              freshSession: true,
+              options: config == null ? null : StudentEmotionOptions(config),
+            ),
+          ),
           AppRoutes.emotionMimic: (_) => const EmotionMimicScreen(),
-          AppRoutes.miniPuzzle: (_) => const MiniPuzzleGameSelection(),
-          AppRoutes.flashcard: (_) => const FlashcardDifficultyScreen(),
+          AppRoutes.miniPuzzle: (_) => StudentGameEntry(
+            game: CaretakerGame.miniPuzzle,
+            builder: (config) => MiniPuzzleGameSelection(
+              options: config == null ? null : StudentMiniPuzzleOptions(config),
+            ),
+          ),
+          AppRoutes.flashcard: (_) => StudentGameEntry(
+            game: CaretakerGame.flashcard,
+            builder: (config) => FlashcardDifficultyScreen(
+              options: config == null ? null : StudentFlashcardOptions(config),
+            ),
+          ),
           AppRoutes.roadSafety: (_) => const RoadSafetyScreen(),
-          AppRoutes.fruitCatchingBear: (_) => const FruitCatchingBearScreen(),
+          AppRoutes.fruitCatchingBear: (_) => StudentGameEntry(
+            game: CaretakerGame.fruitCatch,
+            builder: (config) => FruitCatchingBearScreen(
+              refreshOnReplay: true,
+              options: config == null ? null : StudentFruitCatchOptions(config),
+            ),
+          ),
           AppRoutes.readingHub: (_) => const ReadPronounceHub(),
           AppRoutes.letters: (_) => const ReadPronouncePracticeScreen(
             title: 'letters_practice',
@@ -378,38 +403,62 @@ class _AudyAppState extends State<AudyApp> {
                 reverseTransitionDuration: const Duration(seconds: 1),
               );
             case AppRoutes.miniPuzzleLevel:
-              final gameType = settings.arguments as MiniPuzzleType;
-              return MaterialPageRoute(
-                builder: (_) => MiniPuzzleLevelSelect(gameType: gameType),
-              );
             case AppRoutes.miniPuzzleGame:
-              debugPrint('Creating MiniPuzzleGameScreen route');
-              debugPrint('settings.arguments: ${settings.arguments}');
-              try {
-                final args = settings.arguments as Map<String, dynamic>;
-                debugPrint(
-                  'Arguments: gameType=${args['gameType']}, difficulty=${args['difficulty']}',
-                );
-                return MaterialPageRoute(
-                  builder: (_) => MiniPuzzleGameScreen(
-                    gameType: args['gameType'] as MiniPuzzleType,
-                    difficulty: args['difficulty'] as MiniPuzzleDifficulty,
-                  ),
-                );
-              } catch (e, stackTrace) {
-                debugPrint('Error creating MiniPuzzleGameScreen: $e');
-                debugPrint('Stack trace: $stackTrace');
+              final args = settings.arguments;
+              final gameType = args is Map ? args['gameType'] : args;
+              final difficulty = args is Map ? args['difficulty'] : null;
+              return MaterialPageRoute(
+                settings: settings,
+                builder: (_) => StudentGameEntry(
+                  game: CaretakerGame.miniPuzzle,
+                  builder: (config) {
+                    final options = config == null
+                        ? null
+                        : StudentMiniPuzzleOptions(config);
+                    if (gameType is! MiniPuzzleType ||
+                        options?.allows(gameType.name) == false) {
+                      return MiniPuzzleGameSelection(options: options);
+                    }
+                    if (settings.name == AppRoutes.miniPuzzleGame &&
+                        difficulty is MiniPuzzleDifficulty) {
+                      final assigned = options?.difficulty(gameType.name);
+                      final resolved =
+                          assigned == null || assigned == 'child_choice'
+                          ? difficulty
+                          : MiniPuzzleDifficulty.values.byName(assigned);
+                      return MiniPuzzleGameScreen(
+                        gameType: gameType,
+                        difficulty: resolved,
+                        options: options,
+                      );
+                    }
+                    return MiniPuzzleLevelSelect(
+                      gameType: gameType,
+                      options: options,
+                    );
+                  },
+                ),
+              );
+            case AppRoutes.miniPuzzleResult:
+              final resultArgs = settings.arguments;
+              if (resultArgs is! Map) return null;
+              final sessionData = resultArgs['sessionData'];
+              final controller = resultArgs['controller'];
+              if (sessionData is! MiniPuzzleSessionData ||
+                  controller is! AudyController) {
                 return null;
               }
-            case AppRoutes.miniPuzzleResult:
-              final args = settings.arguments as Map<String, dynamic>;
-              final sessionData = args['sessionData'] as MiniPuzzleSessionData;
-              final controller = args['controller'] as AudyController;
+              final generation = resultArgs['studentGeneration'];
               return MaterialPageRoute(
-                builder: (_) => MiniPuzzleResultScreen(
-                  sessionData: sessionData,
-                  controller: controller,
-                ),
+                builder: (_) {
+                  final page = MiniPuzzleResultScreen(
+                    sessionData: sessionData,
+                    controller: controller,
+                  );
+                  return generation is int
+                      ? StudentGameGuard(generation: generation, child: page)
+                      : page;
+                },
               );
             default:
               return null;

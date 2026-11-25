@@ -97,6 +97,9 @@ WORD_BANK: tuple[WordBankEntry, ...] = (
     WordBankEntry("adv_now", "adverb", "now", "ตอนนี้", "emoji:⏰"),
     WordBankEntry("adv_slowly", "adverb", "slowly", "ช้าๆ", "emoji:🐢"),
     WordBankEntry("adv_quickly", "adverb", "quickly", "เร็วๆ", "emoji:⚡"),
+    WordBankEntry("verb_see", "verb", "see", "เห็น", "emoji:👀"),
+    WordBankEntry("verb_look", "verb", "look", "ดู", "emoji:👀"),
+    WordBankEntry("verb_smile", "verb", "smile", "ยิ้ม", "emoji:🙂"),
 
     # Animals (nouns from directory)
     WordBankEntry("noun_bird", "noun", "bird", "นก", "assets/images/games/flashcard/animals/bird.png"),
@@ -187,6 +190,7 @@ class FlashcardService:
         local_washables = list(_WASHABLES)
         local_verb_objects = {k: list(v) for k, v in _VERB_OBJECTS.items()}
         local_place_prep = dict(_PLACE_PREP)
+        custom_entries = []
 
         if custom_cards:
             for card in custom_cards:
@@ -194,6 +198,10 @@ class FlashcardService:
                 category = card.get("category")
                 word = card.get("word") or ""
                 image_url = card.get("image_url") or "emoji:🃏"
+                if not isinstance(c_id, str) or c_id in local_entry_by_id:
+                    continue
+                if not isinstance(word, str) or not word.strip():
+                    continue
 
                 valid_categories = ["noun", "pronoun", "verb", "adverb", "adjective", "preposition", "determiner", "conjunction"]
                 if category not in valid_categories:
@@ -207,6 +215,7 @@ class FlashcardService:
                     image_asset=image_url,
                 )
                 local_entry_by_id[c_id] = entry
+                custom_entries.append(entry)
 
                 if category == "pronoun":
                     local_subjects.append(c_id)
@@ -221,6 +230,7 @@ class FlashcardService:
             "subjects": local_subjects,
             "verb_objects": local_verb_objects,
             "place_prep": local_place_prep,
+            "custom_entries": custom_entries,
         }
 
     def generate_round(
@@ -228,12 +238,38 @@ class FlashcardService:
         language: Language,
         word_count: int,
         custom_cards: list[dict] = None,
+        prefer_custom: bool = False,
     ) -> FlashcardRoundResponse:
         ctx = self._create_context(custom_cards)
-        target_ids = self._generate_target_ids(language, word_count, ctx)
+        eligible = [
+            entry for entry in ctx["custom_entries"]
+            if entry.category in ("noun", "pronoun", "verb", "adjective", "adverb")
+        ]
+        custom = random.choice(eligible) if prefer_custom and eligible else None
+        target_ids = (
+            self._custom_target_ids(custom, word_count)
+            if custom else self._generate_target_ids(language, word_count, ctx)
+        )
         round_id = str(uuid.uuid4())
         self._round_targets[round_id] = target_ids
-        return self._build_round_response(round_id, language, word_count, target_ids, ctx)
+        return self._build_round_response(round_id, language, word_count, target_ids, ctx, custom)
+
+    def _custom_target_ids(self, card: WordBankEntry, word_count: int) -> list[str]:
+        # Put the child’s word in a grammatical slot without changing difficulty.
+        templates = {
+            "noun": ["pronoun_i", "verb_see", card.id],
+            "pronoun": [card.id, "verb_read", "noun_book"],
+            "verb": ["pronoun_i", card.id, "adv_here"],
+            "adjective": ["pronoun_i", "verb_look", card.id],
+            "adverb": ["pronoun_i", "verb_walk", card.id],
+        }
+        target = templates[card.category]
+        if word_count >= 5:
+            place = random.choice(list(_PLACE_PREP))
+            target += [_PLACE_PREP[place], place]
+        if word_count == 7:
+            target += ["conj_and", "verb_smile"]
+        return target
 
     def validate(
         self,
@@ -357,8 +393,9 @@ class FlashcardService:
         }
         return templates[word_count]
 
-    def _generate_scenario(self, target_ids: list[str], language: Language) -> str:
-        entries = [ENTRY_BY_ID[tid] for tid in target_ids if tid in ENTRY_BY_ID]
+    def _generate_scenario(self, target_ids: list[str], language: Language, ctx: dict) -> str:
+        bank = ctx["entry_by_id"]
+        entries = [bank[tid] for tid in target_ids if tid in bank]
         if not entries:
             return ""
 
@@ -469,10 +506,19 @@ class FlashcardService:
         word_count: int,
         target_ids: list[str],
         ctx: dict,
+        custom: WordBankEntry | None = None,
     ) -> FlashcardRoundResponse:
         entry_by_id = ctx["entry_by_id"]
         cards = [self._card_for_entry(entry_by_id[card_id], language) for card_id in target_ids]
-        scenario = self._generate_scenario(target_ids, language)
+        if custom is None:
+            scenario = self._generate_scenario(target_ids, language, ctx)
+        else:
+            # Mention the practice word without reading the sentence order.
+            scenario = (
+                f"เรียงบัตรให้เป็นประโยคที่มีคำว่า {custom.th}"
+                if language == "th"
+                else f"Build a sentence using the word {custom.en}."
+            )
         return FlashcardRoundResponse(
             round_id=round_id,
             language=language,

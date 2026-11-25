@@ -18,6 +18,9 @@ String caretakerError(Object error) {
     if (error.code == '40001') {
       return 'Another Caretaker saved changes. Reload before saving again.';
     }
+    if (error.code == '0A000') {
+      return 'Update AUDY to edit settings used in Student play.';
+    }
     if (error.code == 'PGRST202' || error.code == '42P01') {
       return 'Caretaker storage is not installed yet. Apply the Caretaker database migration, then retry.';
     }
@@ -129,33 +132,45 @@ class GameConfigurationRepository {
       config,
       row['revision'] as int,
       schemaVersion: version,
+      appliesToStudent: row['applies_to_student'] == true,
     );
   }
 
-  Future<Set<String>> summaries(String childId) async {
+  Future<Map<String, bool>> summaries(String childId) async {
     final rows = await client
         .from('child_game_configs')
-        .select('game_key')
+        .select('game_key, applies_to_student')
         .eq('child_id', childId);
-    return rows.map((r) => r['game_key'] as String).toSet();
+    return {
+      for (final row in rows)
+        row['game_key'] as String: row['applies_to_student'] == true,
+    };
   }
 
   Future<SavedGameConfiguration> save(
     String childId,
     GameConfiguration config,
-    int revision,
-  ) async {
+    int revision, {
+    bool? appliesToStudent,
+  }) async {
     final errors = config.validate();
     if (errors.isNotEmpty) throw CaretakerFailure(errors.join('\n'));
     final result = await client.rpc(
-      'caretaker_save_config',
+      appliesToStudent == null
+          ? 'caretaker_save_config'
+          : 'caretaker_save_student_game_config',
       params: {
         'target_child': childId,
         'target_game': config.game.key,
         'config_payload': config.toJson(),
         'expected_revision': revision,
+        'apply_to_student': ?appliesToStudent,
       },
     );
-    return SavedGameConfiguration(config, (result as num).toInt());
+    return SavedGameConfiguration(
+      config,
+      (result as num).toInt(),
+      appliesToStudent: appliesToStudent ?? false,
+    );
   }
 }

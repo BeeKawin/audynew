@@ -1,41 +1,11 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_tts/flutter_tts.dart';
-import '../../../flashcard/flashcard_api_service.dart';
+import '../../../flashcard/card_picture.dart';
 import '../../../flashcard/flashcard_controller.dart';
 import '../../../flashcard/flashcard_models.dart';
 import '../../../../state/audy_controller.dart';
 import '../../caretaker_ui.dart';
-import '../custom_cards_editor.dart';
-
-class _PreviewApi extends FlashcardApiService {
-  _PreviewApi(this.cards);
-  final List<Map<String, dynamic>> cards;
-  @override
-  Future<FlashcardRound> generateRound({
-    required String language,
-    required int wordCount,
-    List<Map<String, dynamic>>? customCards,
-  }) => super.generateRound(
-    language: language,
-    wordCount: wordCount,
-    customCards: cards,
-  );
-  @override
-  Future<FlashcardValidation> validateRound({
-    required String roundId,
-    required String language,
-    required List<String> targetCardIds,
-    required List<String> selectedCardIds,
-    List<Map<String, dynamic>>? customCards,
-  }) => super.validateRound(
-    roundId: roundId,
-    language: language,
-    targetCardIds: targetCardIds,
-    selectedCardIds: selectedCardIds,
-    customCards: cards,
-  );
-}
 
 class FlashcardPreview extends StatefulWidget {
   const FlashcardPreview({super.key, required this.values});
@@ -71,11 +41,11 @@ class _FlashcardPreviewState extends State<FlashcardPreview> {
         : <Map<String, dynamic>>[];
     final c = FlashcardController(
       difficulty: FlashcardDifficulty.values.byName(level),
-      api: _PreviewApi(cards),
+      preferCustomCards: true,
     );
     _controller = c;
     c.addListener(_changed);
-    c.startSession(_language);
+    c.startSession(_language, customCards: cards);
     setState(() {});
   }
 
